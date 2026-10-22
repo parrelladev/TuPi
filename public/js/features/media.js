@@ -13,9 +13,18 @@ export class Media {
     this.cameraBusy = false;
     this.screenBusy = false;
     this.audioProfile = 'standard';
+    this.quality = null;
     ui.$('micBtn').addEventListener('click', () => this.toggleMic());
     ui.$('cameraBtn').addEventListener('click', () => this.toggleCamera());
-    ui.$('screenBtn').addEventListener('click', () => this.toggleScreen());
+    ui.$('screenBtn').addEventListener('click', event => {
+      if (this.screenStream) {
+        event.preventDefault();
+        void this.toggleScreen();
+      }
+    });
+    ui.$('shareConfiguredBtn').addEventListener('click', async () => {
+      if (await this.toggleScreen()) ui.closeShareSettings();
+    });
     ui.$('microphoneSelect').addEventListener('change', event => { void this.changeDevice('audioinput', event.target.value); });
     ui.$('cameraSelect').addEventListener('change', event => { void this.changeDevice('videoinput', event.target.value); });
     ui.$('audioProfile').addEventListener('change', event => {
@@ -40,6 +49,7 @@ export class Media {
       cameraSender.replaceTrack(this.cameraStream?.getVideoTracks()[0] || null),
       screenSender.replaceTrack(this.screenStream?.getVideoTracks()[0] || null)
     ]);
+    await Promise.allSettled([this.quality?.applySource()]);
   }
 
   detachSenders() { this.audioSender = this.cameraSender = this.screenSender = null; }
@@ -74,7 +84,9 @@ export class Media {
       if (this.cameraStream) { await this.stopSource('camera'); return; }
       const apiError = this.mediaApiError('A câmera'); if (apiError) throw new Error(apiError);
       const deviceId = this.ui.$('cameraSelect').value;
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { deviceId: deviceId ? { exact: deviceId } : undefined, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } } });
+      const video = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } };
+      if (deviceId) video.deviceId = { exact: deviceId };
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video });
       this.cameraStream = stream;
       const track = stream.getVideoTracks()[0];
       track.onended = () => { if (this.cameraStream === stream) void this.stopSource('camera'); };
@@ -92,13 +104,15 @@ export class Media {
       if (this.screenStream) { await this.stopSource('screen'); return; }
       const apiError = this.mediaApiError('O compartilhamento de tela'); if (apiError) throw new Error(apiError);
       if (typeof navigator.mediaDevices.getDisplayMedia !== 'function') throw new Error('Este navegador ou dispositivo não oferece compartilhamento de tela. Use um navegador de desktop recente.');
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 20 }, audio: false });
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: this.quality?.captureConstraints() || { frameRate: 20 }, audio: false });
       this.screenStream = stream;
       const track = stream.getVideoTracks()[0];
       track.onended = () => { if (this.screenStream === stream) void this.stopSource('screen'); };
       await this.screenSender?.replaceTrack(track);
       this.ui.renderScreen(stream, this.remoteScreenStream);
-    } catch (error) { this.reportCaptureError(error, 'tela'); }
+      await this.quality?.applySource();
+      return true;
+    } catch (error) { this.reportCaptureError(error, 'tela'); return false; }
     finally { this.screenBusy = false; }
   }
 
@@ -126,7 +140,9 @@ export class Media {
     if (!this[`${source === 'mic' ? 'mic' : 'camera'}Stream`]) return;
     const streamKey = source === 'mic' ? 'micStream' : 'cameraStream';
     try {
-      const constraints = source === 'mic' ? { audio: this.audioConstraints(deviceId), video: false } : { audio: false, video: { deviceId: deviceId ? { exact: deviceId } : undefined, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } } };
+      const constraints = source === 'mic'
+        ? { audio: this.audioConstraints(deviceId), video: false }
+        : { audio: false, video: { deviceId: deviceId ? { exact: deviceId } : undefined, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } } };
       const nextStream = await navigator.mediaDevices.getUserMedia(constraints);
       const oldStream = this[streamKey];
       const track = source === 'mic' ? nextStream.getAudioTracks()[0] : nextStream.getVideoTracks()[0];

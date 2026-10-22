@@ -283,43 +283,61 @@ Tarefas:
 
 ### M4 — Controle de qualidade e diagnóstico
 
+**Status:** controles de qualidade e diagnóstico implementados; validação de mídia com dois peers/dispositivos reais pendente.
+
 Tarefas:
-- [ ] Perfis iniciais de tela: economia (720p30), equilibrado (1080p30), fluidez (1080p60), ultra (tentativa de 4K60). **Perfis são solicitações, não garantias.**
-- [ ] Perfil de câmera independente, com limites adequados.
-- [ ] UI para resolução, FPS, bitrate máximo desejado e prioridade fluidez/nitidez.
-- [ ] Verificar capacidades de codecs e codificação de hardware quando possível; não assumir AV1/VP9 em todos os dispositivos.
-- [ ] Aplicar `getDisplayMedia`/`getUserMedia` constraints e `RTCRtpSender.setParameters()` quando suportado; verificar valores efetivos.
-- [ ] Monitorar `getStats()` e mostrar bitrate real, FPS, RTT, jitter, perda e estado ICE.
-- [ ] Ajuste adaptativo conservador, com histerese, evitando oscilações rápidas e sem competir com o controle de congestionamento do WebRTC.
-- [ ] Indicador “direto/relay TURN” apenas quando as estatísticas permitirem identificar.
+- [x] Perfis iniciais e personalizados de tela: 480p, 720p, 1080p, 1440p, 4K tentativo, nativa e 30–144 FPS. Perfis aplicam solicitações e exibem valores efetivos quando o navegador informa.
+- [ ] Perfil avançado de qualidade da câmera removido do escopo por decisão do proprietário (22/10/2026); câmera usa constraints padrão de 720p/30 e seleção de dispositivo.
+- [x] UI para resolução, FPS, bitrate máximo desejado e foco automático/jogo/vídeo (fluidez/nitidez).
+- [x] Consultar codecs divulgados por `RTCRtpSender.getCapabilities()` sem presumir AV1/VP9. A Web API não confirma de modo interoperável o uso de encoder de hardware.
+- [x] Aplicar constraints de captura e `RTCRtpSender.setParameters()` quando disponíveis; exibir a resolução/FPS efetivos da captura.
+- [x] Monitorar `getStats()` e mostrar bitrate/FPS medidos, RTT, jitter, perda e estado da conexão ICE.
+- [x] Ajuste adaptativo conservador com histerese: reduz gradualmente o teto após congestionamento persistente e recupera em amostras estáveis.
+- [x] Indicar conexão direta ou relay TURN somente quando o candidato local permitir identificação.
 - [ ] Testar carga CPU/GPU, estabilidade e consumo de rede durante duas telas simultâneas.
 
-**Aceite:** mudanças de perfil refletem solicitações verificáveis, métricas exibem valores reais, queda de rede não causa travamento permanente e configurações não prometem qualidade impossível.
+**Validação automatizada:** `npm run check` passou; `npm test` passou (3 testes); `git diff --check` sem erros.
+
+**Pendente para aceite:** teste manual em dois peers com capturas simultâneas, conferência de bitrate/CPU/GPU sob carga, variação e queda de rede, e compatibilidade dos constraints/estatísticas nos navegadores suportados. Os testes existentes cobrem servidor, não simulam captura ou conexão WebRTC.
+
+**Aceite:** solicitações de perfil e métricas reais implementadas; aceite de mídia e estabilidade pendente da validação manual acima.
 
 ### M5 — Transferência de arquivos P2P
 
+**Status:** aprovado pelo proprietário em 22/10/2026; a validação funcional entre dois peers segue sem evidência registrada.
+
 Tarefas:
-- [ ] Criar DataChannel específico para arquivos, separado de chat/controle.
-- [ ] Protocolo de metadados (ID, nome, tamanho, MIME, chunks, status); validação e limite configurável.
-- [ ] Consentimento explícito para recebimento.
-- [ ] Envio em chunks com `bufferedAmount` e `bufferedAmountLowThreshold`, backpressure e controle de memória.
-- [ ] Progresso, cancelamento e limpeza de transferências interrompidas.
-- [ ] Verificação de integridade por hash quando viável sem carregar o arquivo inteiro na memória.
-- [ ] Priorizar mídia: limitar/pausar transferência quando RTT, perda ou congestionamento aumentarem.
-- [ ] Documentar diferenças de suporte para gravação em disco/streaming e fallback de memória.
+- [x] Criar DataChannel `files` específico para arquivos, separado do canal `messages`.
+- [x] Definir metadados (ID, nome, tamanho, MIME, chunks, status), validação e limite de 20 GiB por oferta.
+- [x] Exigir consentimento explícito para recebimento.
+- [x] Enviar chunks de 64 KiB com controle por buffer, confirmação após gravação e um bloco em voo.
+- [x] Mostrar progresso, permitir cancelamento e limpar recursos em desconexão/saída.
+- [x] Verificar SHA-256 de cada bloco, além da ordem, quantidade de blocos e tamanho total.
+- [x] Pausar envio quando o ajuste adaptativo existente sinalizar congestionamento persistente.
+- [x] Documentar gravação incremental com `showSaveFilePicker` e fallback em memória limitado a 64 MiB.
+
+**Validação automatizada:** `npm run check` passou. `git diff --check` passou. `npm test` não concluiu: os três testes existentes falharam porque o processo servidor do fixture não iniciou em até 5 segundos; a suíte usa bind/spawn local e não chegou a executar as asserções dos casos.
+
+**Pendente para aceite:** validar dois peers reais, aceitação/recusa, arquivos vazios/pequenos/grandes, cancelamento nos dois lados, confirmação de hash, navegador sem `showSaveFilePicker` e transferência durante carga de mídia. O suporte de `showSaveFilePicker` depende do navegador/contexto seguro.
+
+**Aceite:** implementação do protocolo, controles e documentação concluídos; aceite funcional de transferência e impacto em áudio/vídeo pendente dos testes manuais acima.
 
 **Aceite:** arquivo recebido íntegro; cancelamento funciona; arquivos grandes não exigem buffer completo em RAM; transferência não inviabiliza áudio/vídeo em testes de rede.
 
 ### M6 — Watch Together: YouTube
 
+**Status:** implementação inicial concluída; validação funcional em dois navegadores pendente.
+
 Tarefas:
-- [ ] UI para colar URL/ID de vídeo e abrir player incorporado.
-- [ ] Integrar YouTube IFrame Player API; cada peer baixa o vídeo diretamente do YouTube.
-- [ ] Sincronizar play/pause/seek/estado e estimativa de posição via DataChannel de controle.
-- [ ] Usar relógio/estimativa de offset e correção suave de drift, com tolerância configurável.
-- [ ] Resolver comandos concorrentes (versão sequencial, timestamp lógico ou autoridade explícita).
-- [ ] Tratar autoplay bloqueado, anúncios, buffering, vídeo indisponível e embed desabilitado.
-- [ ] Não baixar/redistribuir vídeos do YouTube nem tentar contornar restrições.
+- [x] UI para colar URL/ID de vídeo e abrir player incorporado.
+- [x] Integrar YouTube IFrame Player API; cada peer baixa o vídeo diretamente do YouTube.
+- [x] Sincronizar play/pause/seek/estado e estimativa de posição via DataChannel de controle.
+- [x] Aplicar tolerância configurável, correção suave de drift e snapshots periódicos do criador da sala.
+- [x] Resolver comandos concorrentes com relógio lógico e desempate determinístico por peer.
+- [x] Apresentar mensagens para autoplay bloqueado, buffering, vídeo indisponível e incorporação desativada; preservar os controles padrão do player YouTube.
+- [x] Não baixar/redistribuir vídeos do YouTube nem tentar contornar restrições.
+
+**Validação pendente:** executar `npm run check` e validar com dois navegadores: carga do mesmo vídeo, sincronização play/pause/seek, comando simultâneo, autoplay bloqueado, buffering, vídeo indisponível/embed bloqueado e recuperação após desconexão do peer. A validação exige conexão ao YouTube e não foi confirmada neste workspace.
 
 **Aceite:** dois navegadores podem abrir o mesmo vídeo e sincronizar comandos em condições normais; erros de embed e divergências são apresentados claramente; sem tráfego de vídeo pelo servidor TuPi.
 

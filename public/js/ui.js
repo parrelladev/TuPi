@@ -1,5 +1,8 @@
 export function createUI() {
   const $ = id => document.getElementById(id);
+  let effectiveScreenQuality = '';
+
+  function closeShareSettings() { $('screenSettings').open = false; }
 
   function notify(message) {
     $('toast').textContent = message;
@@ -46,7 +49,8 @@ export function createUI() {
     $('screenViews').classList.toggle('has-media', hasLocal || hasRemote);
     $('screenViews').parentElement.classList.toggle('active', hasLocal || hasRemote);
     $('screenPlaceholder').classList.toggle('hidden', hasLocal || hasRemote);
-    const badge = hasBoth ? 'Duas telas ativas' : hasRemote ? 'Tela do convidado' : hasLocal ? 'Sua tela compartilhada' : 'Aguardando compartilhamento';
+    let badge = hasBoth ? 'Duas telas ativas' : hasRemote ? 'Tela do convidado' : hasLocal ? 'Sua tela compartilhada' : 'Aguardando compartilhamento';
+    if (hasLocal && effectiveScreenQuality) badge += ` · ${effectiveScreenQuality}`;
     $('screenBadge').innerHTML = '<i></i> ' + badge;
     $('screenBtn').querySelector('span:last-child').textContent = hasLocal ? 'Parar tela' : 'Compartilhar tela';
     $('screenBtn').setAttribute('aria-label', hasLocal ? 'Parar compartilhamento de tela' : 'Compartilhar tela');
@@ -105,6 +109,39 @@ export function createUI() {
   function setPeerMediaStatus(message) { $('peerMediaStatus').textContent = message; }
   function setRemoteAudio(stream) { $('remoteAudio').srcObject = stream; }
   function setAudioPlaybackBlocked(blocked) { $('enableAudioBtn').classList.toggle('hidden', !blocked); }
+  function setEffectiveQuality(message) {
+    let element = $('effectiveScreenQuality');
+    if (!element) {
+      element = document.createElement('span');
+      element.id = 'effectiveScreenQuality';
+      $('qualityDiagnostics').prepend(element);
+    }
+    element.textContent = message;
+    effectiveScreenQuality = message.replace(/^Tela:\s*/, '');
+    if (!$('localMediaTile').classList.contains('hidden')) {
+      const badge = $('screenBadge');
+      const indicator = document.createElement('i');
+      badge.replaceChildren(indicator, document.createTextNode(` Sua tela compartilhada · ${effectiveScreenQuality}`));
+    }
+  }
+  function setConnectionDiagnostics(message) {
+    let element = $('connectionDiagnostics');
+    if (!element) {
+      element = document.createElement('span');
+      element.id = 'connectionDiagnostics';
+      $('qualityDiagnostics').append(element);
+    }
+    element.textContent = message;
+  }
+  function setCodecCapabilities(message) {
+    let element = $('codecCapabilities');
+    if (!element) {
+      element = document.createElement('span');
+      element.id = 'codecCapabilities';
+      $('qualityDiagnostics').append(element);
+    }
+    element.textContent = `Codecs disponíveis: ${message}`;
+  }
   function clearRoomView() {
     setChatConnected(false);
     setPeerMediaStatus('Aguardando...');
@@ -113,5 +150,5 @@ export function createUI() {
     setAudioPlaybackBlocked(false);
   }
 
-  return { $, notify, status, setParticipantCount, setChatConnected, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, clearRoomView };
+  return { $, notify, status, setParticipantCount, setChatConnected, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setCodecCapabilities, closeShareSettings, clearRoomView };
 }
