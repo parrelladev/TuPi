@@ -35,7 +35,7 @@ const MAX_CONNECTIONS_PER_IP = 12;
 const MAX_CONNECTIONS = 200;
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const CSP = "default-src 'self'; script-src 'self' https://www.youtube.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' ws: wss: https://www.youtube.com stun: stuns: turn: turns:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
-const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png' };
+const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
 
 let iceServers = [];
 function parseIceUrls(value, variable) {
@@ -155,6 +155,7 @@ const server = http.createServer((req, res) => {
     '/style.css': 'style.css',
     '/assets/tupi-logo.svg': 'assets/tupi-logo.svg',
     '/assets/tupi-logo.png': 'assets/tupi-logo.png',
+    '/assets/favicon.ico': 'assets/favicon.ico',
     '/js/ui.js': 'js/ui.js',
     '/js/core/signaling.js': 'js/core/signaling.js',
     '/js/core/peer.js': 'js/core/peer.js',
