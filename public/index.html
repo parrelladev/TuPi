@@ -2,31 +2,69 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#0d1019" />
-  <title>PeerTalk — voz e tela P2P</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#fffaf8" />
+  <meta name="description" content="Uma sala privada para conversar, compartilhar a tela e trocar mensagens diretamente." />
+  <title>TuPi — voz e tela P2P</title>
+  <link rel="icon" href="/assets/tupi-logo.png" type="image/png" />
   <link rel="stylesheet" href="/style.css" />
-  <script src="/app.js" defer></script>
+  <script src="/app.js" type="module"></script>
 </head>
 <body>
   <main class="app">
-    <header class="topbar"><div class="brand"><span class="brandmark">◈</span><span>peer<span class="accent">talk</span></span></div><span class="topnote">Voz + tela, de navegador para navegador</span></header>
-    <section id="landing" class="landing panel">
-      <span class="eyebrow">SEM CONTA. SEM INSTALAÇÃO.</span>
-      <h1>Converse. Mostre sua tela.<br /><span class="accent">Simples assim.</span></h1>
-      <p>Uma sala privada para duas pessoas. Áudio, tela e mensagens via WebRTC.</p>
-      <button id="createBtn" class="primary big">Criar sala →</button>
-      <div class="subtle">Compartilhe o link gerado com outra pessoa.</div>
-    </section>
-    <section id="room" class="room hidden" aria-label="Sala">
-      <div class="room-header panel"><div><div class="eyebrow">SALA PRIVADA · ATÉ 2 PESSOAS</div><h2 id="roomTitle">Sua sala</h2><span id="status" class="status" role="status" aria-live="polite">Conectando...</span></div><div class="invite"><input id="inviteUrl" readonly aria-label="Link de convite" /><button id="copyBtn" class="secondary">Copiar link</button></div></div>
-      <div class="columns">
-        <section class="stage panel"><div class="stage-head"><span>TRANSMISSÃO DE TELA</span><span id="screenBadge" class="pill">Inativa</span></div><div class="screen-area"><video id="screenVideo" autoplay playsinline class="hidden"></video><div id="screenPlaceholder" class="screen-placeholder"><div class="screen-icon">▣</div><h3>Nenhuma tela sendo compartilhada</h3><p>Clique em “Compartilhar tela” para começar.</p></div></div><div class="controls"><button id="micBtn" class="secondary">🎙 Ativar microfone</button><button id="screenBtn" class="primary">▣ Compartilhar tela</button><button id="leaveBtn" class="danger">Sair da sala</button></div><div class="participants"><div><span class="avatar">EU</span><span>Você</span><small id="localMediaStatus">Microfone desligado</small></div><div><span class="avatar other">P2</span><span>Convidado</span><small id="peerMediaStatus">Aguardando...</small></div></div><audio id="remoteAudio" autoplay playsinline></audio></section>
-        <section class="chat panel"><div class="chat-header"><strong>Mensagens</strong><span id="chatStatus">Desconectado</span></div><div id="messages" class="messages" role="log" aria-live="polite"><div class="notice">As mensagens são trocadas diretamente entre navegadores e não são salvas.</div></div><form id="chatForm" class="chat-compose"><input id="chatInput" maxlength="2000" placeholder="Escreva uma mensagem..." autocomplete="off" disabled aria-label="Mensagem" /><button id="sendBtn" class="primary" disabled aria-label="Enviar mensagem">➤</button></form></section>
+    <section id="landing" class="landing landing-minimal" aria-labelledby="homeTitle">
+      <div class="hero-copy hero-minimal">
+        <a class="brand home-brand" href="/" aria-label="TuPi, página inicial">
+          <img src="/assets/tupi-logo.png" alt="TuPi" />
+        </a>
+        <h1 id="homeTitle" class="sr-only">Entrar em uma sala TuPi</h1>
+        <button id="createBtn" class="button button-primary button-large">Criar nova sala</button>
+        <form id="joinForm" class="join-room"><label class="sr-only" for="roomCode">Nome da fruta ou link da sala</label><input id="roomCode" maxlength="2000" autocomplete="off" spellcheck="false" placeholder="Nome da fruta ou link da sala" /><button class="join-button" type="submit">Entrar <span aria-hidden="true">→</span></button></form>
+        <div class="hero-reassurance"><span class="check-icon" aria-hidden="true">✓</span> Grátis para começar <span class="reassurance-separator">·</span> Sem conta <span class="reassurance-separator">·</span> Até 2 pessoas</div>
       </div>
-      <p class="footnote">WebRTC usa criptografia em trânsito. Algumas redes precisam de um servidor TURN para retransmissão. Não grave ou compartilhe conteúdo sem consentimento.</p>
+    </section>
+
+    <section id="room" class="room hidden" aria-label="Sala">
+      <div class="room-header panel">
+        <a class="room-brand" href="/" aria-label="TuPi, página inicial"><img src="/assets/tupi-logo.png" alt="TuPi" /></a>
+        <div class="room-code"><h2 id="roomTitle">Sala</h2><label class="sr-only" for="inviteUrl">Link de convite</label><input id="inviteUrl" class="sr-only" readonly aria-label="Link de convite" /><button id="copyBtn" class="copy-room-link" aria-label="Copiar link da sala" title="Copiar link"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button></div>
+        <div class="room-header-tools"><span id="status" class="status" role="status" aria-live="polite">Conectando...</span><span class="room-member-count" aria-label="Participantes na sala"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0m1-8a3 3 0 0 0 0-6m1 8a5 5 0 0 1 4 5"/></svg><span id="participantCount">1</span></span><button class="header-more" type="button" disabled aria-label="Mais opções em breve" title="Mais opções em breve">•••</button></div>
+      </div>
+      <div class="columns">
+        <section class="stage panel" aria-label="Mídia da sala">
+          <div class="screen-area">
+            <div id="screenViews" class="screen-views">
+              <div id="localMediaTile" class="media-tile hidden"><video id="localScreenVideo" autoplay muted playsinline aria-label="Sua tela compartilhada"></video><span class="media-name">Você · Tela</span></div>
+              <div id="remoteMediaTile" class="media-tile hidden"><video id="screenVideo" autoplay playsinline aria-label="Tela do convidado"></video><span class="media-name">Convidado · Tela</span></div>
+            </div>
+            <div id="screenPlaceholder" class="screen-placeholder"><div class="empty-illustration" aria-hidden="true"><div class="empty-orbit"></div><div class="empty-monitor"><span>◫</span><i></i></div><div class="empty-person empty-person-one">V</div><div class="empty-person empty-person-two">?</div><div class="empty-star">✦</div></div><h3>A sala está pronta para vocês</h3><p>Compartilhe sua tela ou ligue o microfone para começar.</p><span class="waiting-label"><i></i> <span id="peerMediaStatus">Aguardando outra pessoa</span></span></div>
+            <span id="screenBadge" class="pill stage-status"><i></i> Aguardando compartilhamento</span>
+          </div>
+          <audio id="remoteAudio" autoplay playsinline></audio>
+        </section>
+        <section id="chatPanel" class="chat panel" aria-label="Chat da sala"><div class="chat-header"><div><span class="chat-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.3-.7L4 20l1.7-4A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h.01m3.5 0h.01m3.5 0h.01"/></svg></span><strong>Mensagens</strong></div><span class="chat-connection"><i></i><span id="chatStatus">Desconectado</span></span></div><div id="messages" class="messages" role="log" aria-live="polite"><div class="notice"><span class="notice-lock" aria-hidden="true">⌑</span><span>As mensagens são trocadas diretamente entre vocês e não são salvas.</span></div></div><form id="chatForm" class="chat-compose"><label class="sr-only" for="chatInput">Escreva uma mensagem</label><input id="chatInput" maxlength="2000" placeholder="Escreva uma mensagem..." autocomplete="off" disabled aria-label="Mensagem" /><button id="sendBtn" class="button send-button" disabled aria-label="Enviar mensagem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 3-7.5 18-3.2-7.3L3 10.5 21 3Z"/><path d="M10.3 13.7 15 9"/></svg></button></form></section>
+      </div>
+      <div class="room-toolbar" aria-label="Controles da sala">
+        <button id="micBtn" class="button control-button toolbar-action" aria-label="Ativar microfone" aria-pressed="false"><span class="control-icon mic-icon" aria-hidden="true"><svg class="mic-on-icon" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/></svg><svg class="mic-off-icon" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8M3 3l18 18"/></svg></span><span class="sr-only">Microfone</span></button>
+        <button id="cameraBtn" class="button control-button toolbar-action future-action" type="button" disabled aria-label="Câmera disponível em breve" title="Câmera disponível em breve"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg></span><span>Câmera</span></button>
+        <button id="screenBtn" class="button button-primary control-button toolbar-action" aria-label="Compartilhar tela"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M8 20h8m-4-3.5V20"/></svg></span><span>Compartilhar</span></button>
+        <button id="chatToggleBtn" class="button control-button toolbar-action chat-toggle" aria-controls="chatPanel" aria-expanded="true" aria-label="Ocultar chat"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.3-.7L4 20l1.7-4A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h.01m3.5 0h.01m3.5 0h.01"/></svg></span><span>Chat</span></button>
+        <button class="button control-button toolbar-action future-action" type="button" disabled aria-label="Mais funções em breve" title="Mais funções em breve"><span class="control-icon" aria-hidden="true">•••</span><span>Mais</span></button>
+        <button id="leaveBtn" class="button button-leave toolbar-action"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 10.5a11 11 0 0 1 14 0l-2 3.5-3-1.5h-4l-3 1.5-2-3.5Z"/></svg></span><span>Sair</span></button>
+      </div>
+      <p class="footnote"><span aria-hidden="true">⌑</span> WebRTC usa criptografia em trânsito. Algumas redes precisam de um servidor TURN para retransmissão.</p>
     </section>
     <div id="toast" class="toast hidden" role="alert"></div>
   </main>
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <div class="footer-meta">
+        <span>© 2026 TuPi</span><span class="footer-separator" aria-hidden="true">·</span>
+        <span>Versão 1.0.0</span><span class="footer-separator" aria-hidden="true">·</span>
+        <a href="https://github.com/parrelladev/TuPi" target="_blank" rel="noopener noreferrer">Repositório no GitHub</a>
+      </div>
+      <span class="footer-tech">Tecnologia: peer-to-peer</span>
+    </div>
+  </footer>
 </body>
 </html>
