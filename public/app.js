@@ -65,8 +65,8 @@ async function enterRoom(id, roomName = 'TuPi') {
   ui.$('room').classList.remove('hidden');
   ui.$('room').classList.remove('chat-open', 'chat-collapsed');
   const chatInitiallyOpen = !window.matchMedia('(max-width: 760px)').matches;
-  ui.$('chatToggleBtn').setAttribute('aria-expanded', String(chatInitiallyOpen));
-  ui.$('chatToggleBtn').setAttribute('aria-label', chatInitiallyOpen ? 'Ocultar chat' : 'Mostrar chat');
+  chat.markRead();
+  ui.setChatOpen(chatInitiallyOpen);
   ui.$('roomTitle').textContent = `Sala ${roomName}`;
   const invite = new URL(location.href);
   invite.searchParams.set('room', roomName.toLowerCase());
@@ -152,8 +152,8 @@ ui.$('chatToggleBtn').addEventListener('click', () => {
     open = room.classList.contains('chat-collapsed');
     room.classList.toggle('chat-collapsed', !open);
   }
-  button.setAttribute('aria-expanded', String(open));
-  button.setAttribute('aria-label', open ? 'Ocultar chat' : 'Mostrar chat');
+  ui.setChatOpen(open);
+  if (open) chat.markRead();
 });
 const deviceSettings = ui.$('deviceSettings');
 const screenSettings = ui.$('screenSettings');

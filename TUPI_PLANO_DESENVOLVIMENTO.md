@@ -364,20 +364,38 @@ Tarefas:
 
 **Aceite:** instalação pelo terminal documentada e reproduzível, sem Docker; aplicação funcional em cenários suportados e limitações conhecidas registradas.
 
-### M9 — Validação operacional e experiência do chat
+### M9 — Notificações no chat
+
+**Status:** implementação concluída; validação manual entre dois peers pendente.
+
+Tarefas:
+- [x] Adicionar indicação visual de novas mensagens e estado de mensagens não lidas no chat.
+- [x] Adicionar notificação sonora configurável, respeitando ativação/interação exigida pelo navegador, opção de silenciar e preferências de acessibilidade.
+
+**Validação local:** `npm run check`, `npm test` (6 testes) e `git diff --check` passaram. Os testes automatizados existentes cobrem o servidor; não exercitam interface, áudio ou interação real entre dois peers.
+
+**Aceite:** indicação visual, contador de não lidas, controle de som e rótulos acessíveis implementados. Confirmação manual em dois navegadores permanece pendente.
+
+### M10 — Validação de redes e desempenho
 
 **Status:** planejado; não iniciado.
 
 Tarefas:
 - [ ] Validar sessões entre redes diferentes, incluindo NAT restritivo, uso de TURN real e recuperação após perda de conexão.
 - [ ] Medir tamanho do bundle, CPU, memória, bitrate de envio/recebimento e comportamento em sessão prolongada; registrar ambiente e método para que os resultados sejam reproduzíveis.
-- [ ] Adicionar indicação visual de novas mensagens e estado de mensagens não lidas no chat.
-- [ ] Adicionar notificação sonora configurável, respeitando ativação/interação exigida pelo navegador, opção de silenciar e preferências de acessibilidade.
+
+**Aceite:** cenários de rede, medições e limitações ficam documentados com ambiente e método reproduzíveis.
+
+### M11 — Avaliação de controle remoto
+
+**Status:** estudo de viabilidade planejado; funcionalidade não aprovada para implementação de produto.
+
+Tarefas:
 - [ ] Investigar viabilidade de controle remoto: definir se o objetivo é controlar apenas a interface do TuPi ou o computador inteiro; mapear permissões, consentimento explícito, início/parada, revogação, plataformas e riscos de segurança.
 - [ ] Fazer prova de conceito isolada para controle remoto apenas depois da análise. Controle de mouse/teclado do sistema inteiro não é oferecido por APIs web comuns; avaliar a necessidade de um componente nativo separado e seu custo de instalação, distribuição, manutenção e segurança.
 - [ ] Medir o tráfego e a latência dos comandos na prova de conceito. Eventos de controle tendem a usar poucos dados comparados ao vídeo, mas o custo real depende da frequência dos eventos, da arquitetura e da captura de tela.
 
-**Aceite:** cenários de rede, medições e limitações ficam documentados; notificações visual e sonora funcionam com controles acessíveis; a decisão sobre controle remoto é baseada em uma prova de conceito e análise de segurança, sem habilitar acesso remoto sem consentimento claro e revogável.
+**Aceite:** a decisão de prosseguir ou não fica registrada com base em análise de segurança e prova de conceito; nenhum acesso remoto é habilitado sem consentimento claro e revogável.
 
 ---
 
@@ -446,7 +464,9 @@ feat/m4-quality
 feat/m5-file-transfer
 feat/m6-youtube-sync
 chore/m8-selfhost-hardening
-feat/m9-network-validation-chat-notifications
+feat/m9-chat-notifications
+test/m10-network-validation
+research/m11-remote-control
 ```
 
 Para cada marco, entregar:

@@ -1,5 +1,5 @@
 {
-  "name": "peertalk-mvp",
+  "name": "TuPi",
   "version": "1.0.0",
   "private": true,
   "description": "Minimal WebRTC P2P voice, screen share and text chat",

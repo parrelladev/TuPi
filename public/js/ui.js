@@ -1,6 +1,7 @@
 export function createUI() {
   const $ = id => document.getElementById(id);
   let effectiveScreenQuality = '';
+  let unreadChatCount = 0;
 
   function closeShareSettings() { $('screenSettings').open = false; }
 
@@ -19,6 +20,30 @@ export function createUI() {
     $('chatStatus').parentElement.classList.toggle('connected', ready);
     $('chatInput').disabled = !ready;
     $('sendBtn').disabled = !ready;
+  }
+
+  function setChatUnread(count) {
+    const button = $('chatToggleBtn');
+    const badge = $('chatUnreadBadge');
+    const unread = Math.max(0, Number(count) || 0);
+    unreadChatCount = unread;
+    badge.textContent = unread > 99 ? '99+' : String(unread);
+    badge.classList.toggle('hidden', unread === 0);
+    const open = button.getAttribute('aria-expanded') === 'true';
+    button.setAttribute('aria-label', `${open ? 'Ocultar' : 'Mostrar'} chat${unread ? `, ${unread} ${unread === 1 ? 'mensagem não lida' : 'mensagens não lidas'}` : ''}`);
+  }
+
+  function setChatOpen(open) {
+    $('chatToggleBtn').setAttribute('aria-expanded', String(open));
+    setChatUnread(unreadChatCount);
+  }
+
+  function setChatSoundEnabled(enabled) {
+    const button = $('chatSoundToggle');
+    button.setAttribute('aria-pressed', String(enabled));
+    button.setAttribute('aria-label', `${enabled ? 'Silenciar' : 'Ativar'} som de novas mensagens`);
+    button.title = `${enabled ? 'Silenciar' : 'Ativar'} som de novas mensagens`;
+    button.classList.toggle('enabled', enabled);
   }
 
   function addMessage(who, text, mine = false) {
@@ -150,5 +175,5 @@ export function createUI() {
     setAudioPlaybackBlocked(false);
   }
 
-  return { $, notify, status, setParticipantCount, setChatConnected, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setCodecCapabilities, closeShareSettings, clearRoomView };
+  return { $, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setCodecCapabilities, closeShareSettings, clearRoomView };
 }

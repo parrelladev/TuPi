@@ -42,6 +42,7 @@ HOST=127.0.0.1 PORT=3000 npm start
 - `ws(s)://.../signal` encaminha SDP/ICE entre os dois participantes, sem manipular a mídia.
 - `RTCPeerConnection` transporta microfone, câmera e tela por faixas de envio independentes; cada navegador controla suas fontes sem ligar dispositivos automaticamente.
 - `RTCDataChannel` transporta texto diretamente entre os navegadores.
+- O aviso sonoro de novas mensagens vem ativado e toca para cada mensagem recebida; o botão **Som** permite silenciá-lo, e a preferência fica salva neste navegador. O áudio só começa após uma interação do usuário, conforme as regras do navegador. Mensagens recebidas com o chat fechado ou a aba em segundo plano aparecem como não lidas no controle do chat.
 - Um canal `RTCDataChannel` separado transporta arquivos diretamente entre os navegadores. O recebimento pede consentimento, valida os blocos com SHA-256 encadeado e permite cancelar a transferência.
 - YouTube Watch Together usa um terceiro canal P2P para sincronizar o vídeo incorporado em cada navegador; o servidor TuPi não recebe nem retransmite vídeo.
 - As salas e mensagens ficam somente em memória; as salas são removidas quando o último usuário desconecta.

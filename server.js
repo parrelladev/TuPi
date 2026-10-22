@@ -259,7 +259,7 @@ const rateCleanup = setInterval(() => {
 wss.on('close', () => clearInterval(keepAlive));
 server.on('close', () => clearInterval(rateCleanup));
 server.listen(PORT, HOST, () => {
-  console.log('PeerTalk iniciado!');
+  console.log('TuPi iniciado!');
   console.log(`Local: http://localhost:${PORT}`);
   if (IPV6) console.log(`IPv6: http://[${IPV6}]:${PORT}`);
 });
