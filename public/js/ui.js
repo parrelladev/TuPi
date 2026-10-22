@@ -52,6 +52,34 @@ export function createUI() {
     $('screenBtn').setAttribute('aria-label', hasLocal ? 'Parar compartilhamento de tela' : 'Compartilhar tela');
   }
 
+  function renderCamera(localStream, remoteStream) {
+    const localTrack = localStream?.getVideoTracks().find(track => track.readyState === 'live');
+    const remoteTrack = remoteStream?.getVideoTracks().find(track => track.readyState === 'live' && !track.muted);
+    const local = localTrack ? localStream : null;
+    const remote = remoteTrack ? remoteStream : null;
+    $('localCameraVideo').srcObject = local;
+    $('remoteCameraVideo').srcObject = remote;
+    $('localCameraTile').classList.toggle('hidden', !local);
+    $('remoteCameraTile').classList.toggle('hidden', !remote);
+    $('cameraViews').classList.toggle('hidden', !local && !remote);
+    const enabled = !!local;
+    $('cameraBtn').classList.toggle('mic-enabled', enabled);
+    $('cameraBtn').setAttribute('aria-pressed', String(enabled));
+    $('cameraBtn').setAttribute('aria-label', enabled ? 'Desligar câmera' : 'Ativar câmera');
+    $('cameraBtn').querySelector('span:last-child').textContent = enabled ? 'Parar câmera' : 'Câmera';
+  }
+
+  function setDevices(devices) {
+    for (const [kind, id, label] of [['audioinput', 'microphoneSelect', 'Microfone'], ['videoinput', 'cameraSelect', 'Câmera']]) {
+      const select = $(id); const current = select.value;
+      const available = devices.filter(device => device.kind === kind);
+      select.replaceChildren(new Option(`Padrão (${label.toLowerCase()})`, ''));
+      available.forEach((device, index) => select.add(new Option(device.label || `${label} ${index + 1}`, device.deviceId)));
+      if ([...select.options].some(option => option.value === current)) select.value = current;
+      select.disabled = available.length === 0;
+    }
+  }
+
   function setMicState(state) {
     const button = $('micBtn');
     const enabled = state === 'on';
@@ -68,6 +96,12 @@ export function createUI() {
     else if (state === 'error') $('screenBadge').innerHTML = '<i></i> Falha ao compartilhar';
   }
 
+  function setSourceState(source, state) {
+    if (source === 'microfone') setMicState(state);
+    if (source === 'câmera') notify(state === 'denied' ? 'Permita o acesso à câmera nas configurações do navegador.' : 'Não foi possível ativar a câmera.');
+    if (source === 'tela') setScreenState(state);
+  }
+
   function setPeerMediaStatus(message) { $('peerMediaStatus').textContent = message; }
   function setRemoteAudio(stream) { $('remoteAudio').srcObject = stream; }
   function setAudioPlaybackBlocked(blocked) { $('enableAudioBtn').classList.toggle('hidden', !blocked); }
@@ -75,8 +109,9 @@ export function createUI() {
     setChatConnected(false);
     setPeerMediaStatus('Aguardando...');
     setRemoteAudio(null);
+    renderCamera(null, new MediaStream());
     setAudioPlaybackBlocked(false);
   }
 
-  return { $, notify, status, setParticipantCount, setChatConnected, addMessage, renderScreen, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, clearRoomView };
+  return { $, notify, status, setParticipantCount, setChatConnected, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, clearRoomView };
 }

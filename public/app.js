@@ -139,6 +139,37 @@ ui.$('chatToggleBtn').addEventListener('click', () => {
   button.setAttribute('aria-expanded', String(open));
   button.setAttribute('aria-label', open ? 'Ocultar chat' : 'Mostrar chat');
 });
+const deviceSettings = ui.$('deviceSettings');
+const moreButton = ui.$('moreBtn');
+const devicesMenuToggle = ui.$('devicesMenuToggle');
+const deviceOptions = ui.$('deviceOptions');
+function closeDeviceOptions() {
+  deviceOptions.classList.add('hidden');
+  devicesMenuToggle.setAttribute('aria-expanded', 'false');
+}
+deviceSettings.addEventListener('toggle', () => {
+  moreButton.setAttribute('aria-expanded', String(deviceSettings.open));
+  if (!deviceSettings.open) closeDeviceOptions();
+});
+devicesMenuToggle.addEventListener('click', () => {
+  const open = deviceOptions.classList.contains('hidden');
+  deviceOptions.classList.toggle('hidden', !open);
+  devicesMenuToggle.setAttribute('aria-expanded', String(open));
+});
+document.addEventListener('click', event => {
+  if (deviceSettings.open && !deviceSettings.contains(event.target)) deviceSettings.open = false;
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && deviceSettings.open) {
+    if (!deviceOptions.classList.contains('hidden')) {
+      closeDeviceOptions();
+      devicesMenuToggle.focus();
+    } else {
+      deviceSettings.open = false;
+      moreButton.focus();
+    }
+  }
+});
 window.addEventListener('beforeunload', () => { signaling?.close(); void media.stop(); });
 
 const initialRoom = new URLSearchParams(location.search).get('room');

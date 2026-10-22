@@ -265,15 +265,19 @@ Direção media-first aproximada do mockup: logo, código e copiar no cabeçalho
 
 ### M3 — Microfone robusto e câmera independente
 
+**Status:** implementação concluída nesta branch; aceite funcional pendente da matriz manual com dois peers e dispositivos reais.
+
 Tarefas:
-- [ ] Separar `audioSender`, `cameraSender` e `screenSender`/transceivers.
-- [ ] Adicionar câmera via `getUserMedia({video: ...})` e preview local.
-- [ ] Permitir microfone, câmera e tela em qualquer combinação, em ambos os peers.
-- [ ] Seleção de microfone/câmera; troca sem deixar tracks antigas abertas.
-- [ ] Configurar `echoCancellation`, `noiseSuppression`, `autoGainControl` com perfis padrão e natural, quando suportados.
-- [ ] Implementar negociação segura e identificação de fontes remotas.
-- [ ] Lidar com permissões, dispositivos removidos e interrupção de captura pelo sistema.
-- [ ] Considerar áudio de aba/sistema apenas quando suportado; não confundir com microfone.
+- [x] Separar `audioSender`, `cameraSender` e `screenSender`/transceivers.
+- [x] Adicionar câmera via `getUserMedia({video: ...})` e preview local.
+- [x] Permitir microfone, câmera e tela em qualquer combinação, em ambos os peers.
+- [x] Seleção de microfone/câmera; troca sem deixar tracks antigas abertas.
+- [x] Configurar `echoCancellation`, `noiseSuppression`, `autoGainControl` com perfis padrão e natural, quando suportados.
+- [x] Implementar negociação de transceivers estáveis e identificação de fontes remotas pela ordem/mid dos transceivers.
+- [x] Lidar com permissões, dispositivos removidos e interrupção de captura pelo sistema.
+- [ ] Considerar áudio de aba/sistema apenas quando suportado; não confundir com microfone. (Adiado: não habilitado neste marco.)
+
+**Validação pendente:** rodar `npm run check`, `npm test` e `git diff --check`; depois testar com dois peers as combinações independentes, troca de dispositivo, permissões e interrupção de captura. A validação automatizada não substitui o teste de mídia em dois navegadores/dispositivos.
 
 **Aceite:** matriz completa com 0/1/2 câmeras, 0/1/2 telas e áudio de ambos; ligar/desligar qualquer fonte não derruba as outras; sem eco/duplicação de áudio em cenários comuns.
 

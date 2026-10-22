@@ -2,7 +2,7 @@
 
 Sala minimalista para **2 pessoas** com voz, compartilhamento de tela e chat de texto.
 
-A interface oferece criação de sala ou entrada pelo nome de uma fruta ou pelo link de convite. Cada sala recebe uma fruta disponível entre dez opções; por isso, até dez salas podem estar ativas ao mesmo tempo. Os links usam o nome da fruta, por exemplo `?room=manga`; o ID aleatório é usado apenas internamente pelo servidor. Microfone e captura de tela só são ativados quando cada pessoa escolhe os controles na sala. O visual usa a identidade TuPi e se adapta a telas grandes e celulares.
+A interface oferece criação de sala ou entrada pelo nome de uma fruta ou pelo link de convite. Cada sala recebe uma fruta disponível entre dez opções; por isso, até dez salas podem estar ativas ao mesmo tempo. Os links usam o nome da fruta, por exemplo `?room=manga`; o ID aleatório é usado apenas internamente pelo servidor. Microfone, câmera e captura de tela só são ativados quando cada pessoa escolhe os controles na sala. Em “Dispositivos e áudio”, cada participante pode selecionar microfone/câmera e alternar entre processamento padrão (redução de eco/ruído e ganho automático, se suportados) e áudio natural. O visual usa a identidade TuPi e se adapta a telas grandes e celulares.
 
 ## Requisitos
 - Node.js 20+
@@ -17,7 +17,7 @@ npm start
 
 O endereço IPv6 usado apenas na mensagem de inicialização fica em `.env` (esse arquivo é ignorado pelo Git). Copie `.env.example` para `.env` e preencha `IPV6=` com o endereço público. Se preferir, configure `IPV6` diretamente nas variáveis de ambiente do serviço.
 
-Abra **http://localhost:3000** em duas abas do mesmo computador. Clique em **Criar nova sala** na primeira e digite o nome da fruta exibido na segunda, ou abra o link de convite. Ative microfone e/ou compartilhe a tela pelos controles. Use fones para evitar microfonia ao testar no mesmo dispositivo.
+Abra **http://localhost:3000** em duas abas do mesmo computador. Clique em **Criar nova sala** na primeira e digite o nome da fruta exibido na segunda, ou abra o link de convite. Ative microfone, câmera e/ou tela independentemente pelos controles. Use fones para evitar microfonia ao testar no mesmo dispositivo.
 
 Para desenvolvimento com reinício automático:
 
@@ -39,7 +39,7 @@ HOST=0.0.0.0 PORT=3000 npm start
 - `POST /api/rooms` cria uma sala com nome único de fruta e ID interno aleatório de 128 bits.
 - `GET /api/rooms/:nome-ou-id` resolve o nome manual da fruta ou o ID de um link ativo.
 - `ws(s)://.../signal` encaminha SDP/ICE entre os dois participantes, sem manipular a mídia.
-- `RTCPeerConnection` transporta microfone (áudio) e tela (vídeo).
+- `RTCPeerConnection` transporta microfone, câmera e tela por faixas de envio independentes; cada navegador controla suas fontes sem ligar dispositivos automaticamente.
 - `RTCDataChannel` transporta texto diretamente entre os navegadores.
 - As salas e mensagens ficam somente em memória; as salas são removidas quando o último usuário desconecta.
 
@@ -50,7 +50,7 @@ HOST=0.0.0.0 PORT=3000 npm start
 - Se o criador fechar a sala e a outra pessoa continuar, o link permanece válido enquanto houver participante.
 - O endereço da sala é um token de acesso: quem o conhece pode entrar, caso exista uma vaga.
 - Sem persistência, reconexão automática, proteção robusta antiabuso, rate limiting ou telemetria.
-- O MVP não transmite áudio da aba/sistema durante compartilhamento de tela; apenas áudio do microfone.
+- O TuPi não transmite áudio da aba/sistema durante compartilhamento de tela; apenas áudio do microfone. Áudio da captura de tela ainda não está implementado.
 - O navegador controla quais telas podem ser capturadas e pode bloquear autoplay até interação do usuário.
 
 ## Organização
