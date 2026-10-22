@@ -64,9 +64,10 @@ async function enterRoom(id, roomName = 'TuPi') {
   ui.$('featureStrip')?.classList.add('hidden');
   ui.$('room').classList.remove('hidden');
   ui.$('room').classList.remove('chat-open', 'chat-collapsed');
-  const chatInitiallyOpen = !window.matchMedia('(max-width: 760px)').matches;
+  const mobileLayout = window.matchMedia('(max-width: 760px)').matches;
+  if (!mobileLayout) ui.$('room').classList.add('chat-collapsed');
   chat.markRead();
-  ui.setChatOpen(chatInitiallyOpen);
+  ui.setChatOpen(false);
   ui.$('roomTitle').textContent = `Sala ${roomName}`;
   const invite = new URL(location.href);
   invite.searchParams.set('room', roomName.toLowerCase());
