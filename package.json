@@ -1,0 +1,13 @@
+{
+  "name": "peertalk-mvp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal WebRTC P2P voice, screen share and text chat",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js && node --check public/app.js"
+  },
+  "engines": {"node": ">=20"},
+  "dependencies": {"ws": "^8.18.0"}
+}

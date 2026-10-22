@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0d1019" />
+  <title>PeerTalk — voz e tela P2P</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar"><div class="brand"><span class="brandmark">◈</span><span>peer<span class="accent">talk</span></span></div><span class="topnote">Voz + tela, de navegador para navegador</span></header>
+    <section id="landing" class="landing panel">
+      <span class="eyebrow">SEM CONTA. SEM INSTALAÇÃO.</span>
+      <h1>Converse. Mostre sua tela.<br /><span class="accent">Simples assim.</span></h1>
+      <p>Uma sala privada para duas pessoas. Áudio, tela e mensagens via WebRTC.</p>
+      <button id="createBtn" class="primary big">Criar sala →</button>
+      <div class="subtle">Compartilhe o link gerado com outra pessoa.</div>
+    </section>
+    <section id="room" class="room hidden" aria-label="Sala">
+      <div class="room-header panel"><div><div class="eyebrow">SALA PRIVADA · ATÉ 2 PESSOAS</div><h2 id="roomTitle">Sua sala</h2><span id="status" class="status" role="status" aria-live="polite">Conectando...</span></div><div class="invite"><input id="inviteUrl" readonly aria-label="Link de convite" /><button id="copyBtn" class="secondary">Copiar link</button></div></div>
+      <div class="columns">
+        <section class="stage panel"><div class="stage-head"><span>TRANSMISSÃO DE TELA</span><span id="screenBadge" class="pill">Inativa</span></div><div class="screen-area"><video id="screenVideo" autoplay playsinline class="hidden"></video><div id="screenPlaceholder" class="screen-placeholder"><div class="screen-icon">▣</div><h3>Nenhuma tela sendo compartilhada</h3><p>Clique em “Compartilhar tela” para começar.</p></div></div><div class="controls"><button id="micBtn" class="secondary">🎙 Ativar microfone</button><button id="screenBtn" class="primary">▣ Compartilhar tela</button><button id="leaveBtn" class="danger">Sair da sala</button></div><div class="participants"><div><span class="avatar">EU</span><span>Você</span><small id="localMediaStatus">Microfone desligado</small></div><div><span class="avatar other">P2</span><span>Convidado</span><small id="peerMediaStatus">Aguardando...</small></div></div><audio id="remoteAudio" autoplay playsinline></audio></section>
+        <section class="chat panel"><div class="chat-header"><strong>Mensagens</strong><span id="chatStatus">Desconectado</span></div><div id="messages" class="messages" role="log" aria-live="polite"><div class="notice">As mensagens são trocadas diretamente entre navegadores e não são salvas.</div></div><form id="chatForm" class="chat-compose"><input id="chatInput" maxlength="2000" placeholder="Escreva uma mensagem..." autocomplete="off" disabled aria-label="Mensagem" /><button id="sendBtn" class="primary" disabled aria-label="Enviar mensagem">➤</button></form></section>
+      </div>
+      <p class="footnote">WebRTC usa criptografia em trânsito. Algumas redes precisam de um servidor TURN para retransmissão. Não grave ou compartilhe conteúdo sem consentimento.</p>
+    </section>
+    <div id="toast" class="toast hidden" role="alert"></div>
+  </main>
+</body>
+</html>
