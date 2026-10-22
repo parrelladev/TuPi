@@ -15,11 +15,7 @@ const quality = new QualitySettings(ui, media);
 media.quality = quality;
 const files = new FileTransfers(ui, { shouldPause: () => quality.adaptiveLevel > 0 });
 const youtube = new YouTubeTogether(ui);
-const rtcConfig = {
-  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-  // Production: add your own TURN service for restrictive NATs:
-  // { urls: 'turn:turn.example.com:3478', username: '...', credential: '...' }
-};
+const rtcConfig = { iceServers: [] };
 
 let roomId = null;
 let signaling = null;
@@ -77,10 +73,16 @@ async function enterRoom(id, roomName = 'TuPi') {
   ui.$('inviteUrl').value = invite.href;
   history.replaceState(null, '', `${invite.pathname}${invite.search}`);
   ui.status('Conectando ao servidor de sinalização...');
+  try {
+    const response = await fetch('/api/config', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Configuração de rede indisponível.');
+    const config = await response.json();
+    rtcConfig.iceServers = Array.isArray(config.iceServers) ? config.iceServers : [];
+  } catch { ui.notify('Não foi possível carregar a configuração STUN/TURN; a conexão pode falhar em redes restritivas.'); }
   signaling = new Signaling(
     message => handleSignal(message),
-    () => { if (!leaving) { peer.reset(); ui.status('Servidor desconectado. Recarregue a página.'); } },
-    () => { if (!leaving) ui.status('Falha no servidor de sinalização.'); }
+    () => { if (!leaving) { peer.reset(); ui.status('Sinalização interrompida. Tentando reconectar…'); } },
+    () => { if (!leaving) ui.status('Não foi possível reconectar à sinalização. Verifique a rede e entre novamente.'); }
   );
   signaling.connect(id);
   connectionStats.start();

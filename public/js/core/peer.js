@@ -4,6 +4,9 @@ export class PeerSession {
     this.pc = null;
     this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = null;
     this.pendingCandidates = [];
+    this.restartTimer = null;
+    this.restartingIce = false;
+    this.isInitiator = false;
     this.remoteAudioStream = new MediaStream();
     this.remoteCameraStream = new MediaStream();
     this.remoteScreenStream = new MediaStream();
@@ -20,7 +23,7 @@ export class PeerSession {
   async create(initiator) {
     const earlyCandidates = this.pendingCandidates.slice();
     this.reset(); this.pendingCandidates = earlyCandidates;
-    const pc = new RTCPeerConnection(this.rtcConfig); this.pc = pc;
+    const pc = new RTCPeerConnection(this.rtcConfig); this.pc = pc; this.isInitiator = initiator;
     if (initiator) {
       this.audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
       this.cameraTransceiver = pc.addTransceiver('video', { direction: 'sendrecv' });
@@ -31,9 +34,10 @@ export class PeerSession {
     pc.ontrack = event => this.handleTrack(event, pc);
     pc.onconnectionstatechange = () => {
       if (this.pc !== pc) return;
+      clearTimeout(this.restartTimer);
       if (pc.connectionState === 'connected') this.ui.status('Conectado diretamente (ou via relay TURN)');
-      if (pc.connectionState === 'failed') this.ui.status('Falha na conexão: pode ser necessário um servidor TURN.');
-      if (pc.connectionState === 'disconnected') this.ui.status('Conexão interrompida.');
+      if (pc.connectionState === 'failed') { this.ui.status('Conexão interrompida; tentando recuperar…'); this.restartTimer = setTimeout(() => { void this.restartIce(pc); }, 0); }
+      if (pc.connectionState === 'disconnected') { this.ui.status('Conexão instável; tentando recuperar…'); this.restartTimer = setTimeout(() => { void this.restartIce(pc); }, 5000); }
     };
     pc.ondatachannel = event => this.attachDataChannel(event.channel);
     if (initiator) {
@@ -71,11 +75,18 @@ export class PeerSession {
   async handle(message) {
     switch (message.type) {
       case 'peer-joined': {
+        if (this.pc) break;
         this.ui.status('Negociando conexão...'); const pc = await this.create(true);
         const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
         this.sendSignal({ type: 'offer', sdp: pc.localDescription }); break;
       }
       case 'offer': {
+        if (this.pc && this.pc.signalingState !== 'closed') {
+          const pc = this.pc;
+          await pc.setRemoteDescription(message.sdp);
+          const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
+          this.sendSignal({ type: 'answer', sdp: pc.localDescription }); await this.flushIce(); break;
+        }
         this.ui.status('Negociando conexão...'); const pc = await this.create(false);
         await pc.setRemoteDescription(message.sdp);
         const transceivers = pc.getTransceivers();
@@ -92,18 +103,29 @@ export class PeerSession {
         if (this.pc) { await this.pc.setRemoteDescription(message.sdp); this.checkAudioSendDirection(); await this.flushIce(); } break;
       case 'ice':
         if (!message.candidate) break;
-        if (this.pc?.remoteDescription) await this.pc.addIceCandidate(message.candidate); else this.pendingCandidates.push(message.candidate); break;
+        if (this.pc?.remoteDescription) await this.pc.addIceCandidate(message.candidate); else if (this.pendingCandidates.length < 256) this.pendingCandidates.push(message.candidate); break;
       case 'peer-left': this.reset(); this.onPeerLeft?.(); break;
     }
   }
 
   async flushIce() { while (this.pc?.remoteDescription && this.pendingCandidates.length) await this.pc.addIceCandidate(this.pendingCandidates.shift()); }
+  async restartIce(pc) {
+    if (this.pc !== pc || !this.isInitiator || this.restartingIce || !['failed', 'disconnected'].includes(pc.connectionState)) return;
+    this.restartingIce = true;
+    try {
+      const offer = await pc.createOffer({ iceRestart: true });
+      await pc.setLocalDescription(offer);
+      this.sendSignal({ type: 'offer', sdp: pc.localDescription });
+    } catch { this.ui.status('Não foi possível reiniciar ICE. Verifique STUN/TURN e a rede.'); }
+    finally { this.restartingIce = false; }
+  }
   checkAudioSendDirection() {
     const direction = this.audioTransceiver?.currentDirection;
     if (direction && !['sendrecv', 'sendonly'].includes(direction)) this.ui.notify('A conexão não negociou o envio do seu microfone. Saia da sala e entre novamente.');
   }
 
   reset() {
+    clearTimeout(this.restartTimer); this.restartTimer = null; this.restartingIce = false; this.isInitiator = false;
     this.chat.detach(); this.files.detach(); this.youtube.detach(); this.media.detachSenders();
     if (this.pc) { this.pc.ontrack = this.pc.onicecandidate = this.pc.ondatachannel = this.pc.onconnectionstatechange = null; this.pc.close(); this.pc = null; }
     this.pendingCandidates = [];

@@ -139,3 +139,47 @@ test('limita a dois peers e remove a sala após a saída do último', async () =
     await Promise.all([close(first), close(second), close(third)]);
   }
 });
+
+test('publica cabeçalhos básicos e configuração ICE sem cache', async () => {
+  const page = await fetch(baseUrl);
+  assert.equal(page.status, 200);
+  assert.match(page.headers.get('content-security-policy'), /frame-src.*youtube/);
+  assert.equal(page.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(page.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
+  const config = await fetch(`${baseUrl}/api/config`);
+  assert.equal(config.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(await config.json(), { iceServers: [] });
+});
+
+test('não encaminha oferta SDP malformada', async () => {
+  const roomId = await createRoom();
+  const host = await connect();
+  const guest = await connect();
+  try {
+    const hostJoined = nextMessage(host, message => message.type === 'joined');
+    send(host, { type: 'join', roomId });
+    await hostJoined;
+    const peerJoined = nextMessage(host, message => message.type === 'peer-joined');
+    const guestJoined = nextMessage(guest, message => message.type === 'joined');
+    send(guest, { type: 'join', roomId });
+    await Promise.all([peerJoined, guestJoined]);
+
+    let forwarded = false;
+    const onMessage = () => { forwarded = true; };
+    guest.on('message', onMessage);
+    send(host, { type: 'offer', sdp: { type: 'offer', sdp: 'malformado' } });
+    await new Promise(resolve => setTimeout(resolve, 100));
+    guest.off('message', onMessage);
+    assert.equal(forwarded, false);
+  } finally { await Promise.all([close(host), close(guest)]); }
+});
+
+test('limita criação de salas por endereço', async () => {
+  let sawRateLimit = false;
+  for (let index = 0; index < 10; index++) {
+    const response = await fetch(`${baseUrl}/api/rooms`, { method: 'POST' });
+    if (response.status === 429) { sawRateLimit = true; break; }
+    assert.equal(response.status, 201);
+  }
+  assert.equal(sawRateLimit, true);
+});

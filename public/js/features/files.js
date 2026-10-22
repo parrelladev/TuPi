@@ -53,16 +53,18 @@ export class FileTransfers {
 
   async onMessage(data) {
     if (typeof data !== 'string') { await this.receiveChunk(data); return; }
+    if (data.length > 8192) { this.cancel(); this.setStatus('Mensagem de controle inválida: tamanho máximo excedido'); return; }
     let message; try { message = JSON.parse(data); } catch { return; }
+    if (!message || typeof message !== 'object' || Array.isArray(message) || typeof message.type !== 'string') return;
     if (message.type === 'offer') return this.showOffer(message);
     if (!this.transfer || message.id !== this.transfer.id) return;
     if (message.type === 'accept' && this.transfer.role === 'sender') void this.sendFile();
-    if (message.type === 'ack' && this.transfer.role === 'sender') this.transfer.ack?.(message.index);
+    if (message.type === 'ack' && this.transfer.role === 'sender' && Number.isInteger(message.index) && message.index >= 0) this.transfer.ack?.(message.index);
     if (message.type === 'chunk' && this.transfer.role === 'receiver') {
       if (message.index !== this.transfer.nextChunk || !/^[a-f0-9]{64}$/.test(message.hash)) { this.cancel(); this.setStatus('Transferência interrompida: metadados do bloco inválidos'); return; }
       this.transfer.expectedChunkHash = message.hash;
     }
-    if (message.type === 'reject') this.finish(`Transferência recusada${message.reason ? `: ${message.reason}` : ''}`);
+    if (message.type === 'reject') this.finish(`Transferência recusada${message.reason ? `: ${String(message.reason).slice(0, 200)}` : ''}`);
     if (message.type === 'cancel') this.finish('Transferência cancelada pela outra pessoa');
     if (message.type === 'done' && this.transfer.role === 'sender') this.finish('Arquivo enviado e verificado');
     if (message.type === 'end' && this.transfer.role === 'receiver') await this.finishReceive(message);
@@ -73,7 +75,7 @@ export class FileTransfers {
       this.sendControl({ type: 'reject', id: message.id, reason: 'versão do protocolo incompatível; atualize os dois navegadores e tente novamente' });
       this.setStatus('Protocolo incompatível: atualize os dois navegadores'); return;
     }
-    if (this.transfer || !Number.isSafeInteger(message.size) || message.size < 0 || message.size > 20 * 1024 * 1024 * 1024 || typeof message.name !== 'string' || message.name.length > 255 || message.chunkSize !== CHUNK_SIZE || !Number.isInteger(message.chunks) || message.chunks !== Math.ceil(message.size / CHUNK_SIZE)) {
+    if (this.transfer || typeof message.id !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(message.id) || !Number.isSafeInteger(message.size) || message.size < 0 || message.size > 20 * 1024 * 1024 * 1024 || typeof message.name !== 'string' || message.name.length > 255 || /[\\/\u0000-\u001f]/.test(message.name) || typeof message.mime !== 'string' || message.mime.length > 128 || message.chunkSize !== CHUNK_SIZE || !Number.isInteger(message.chunks) || message.chunks !== Math.ceil(message.size / CHUNK_SIZE)) {
       this.sendControl({ type: 'reject', id: message.id, reason: 'arquivo ou tamanho inválido, ou outra transferência está ativa' }); return;
     }
     this.transfer = { ...message, role: 'receiver', cancelled: false };
@@ -139,9 +141,10 @@ export class FileTransfers {
 
   async receiveChunk(data) {
     const transfer = this.transfer; if (!transfer || transfer.role !== 'receiver' || !transfer.parts && !transfer.writable) return;
-    const buffer = data instanceof ArrayBuffer ? data : await data.arrayBuffer();
     const expectedLength = Math.min(CHUNK_SIZE, transfer.size - transfer.received);
-    if (buffer.byteLength !== expectedLength || transfer.received >= transfer.size || !transfer.expectedChunkHash) { this.cancel(); this.setStatus('Transferência interrompida: tamanho ou sequência de bloco inválida'); return; }
+    const incomingLength = data instanceof ArrayBuffer ? data.byteLength : data?.size;
+    if (incomingLength !== expectedLength || transfer.received >= transfer.size || !transfer.expectedChunkHash) { this.cancel(); this.setStatus('Transferência interrompida: tamanho ou sequência de bloco inválida'); return; }
+    const buffer = data instanceof ArrayBuffer ? data : await data.arrayBuffer();
     if (await digest(buffer) !== transfer.expectedChunkHash) {
       const chunkNumber = transfer.nextChunk + 1;
       this.cancel(); this.setStatus(`Integridade não confirmada no bloco ${chunkNumber}; arquivo descartado`); return;
