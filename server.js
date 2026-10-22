@@ -86,6 +86,8 @@ const server = http.createServer((req, res) => {
     '/js/ui.js': 'js/ui.js',
     '/js/core/signaling.js': 'js/core/signaling.js',
     '/js/core/peer.js': 'js/core/peer.js',
+    '/js/core/quality.js': 'js/core/quality.js',
+    '/js/core/stats.js': 'js/core/stats.js',
     '/js/features/chat.js': 'js/features/chat.js',
     '/js/features/media.js': 'js/features/media.js'
   };

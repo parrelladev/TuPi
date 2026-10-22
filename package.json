@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node --check server.js && node --input-type=module --check < public/app.js && node --input-type=module --check < public/js/ui.js && node --input-type=module --check < public/js/core/signaling.js && node --input-type=module --check < public/js/core/peer.js && node --input-type=module --check < public/js/features/chat.js && node --input-type=module --check < public/js/features/media.js",
+    "check": "node --check server.js && node --input-type=module --check < public/app.js && node --input-type=module --check < public/js/ui.js && node --input-type=module --check < public/js/core/signaling.js && node --input-type=module --check < public/js/core/peer.js && node --input-type=module --check < public/js/core/quality.js && node --input-type=module --check < public/js/core/stats.js && node --input-type=module --check < public/js/features/chat.js && node --input-type=module --check < public/js/features/media.js",
     "test": "node --test"
   },
   "engines": {"node": ">=20"},

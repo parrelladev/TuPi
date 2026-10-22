@@ -43,6 +43,12 @@ HOST=0.0.0.0 PORT=3000 npm start
 - `RTCDataChannel` transporta texto diretamente entre os navegadores.
 - As salas e mensagens ficam somente em memória; as salas são removidas quando o último usuário desconecta.
 
+## Qualidade e diagnóstico
+
+Ao clicar em **Compartilhar**, a pessoa escolhe o perfil de tela (480p a 1440p, tentativa Ultra 4K60 ou resolução nativa), FPS (30 a 144), bitrate máximo desejado e foco automático/jogo/vídeo; o botão para iniciar a captura fica no rodapé desse menu. A câmera continua com o perfil padrão de captura e pode ser ligada/desligada e ter o dispositivo selecionado em **Mais**. Os valores de tela são solicitações; navegador, dispositivo, capturador e rede podem aplicar valores menores. O painel mostra configurações efetivas da captura, codecs divulgados pelo navegador, bitrate/FPS medidos, RTT, jitter, perda, estado ICE e indicação de relay TURN quando identificável. Durante o compartilhamento, a resolução e o FPS efetivos ficam no indicador da tela. Um ajuste adaptativo conservador reduz o teto de envio após congestionamento persistente e o recupera gradualmente quando a rede estabiliza.
+
+A lista de codecs usa as capacidades anunciadas pelo navegador. A Web API não oferece uma forma interoperável de confirmar que o encoder de hardware está ativo; a aplicação não promete aceleração por GPU nem captura/encode de 4K60.
+
 ## Limitações intencionais do MVP
 - **Sem TURN configurado por padrão:** algumas redes corporativas, CGNATs e NATs restritivos não conseguirão conexão. Configure credenciais TURN em `public/app.js` antes de publicar.
 - **Não é E2EE com verificação de identidade:** WebRTC cifra mídia e dados em trânsito (DTLS/SRTP), mas um servidor de sinalização não confiável pode realizar ataques de intermediação. Para maior proteção, implemente autenticação de pares e verificação de identidade.

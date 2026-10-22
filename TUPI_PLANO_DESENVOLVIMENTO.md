@@ -283,18 +283,24 @@ Tarefas:
 
 ### M4 — Controle de qualidade e diagnóstico
 
+**Status:** controles de qualidade e diagnóstico implementados; validação de mídia com dois peers/dispositivos reais pendente.
+
 Tarefas:
-- [ ] Perfis iniciais de tela: economia (720p30), equilibrado (1080p30), fluidez (1080p60), ultra (tentativa de 4K60). **Perfis são solicitações, não garantias.**
-- [ ] Perfil de câmera independente, com limites adequados.
-- [ ] UI para resolução, FPS, bitrate máximo desejado e prioridade fluidez/nitidez.
-- [ ] Verificar capacidades de codecs e codificação de hardware quando possível; não assumir AV1/VP9 em todos os dispositivos.
-- [ ] Aplicar `getDisplayMedia`/`getUserMedia` constraints e `RTCRtpSender.setParameters()` quando suportado; verificar valores efetivos.
-- [ ] Monitorar `getStats()` e mostrar bitrate real, FPS, RTT, jitter, perda e estado ICE.
-- [ ] Ajuste adaptativo conservador, com histerese, evitando oscilações rápidas e sem competir com o controle de congestionamento do WebRTC.
-- [ ] Indicador “direto/relay TURN” apenas quando as estatísticas permitirem identificar.
+- [x] Perfis iniciais e personalizados de tela: 480p, 720p, 1080p, 1440p, 4K tentativo, nativa e 30–144 FPS. Perfis aplicam solicitações e exibem valores efetivos quando o navegador informa.
+- [ ] Perfil avançado de qualidade da câmera removido do escopo por decisão do proprietário (22/10/2026); câmera usa constraints padrão de 720p/30 e seleção de dispositivo.
+- [x] UI para resolução, FPS, bitrate máximo desejado e foco automático/jogo/vídeo (fluidez/nitidez).
+- [x] Consultar codecs divulgados por `RTCRtpSender.getCapabilities()` sem presumir AV1/VP9. A Web API não confirma de modo interoperável o uso de encoder de hardware.
+- [x] Aplicar constraints de captura e `RTCRtpSender.setParameters()` quando disponíveis; exibir a resolução/FPS efetivos da captura.
+- [x] Monitorar `getStats()` e mostrar bitrate/FPS medidos, RTT, jitter, perda e estado da conexão ICE.
+- [x] Ajuste adaptativo conservador com histerese: reduz gradualmente o teto após congestionamento persistente e recupera em amostras estáveis.
+- [x] Indicar conexão direta ou relay TURN somente quando o candidato local permitir identificação.
 - [ ] Testar carga CPU/GPU, estabilidade e consumo de rede durante duas telas simultâneas.
 
-**Aceite:** mudanças de perfil refletem solicitações verificáveis, métricas exibem valores reais, queda de rede não causa travamento permanente e configurações não prometem qualidade impossível.
+**Validação automatizada:** `npm run check` passou; `npm test` passou (3 testes); `git diff --check` sem erros.
+
+**Pendente para aceite:** teste manual em dois peers com capturas simultâneas, conferência de bitrate/CPU/GPU sob carga, variação e queda de rede, e compatibilidade dos constraints/estatísticas nos navegadores suportados. Os testes existentes cobrem servidor, não simulam captura ou conexão WebRTC.
+
+**Aceite:** solicitações de perfil e métricas reais implementadas; aceite de mídia e estabilidade pendente da validação manual acima.
 
 ### M5 — Transferência de arquivos P2P
 

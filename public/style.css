@@ -147,3 +147,19 @@ body{display:flex;flex-direction:column;min-height:100vh}
   .header-more{width:38px;height:38px;font-size:17px}
 }
 @media(max-width:380px){.room-brand img{width:72px}.room-header{gap:6px}.room-header-tools{gap:4px}.room-member-count{min-width:38px}.header-more{width:34px}}
+.quality-settings-fields{width:min(340px,calc(100vw - 24px));max-height:min(75vh,680px);overflow:auto;padding:14px;display:grid;gap:10px;color:#342d37;font-size:12px}
+.quality-settings-fields[hidden],.quality-settings-fields.hidden{display:none}
+.quality-settings-fields>strong{font-size:15px;text-align:center;color:#29242b}
+.quality-settings-fields .quality-label{margin-top:3px;color:#817783;font-size:11px;font-weight:650}
+.quality-settings-fields label{display:grid;gap:5px;color:#625a65;font-size:11px}
+.quality-settings-fields select,.quality-settings-fields input{width:100%;height:36px;padding:0 9px;border:1px solid #e8e1e8;border-radius:9px;background:#fff;color:#342d37;font:inherit}
+.quality-presets{display:grid;gap:5px}
+.quality-presets button{display:grid;gap:4px;width:100%;padding:10px 12px;border:1px solid #eee9ed;border-radius:10px;background:#fff;color:#342d37;text-align:left;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.quality-presets button[aria-pressed="true"]{border-color:#65c929;background:#f3fbe9;box-shadow:inset 0 0 0 1px #65c929}
+.quality-presets button small{font-size:10px;font-weight:400;color:#827984}
+.quality-diagnostics{display:grid;gap:5px;padding:10px;border-radius:10px;background:#f6f4f7;color:#716a74;font-size:10px;line-height:1.45;white-space:pre-line;overflow-wrap:anywhere}
+.screen-settings{position:relative;align-self:center}
+.screen-settings>.more-menu.quality-settings-fields{width:min(350px,calc(100vw - 24px));max-height:min(75dvh,680px);padding:14px;overflow:auto}
+.quality-settings-fields>strong{font-size:15px;text-align:center;color:#29242b}
+.quality-share-button{position:sticky;bottom:0;z-index:1;width:100%;min-height:42px;margin-top:2px;box-shadow:0 0 0 8px #fff}
+@media(max-width:760px){.screen-settings>.more-menu.quality-settings-fields{right:0;bottom:calc(100% + 12px);width:min(350px,calc(100vw - 20px));max-height:70dvh;padding:12px}.room-toolbar .screen-settings{flex:1 1 0;min-width:0}.room-toolbar .screen-settings>summary{width:100%}}

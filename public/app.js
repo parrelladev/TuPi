@@ -3,10 +3,14 @@ import { Signaling } from './js/core/signaling.js';
 import { PeerSession } from './js/core/peer.js';
 import { Chat } from './js/features/chat.js';
 import { Media } from './js/features/media.js';
+import { QualitySettings } from './js/core/quality.js';
+import { ConnectionStats } from './js/core/stats.js';
 
 const ui = createUI();
 const chat = new Chat(ui);
 const media = new Media(ui);
+const quality = new QualitySettings(ui, media);
+media.quality = quality;
 const rtcConfig = {
   iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
   // Production: add your own TURN service for restrictive NATs:
@@ -29,6 +33,7 @@ const peer = new PeerSession({
     ui.notify('A outra pessoa saiu da sala.');
   }
 });
+const connectionStats = new ConnectionStats(ui, peer, quality);
 
 async function handleSignal(message) {
   if (message.type === 'peer-joined') ui.setParticipantCount(2);
@@ -72,6 +77,7 @@ async function enterRoom(id, roomName = 'TuPi') {
     () => { if (!leaving) ui.status('Falha no servidor de sinalização.'); }
   );
   signaling.connect(id);
+  connectionStats.start();
 }
 
 async function createRoom() {
@@ -87,6 +93,8 @@ async function createRoom() {
 
 async function leaveRoom() {
   leaving = true;
+  ui.closeShareSettings();
+  connectionStats.stop();
   signaling?.close();
   signaling = null;
   peer.reset();
@@ -140,6 +148,7 @@ ui.$('chatToggleBtn').addEventListener('click', () => {
   button.setAttribute('aria-label', open ? 'Ocultar chat' : 'Mostrar chat');
 });
 const deviceSettings = ui.$('deviceSettings');
+const screenSettings = ui.$('screenSettings');
 const moreButton = ui.$('moreBtn');
 const devicesMenuToggle = ui.$('devicesMenuToggle');
 const deviceOptions = ui.$('deviceOptions');
@@ -150,6 +159,11 @@ function closeDeviceOptions() {
 deviceSettings.addEventListener('toggle', () => {
   moreButton.setAttribute('aria-expanded', String(deviceSettings.open));
   if (!deviceSettings.open) closeDeviceOptions();
+  else screenSettings.open = false;
+});
+screenSettings.addEventListener('toggle', () => {
+  ui.$('screenBtn').setAttribute('aria-expanded', String(screenSettings.open));
+  if (screenSettings.open) deviceSettings.open = false;
 });
 devicesMenuToggle.addEventListener('click', () => {
   const open = deviceOptions.classList.contains('hidden');
@@ -158,8 +172,14 @@ devicesMenuToggle.addEventListener('click', () => {
 });
 document.addEventListener('click', event => {
   if (deviceSettings.open && !deviceSettings.contains(event.target)) deviceSettings.open = false;
+  if (screenSettings.open && !screenSettings.contains(event.target)) screenSettings.open = false;
 });
 document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && screenSettings.open) {
+    screenSettings.open = false;
+    ui.$('screenBtn').focus();
+    return;
+  }
   if (event.key === 'Escape' && deviceSettings.open) {
     if (!deviceOptions.classList.contains('hidden')) {
       closeDeviceOptions();
