@@ -304,15 +304,23 @@ Tarefas:
 
 ### M5 — Transferência de arquivos P2P
 
+**Status:** implementação concluída no workspace; validação funcional entre dois peers ainda pendente.
+
 Tarefas:
-- [ ] Criar DataChannel específico para arquivos, separado de chat/controle.
-- [ ] Protocolo de metadados (ID, nome, tamanho, MIME, chunks, status); validação e limite configurável.
-- [ ] Consentimento explícito para recebimento.
-- [ ] Envio em chunks com `bufferedAmount` e `bufferedAmountLowThreshold`, backpressure e controle de memória.
-- [ ] Progresso, cancelamento e limpeza de transferências interrompidas.
-- [ ] Verificação de integridade por hash quando viável sem carregar o arquivo inteiro na memória.
-- [ ] Priorizar mídia: limitar/pausar transferência quando RTT, perda ou congestionamento aumentarem.
-- [ ] Documentar diferenças de suporte para gravação em disco/streaming e fallback de memória.
+- [x] Criar DataChannel `files` específico para arquivos, separado do canal `messages`.
+- [x] Definir metadados (ID, nome, tamanho, MIME, chunks, status), validação e limite de 20 GiB por oferta.
+- [x] Exigir consentimento explícito para recebimento.
+- [x] Enviar chunks de 64 KiB com controle por buffer, confirmação após gravação e um bloco em voo.
+- [x] Mostrar progresso, permitir cancelamento e limpar recursos em desconexão/saída.
+- [x] Verificar SHA-256 de cada bloco, além da ordem, quantidade de blocos e tamanho total.
+- [x] Pausar envio quando o ajuste adaptativo existente sinalizar congestionamento persistente.
+- [x] Documentar gravação incremental com `showSaveFilePicker` e fallback em memória limitado a 64 MiB.
+
+**Validação automatizada:** `npm run check` passou. `git diff --check` passou. `npm test` não concluiu: os três testes existentes falharam porque o processo servidor do fixture não iniciou em até 5 segundos; a suíte usa bind/spawn local e não chegou a executar as asserções dos casos.
+
+**Pendente para aceite:** validar dois peers reais, aceitação/recusa, arquivos vazios/pequenos/grandes, cancelamento nos dois lados, confirmação de hash, navegador sem `showSaveFilePicker` e transferência durante carga de mídia. O suporte de `showSaveFilePicker` depende do navegador/contexto seguro.
+
+**Aceite:** implementação do protocolo, controles e documentação concluídos; aceite funcional de transferência e impacto em áudio/vídeo pendente dos testes manuais acima.
 
 **Aceite:** arquivo recebido íntegro; cancelamento funciona; arquivos grandes não exigem buffer completo em RAM; transferência não inviabiliza áudio/vídeo em testes de rede.
 

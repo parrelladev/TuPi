@@ -89,6 +89,7 @@ const server = http.createServer((req, res) => {
     '/js/core/quality.js': 'js/core/quality.js',
     '/js/core/stats.js': 'js/core/stats.js',
     '/js/features/chat.js': 'js/features/chat.js',
+    '/js/features/files.js': 'js/features/files.js',
     '/js/features/media.js': 'js/features/media.js'
   };
   const file = files[url.pathname];
