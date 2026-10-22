@@ -2,19 +2,22 @@ export class Chat {
   constructor(ui) {
     this.ui = ui;
     this.channel = null;
-    this.unread = 0;
+    this.unread = false;
     this.storageKey = 'tupi-chat-sound';
     this.soundEnabled = this.readSoundPreference();
     this.audioContext = null;
     ui.$('chatForm').addEventListener('submit', event => this.sendFromForm(event));
     ui.$('chatSoundToggle').addEventListener('click', () => this.toggleSound());
     ui.setChatSoundEnabled(this.soundEnabled);
-    if (this.soundEnabled) {
-      document.addEventListener('pointerdown', () => this.unlockAudio(), { once: true });
-      document.addEventListener('keydown', () => this.unlockAudio(), { once: true });
-    }
+    this.unlockAudioOnInteraction = () => {
+      if (this.soundEnabled) void this.unlockAudio();
+    };
+    document.addEventListener('pointerdown', this.unlockAudioOnInteraction);
+    document.addEventListener('keydown', this.unlockAudioOnInteraction);
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && this.isChatVisible()) this.markRead();
+      if (document.hidden) return;
+      if (this.soundEnabled) void this.unlockAudio();
+      if (this.isChatVisible()) this.markRead();
     });
   }
 
@@ -29,8 +32,8 @@ export class Chat {
   }
 
   markRead() {
-    this.unread = 0;
-    this.ui.setChatUnread(0);
+    this.unread = false;
+    this.ui.setChatUnread(false);
   }
 
   async toggleSound() {
@@ -59,21 +62,23 @@ export class Chat {
     } catch { return false; }
   }
 
-  playNotification() {
-    const context = this.audioContext;
-    if (!this.soundEnabled || !context || context.state !== 'running') return;
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    const now = context.currentTime;
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(740, now);
-    oscillator.frequency.setValueAtTime(988, now + 0.09);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.12, now + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-    oscillator.connect(gain).connect(context.destination);
-    oscillator.start(now);
-    oscillator.stop(now + 0.23);
+  async playNotification() {
+    if (!this.soundEnabled || !await this.unlockAudio()) return;
+    try {
+      const context = this.audioContext;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      const now = context.currentTime;
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(740, now);
+      oscillator.frequency.setValueAtTime(988, now + 0.09);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.23);
+    } catch { /* Falha no áudio não deve interromper o recebimento da mensagem. */ }
   }
 
   attach(channel) {
@@ -86,8 +91,8 @@ export class Chat {
       if (typeof event.data === 'string' && event.data.length <= 4000) {
         this.ui.addMessage('Convidado', event.data);
         if (!this.isChatVisible() || document.hidden) {
-          this.unread += 1;
-          this.ui.setChatUnread(this.unread);
+          this.unread = true;
+          this.ui.setChatUnread(true);
         }
         this.playNotification();
       }

@@ -25,12 +25,12 @@ export function createUI() {
   function setChatUnread(count) {
     const button = $('chatToggleBtn');
     const badge = $('chatUnreadBadge');
-    const unread = Math.max(0, Number(count) || 0);
+    const unread = Boolean(count);
     unreadChatCount = unread;
-    badge.textContent = unread > 99 ? '99+' : String(unread);
-    badge.classList.toggle('hidden', unread === 0);
+    badge.textContent = '';
+    badge.classList.toggle('hidden', !unread);
     const open = button.getAttribute('aria-expanded') === 'true';
-    button.setAttribute('aria-label', `${open ? 'Ocultar' : 'Mostrar'} chat${unread ? `, ${unread} ${unread === 1 ? 'mensagem não lida' : 'mensagens não lidas'}` : ''}`);
+    button.setAttribute('aria-label', `${open ? 'Ocultar' : 'Mostrar'} chat${unread ? ', há mensagem nova' : ''}`);
   }
 
   function setChatOpen(open) {
