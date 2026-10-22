@@ -7,9 +7,25 @@ export class PeerSession {
     this.sendSignal = sendSignal;
     this.onPeerLeft = onPeerLeft;
     this.pc = null;
+    this.audioTransceiver = null;
+    this.videoTransceiver = null;
     this.pendingCandidates = [];
     this.remoteAudioStream = new MediaStream();
     this.remoteScreenStream = new MediaStream();
+    this.ui.$('enableAudioBtn').addEventListener('click', () => { void this.playRemoteAudio(); });
+  }
+
+  async playRemoteAudio() {
+    const audio = this.ui.$('remoteAudio');
+    if (!audio.srcObject) return;
+    try {
+      await audio.play();
+      this.ui.setAudioPlaybackBlocked(false);
+    } catch (error) {
+      const blocked = error.name === 'NotAllowedError';
+      this.ui.setAudioPlaybackBlocked(blocked);
+      if (!blocked) this.ui.notify('Não foi possível reproduzir o áudio recebido.');
+    }
   }
 
   async create(initiator) {
@@ -18,9 +34,11 @@ export class PeerSession {
     this.pendingCandidates = earlyCandidates;
     const pc = new RTCPeerConnection(this.rtcConfig);
     this.pc = pc;
-    const audioSender = pc.addTransceiver('audio', { direction: 'sendrecv' }).sender;
-    const videoSender = pc.addTransceiver('video', { direction: 'sendrecv' }).sender;
-    await this.media.attachSenders(audioSender, videoSender);
+    if (initiator) {
+      this.audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
+      this.videoTransceiver = pc.addTransceiver('video', { direction: 'sendrecv' });
+      await this.media.attachSenders(this.audioTransceiver.sender, this.videoTransceiver.sender);
+    }
     pc.onicecandidate = event => { if (event.candidate && this.pc === pc) this.sendSignal({ type: 'ice', candidate: event.candidate }); };
     pc.ontrack = event => this.handleTrack(event, pc);
     pc.onconnectionstatechange = () => {
@@ -41,7 +59,8 @@ export class PeerSession {
       this.remoteAudioStream.addTrack(track);
       this.ui.setRemoteAudio(this.remoteAudioStream);
       this.ui.setPeerMediaStatus('Áudio conectado');
-      this.ui.$('remoteAudio').play().catch(() => this.ui.notify('Clique na página para permitir a reprodução do áudio.'));
+      track.onunmute = () => { void this.playRemoteAudio(); };
+      void this.playRemoteAudio();
       return;
     }
     this.remoteScreenStream.addTrack(track);
@@ -65,14 +84,25 @@ export class PeerSession {
         this.ui.status('Negociando conexão...');
         const pc = await this.create(false);
         await pc.setRemoteDescription(message.sdp);
+        this.audioTransceiver = pc.getTransceivers().find(transceiver => transceiver.receiver.track.kind === 'audio');
+        this.videoTransceiver = pc.getTransceivers().find(transceiver => transceiver.receiver.track.kind === 'video');
+        if (!this.audioTransceiver || !this.videoTransceiver) throw new Error('A oferta não contém as faixas de áudio e vídeo esperadas.');
+        this.audioTransceiver.direction = 'sendrecv';
+        this.videoTransceiver.direction = 'sendrecv';
+        await this.media.attachSenders(this.audioTransceiver.sender, this.videoTransceiver.sender);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+        this.checkAudioSendDirection();
         this.sendSignal({ type: 'answer', sdp: pc.localDescription });
         await this.flushIce();
         break;
       }
       case 'answer':
-        if (this.pc) { await this.pc.setRemoteDescription(message.sdp); await this.flushIce(); }
+        if (this.pc) {
+          await this.pc.setRemoteDescription(message.sdp);
+          this.checkAudioSendDirection();
+          await this.flushIce();
+        }
         break;
       case 'ice':
         if (!message.candidate) break;
@@ -92,6 +122,13 @@ export class PeerSession {
     }
   }
 
+  checkAudioSendDirection() {
+    const direction = this.audioTransceiver?.currentDirection;
+    if (direction && !['sendrecv', 'sendonly'].includes(direction)) {
+      this.ui.notify('A conexão não negociou o envio do seu microfone. Saia da sala e entre novamente.');
+    }
+  }
+
   reset() {
     this.chat.detach();
     this.media.detachSenders();
@@ -104,6 +141,8 @@ export class PeerSession {
       this.pc = null;
     }
     this.pendingCandidates = [];
+    this.audioTransceiver = null;
+    this.videoTransceiver = null;
     this.remoteAudioStream = new MediaStream();
     this.remoteScreenStream = new MediaStream();
     this.ui.clearRoomView();

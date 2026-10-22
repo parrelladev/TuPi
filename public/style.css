@@ -104,6 +104,8 @@ body{display:flex;flex-direction:column;min-height:100vh}
 #micBtn.mic-enabled .mic-off-icon{display:none}
 #micBtn.mic-enabled .mic-on-icon{display:block}
 #micBtn.mic-enabled{background:#e9f8f1;color:#2e9b72}
+.audio-enable{position:absolute;z-index:4;top:12px;right:12px;background:#fff;color:#594c5b;box-shadow:0 5px 18px #17131c35}
+@media(max-width:760px){.audio-enable{top:9px;right:9px;font-size:11px;padding:9px 12px}}
 .room-code{display:flex;align-items:center;gap:8px;min-height:46px;padding:0 10px 0 15px;border-radius:999px;background:#f4f3f6}
 .room-code h2{margin:0;color:#29242b;font-size:14px;font-weight:650;letter-spacing:-.2px}
 .copy-room-link{width:30px;height:30px;padding:6px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:#29242b;cursor:pointer}

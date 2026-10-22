@@ -70,11 +70,13 @@ export function createUI() {
 
   function setPeerMediaStatus(message) { $('peerMediaStatus').textContent = message; }
   function setRemoteAudio(stream) { $('remoteAudio').srcObject = stream; }
+  function setAudioPlaybackBlocked(blocked) { $('enableAudioBtn').classList.toggle('hidden', !blocked); }
   function clearRoomView() {
     setChatConnected(false);
     setPeerMediaStatus('Aguardando...');
     setRemoteAudio(null);
+    setAudioPlaybackBlocked(false);
   }
 
-  return { $, notify, status, setParticipantCount, setChatConnected, addMessage, renderScreen, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, clearRoomView };
+  return { $, notify, status, setParticipantCount, setChatConnected, addMessage, renderScreen, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, clearRoomView };
 }
