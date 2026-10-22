@@ -63,6 +63,7 @@ body{display:flex;flex-direction:column;min-height:100vh}
 .room.chat-collapsed #chatPanel{display:none}
 .room-toolbar{width:max-content;max-width:100%;margin:12px auto 0;padding:7px 10px;display:flex;align-items:center;justify-content:center;gap:4px;border:1px solid #eee9ed;border-radius:20px;background:#fff;box-shadow:0 8px 28px #34253812}
 .room-toolbar .toolbar-action{width:78px;min-width:66px;height:60px;min-height:60px;padding:7px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:14px;background:transparent;color:#5e5660;font-size:10px;font-weight:600}
+.room-toolbar .toolbar-action>span:last-child:not(.sr-only){display:none}
 .room-toolbar .toolbar-action:hover:not(:disabled){background:#f7f4f6;transform:none}
 .room-toolbar .toolbar-action .control-icon svg{width:20px;height:20px}
 .youtube-panel{padding:12px;margin-bottom:12px;border:1px solid #f0e8e8;border-radius:14px;background:#fff}
@@ -100,7 +101,6 @@ body{display:flex;flex-direction:column;min-height:100vh}
   .room.chat-open #chatPanel{display:flex}
   .room-toolbar{position:fixed;z-index:60;left:50%;bottom:max(9px,env(safe-area-inset-bottom));transform:translateX(-50%);width:calc(100vw - 20px);max-width:510px;height:62px;margin:0;padding:5px 7px;border-radius:20px;justify-content:space-around;box-shadow:0 8px 30px #27202d25}
   .room-toolbar .toolbar-action{flex:1 1 0;width:auto;min-width:0;height:48px;min-height:48px;padding:6px;border-radius:14px}
-  .room-toolbar .toolbar-action>span:last-child{display:none}
   .room-toolbar .toolbar-action .control-icon svg{width:21px;height:21px}
   .room-toolbar .button-leave{margin-left:0}
   .toolbar-status{display:none}
