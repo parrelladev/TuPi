@@ -1,4 +1,4 @@
-# PeerTalk — MVP WebRTC P2P
+# TuPi — WebRTC P2P
 
 Sala minimalista para **2 pessoas** com voz, compartilhamento de tela e chat de texto.
 
