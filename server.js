@@ -27,11 +27,75 @@ const roomNames = new Map(); // fruit name -> roomId
 const roomFruitById = new Map(); // roomId -> fruit name
 const roomExpiryTimers = new Map();
 const MAX_PAYLOAD = 64 * 1024;
+const ROOM_TTL_MS = 5 * 60 * 1000;
+const RATE_WINDOW_MS = 60 * 1000;
+const requestLimits = new Map();
+const activeSocketsByIp = new Map();
+const MAX_CONNECTIONS_PER_IP = 12;
+const MAX_CONNECTIONS = 200;
+const TRUST_PROXY = process.env.TRUST_PROXY === '1';
+const CSP = "default-src 'self'; script-src 'self' https://www.youtube.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' ws: wss: https://www.youtube.com stun: stuns: turn: turns:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png' };
 
+let iceServers = [];
+function parseIceUrls(value, variable) {
+  const urls = value.split(',').map(url => url.trim()).filter(Boolean);
+  if (!urls.length || urls.length > 8 || urls.some(url => url.length > 512 || !/^(stun|stuns|turn|turns):/i.test(url))) throw new Error(`${variable} deve conter de 1 a 8 URLs STUN/TURN válidas.`);
+  return urls;
+}
+if (process.env.ICE_SERVERS) {
+  try {
+    const parsed = JSON.parse(process.env.ICE_SERVERS);
+    if (!Array.isArray(parsed) || parsed.length > 8 || parsed.some(server => !server || !(typeof server.urls === 'string' || Array.isArray(server.urls)) || ![].concat(server.urls).length || [].concat(server.urls).length > 8 || ![].concat(server.urls).every(url => typeof url === 'string' && url.length <= 512 && /^(stun|stuns|turn|turns):/i.test(url)) || (server.username != null && (typeof server.username !== 'string' || server.username.length > 512)) || (server.credential != null && (typeof server.credential !== 'string' || server.credential.length > 512)))) throw new Error();
+    iceServers = parsed;
+  } catch { throw new Error('ICE_SERVERS deve ser um array JSON de servidores STUN/TURN válidos.'); }
+} else if (process.env.STUN_URL || process.env.TURN_URL) {
+  if (process.env.STUN_URL) iceServers.push({ urls: parseIceUrls(process.env.STUN_URL, 'STUN_URL') });
+  if (process.env.TURN_URL) {
+    if (!process.env.TURN_USERNAME || !process.env.TURN_CREDENTIAL) throw new Error('TURN_URL exige TURN_USERNAME e TURN_CREDENTIAL.');
+    if (process.env.TURN_USERNAME.length > 512 || process.env.TURN_CREDENTIAL.length > 512) throw new Error('As credenciais TURN excedem 512 caracteres.');
+    iceServers.push({ urls: parseIceUrls(process.env.TURN_URL, 'TURN_URL'), username: process.env.TURN_USERNAME, credential: process.env.TURN_CREDENTIAL });
+  }
+}
+
+function limited(map, key, max, windowMs = RATE_WINDOW_MS) {
+  const now = Date.now();
+  let bucket = map.get(key);
+  if (!bucket || now - bucket.startedAt >= windowMs) bucket = { startedAt: now, count: 0 };
+  bucket.count++;
+  map.set(key, bucket);
+  return bucket.count > max;
+}
+
+function setSecurityHeaders(res) {
+  res.setHeader('Content-Security-Policy', CSP);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), display-capture=(self), fullscreen=(self), geolocation=()');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+}
+
+function clientIp(req) {
+  if (TRUST_PROXY && typeof req.headers['x-forwarded-for'] === 'string') {
+    const forwarded = req.headers['x-forwarded-for'].split(',')[0].trim();
+    if (forwarded) return forwarded;
+  }
+  return req.socket.remoteAddress || 'unknown';
+}
+
 const server = http.createServer((req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  setSecurityHeaders(res);
+  const url = new URL(req.url, 'http://localhost');
   if (req.method === 'POST' && url.pathname === '/api/rooms') {
+    if (Number(req.headers['content-length'] || 0) > 0 || req.headers['transfer-encoding']) {
+      res.writeHead(413, { 'Content-Type': 'application/json', 'Connection': 'close', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ error: 'Esta rota não aceita corpo de requisição.' })); return;
+    }
+    if (limited(requestLimits, `create:${clientIp(req)}`, 8, 15 * 60 * 1000)) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Retry-After': '900' });
+      res.end(JSON.stringify({ error: 'Muitas salas criadas neste endereço. Tente novamente mais tarde.' })); return;
+    }
     const available = fruitNames.filter(name => !roomNames.has(name));
     if (!available.length) {
       res.writeHead(503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -50,14 +114,22 @@ const server = http.createServer((req, res) => {
         roomFruitById.delete(id);
       }
       roomExpiryTimers.delete(id);
-    }, 5 * 60 * 1000);
+    }, ROOM_TTL_MS);
     expiry.unref();
     roomExpiryTimers.set(id, expiry);
     res.writeHead(201, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify({ roomId: id, roomName }));
     return;
   }
+  if (req.method === 'GET' && url.pathname === '/api/config') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ iceServers })); return;
+  }
   if (req.method === 'GET' && url.pathname.startsWith('/api/rooms/')) {
+    if (limited(requestLimits, `lookup:${clientIp(req)}`, 120)) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Retry-After': '60' });
+      res.end(JSON.stringify({ error: 'Muitas consultas de sala. Tente novamente em instantes.' })); return;
+    }
     let code;
     try { code = decodeURIComponent(url.pathname.slice('/api/rooms/'.length)).toLowerCase(); }
     catch {
@@ -97,12 +169,22 @@ const server = http.createServer((req, res) => {
   if (!file) { res.writeHead(404); res.end('Not found'); return; }
   fs.readFile(path.join(PUBLIC, file), (err, body) => {
     if (err) { res.writeHead(500); res.end('Server error'); return; }
-    res.writeHead(200, { 'Content-Type': types[path.extname(file)], 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+    res.writeHead(200, { 'Content-Type': types[path.extname(file)], 'Cache-Control': 'no-store' });
     res.end(body);
   });
 });
 
-const wss = new WebSocketServer({ server, path: '/signal', maxPayload: MAX_PAYLOAD });
+const wss = new WebSocketServer({ server, path: '/signal', maxPayload: MAX_PAYLOAD, perMessageDeflate: false, verifyClient: ({ origin, req }, done) => {
+  if (origin) {
+    try { if (new URL(origin).host !== req.headers.host) return done(false, 403, 'Origin inválido'); }
+    catch { return done(false, 403, 'Origin inválido'); }
+  }
+  const ip = clientIp(req);
+  const activeForIp = activeSocketsByIp.get(ip) || 0;
+  if (wss.clients.size >= MAX_CONNECTIONS || activeForIp >= MAX_CONNECTIONS_PER_IP || limited(requestLimits, `connect:${ip}`, 30, 5 * 60 * 1000)) return done(false, 429, 'Limite de conexões atingido');
+  activeSocketsByIp.set(ip, activeForIp + 1);
+  done(true);
+} });
 function send(ws, message) { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message)); }
 function leave(ws) {
   if (!ws.roomId) return;
@@ -122,15 +204,19 @@ function leave(ws) {
   }
 }
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
+  const ip = clientIp(req);
+  ws.rateKey = `signal:${ip}:${crypto.randomBytes(8).toString('hex')}`;
+  ws.on('close', () => { const count = (activeSocketsByIp.get(ip) || 1) - 1; if (count) activeSocketsByIp.set(ip, count); else activeSocketsByIp.delete(ip); });
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
   ws.on('message', (raw) => {
+    if (limited(requestLimits, ws.rateKey, 120)) { ws.close(1008, 'Limite de mensagens atingido'); return; }
     let msg;
     try { msg = JSON.parse(raw.toString()); } catch { send(ws, { type: 'error', message: 'Mensagem inválida.' }); return; }
     if (!msg || typeof msg.type !== 'string') return;
     if (msg.type === 'join') {
-      if (ws.roomId) return;
+      if (ws.roomId) { send(ws, { type: 'error', message: 'Este socket já está em uma sala.' }); return; }
       if (typeof msg.roomId !== 'string' || !/^[a-f0-9]{32}$/.test(msg.roomId)) { send(ws, { type: 'error', message: 'Link de sala inválido.' }); return; }
       const peers = rooms.get(msg.roomId);
       if (!peers) { send(ws, { type: 'error', message: 'Sala não existe ou expirou. Crie uma nova.' }); return; }
@@ -146,7 +232,11 @@ wss.on('connection', (ws) => {
     }
     if (!ws.roomId) return;
     if (['offer', 'answer', 'ice'].includes(msg.type)) {
-      const okay = msg.type === 'ice' ? msg.candidate && typeof msg.candidate === 'object' : msg.sdp && typeof msg.sdp === 'object';
+      const candidate = msg.candidate;
+      const validCandidate = msg.type !== 'ice' || candidate === null || (candidate && typeof candidate === 'object' && typeof candidate.candidate === 'string' && candidate.candidate.length <= 4096 && (!candidate.candidate || candidate.candidate.startsWith('candidate:')) && (candidate.sdpMid == null || typeof candidate.sdpMid === 'string' && candidate.sdpMid.length <= 128) && (candidate.sdpMLineIndex == null || Number.isInteger(candidate.sdpMLineIndex) && candidate.sdpMLineIndex >= 0 && candidate.sdpMLineIndex <= 255) && (candidate.usernameFragment == null || typeof candidate.usernameFragment === 'string' && candidate.usernameFragment.length <= 256));
+      const sdp = msg.sdp;
+      const validSdp = msg.type === 'ice' || (sdp && typeof sdp === 'object' && ['offer', 'answer'].includes(sdp.type) && typeof sdp.sdp === 'string' && sdp.sdp.startsWith('v=0') && sdp.sdp.length <= 48 * 1024);
+      const okay = validCandidate && validSdp;
       if (!okay) return;
       const peers = rooms.get(ws.roomId);
       if (!peers) return;
@@ -162,9 +252,14 @@ const keepAlive = setInterval(() => {
     ws.isAlive = false; ws.ping();
   }
 }, 30000);
+const rateCleanup = setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of requestLimits) if (now - bucket.startedAt > 15 * 60 * 1000) requestLimits.delete(key);
+}, 5 * 60 * 1000);
 wss.on('close', () => clearInterval(keepAlive));
+server.on('close', () => clearInterval(rateCleanup));
 server.listen(PORT, HOST, () => {
-  console.log('PeerTalk iniciado!');
+  console.log('TuPi iniciado!');
   console.log(`Local: http://localhost:${PORT}`);
   if (IPV6) console.log(`IPv6: http://[${IPV6}]:${PORT}`);
 });

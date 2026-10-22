@@ -190,9 +190,9 @@ export class YouTubeTogether {
   receive(raw) {
     if (typeof raw !== 'string' || raw.length > 2000) return;
     let message; try { message = JSON.parse(raw); } catch { return; }
-    if (!message || typeof message.type !== 'string') return;
+    if (!message || typeof message !== 'object' || Array.isArray(message) || typeof message.type !== 'string') return;
     if (message.type === 'ping' && Number.isFinite(message.sentAt)) { this.send({ type: 'pong', sentAt: message.sentAt, remoteAt: Date.now() }); return; }
-    if (message.type === 'pong' && Number.isFinite(message.sentAt) && Number.isFinite(message.remoteAt)) {
+    if (message.type === 'pong' && Number.isSafeInteger(message.sentAt) && Number.isSafeInteger(message.remoteAt) && Math.abs(message.remoteAt - message.sentAt) < 24 * 60 * 60 * 1000) {
       const now = Date.now(); this.clockOffset = message.remoteAt - ((message.sentAt + now) / 2); return;
     }
     if (message.type === 'load' && typeof message.videoId === 'string' && VIDEO_ID.test(message.videoId)) {
@@ -200,8 +200,8 @@ export class YouTubeTogether {
       return;
     }
     if (message.type === 'sync-request' && this.isHost) { this.publishSnapshot(); return; }
-    if (message.type === 'command' && ['play', 'pause', 'seek'].includes(message.action) && Number.isFinite(message.seconds) && VIDEO_ID.test(message.videoId || '')) {
-      const incoming = { clock: Number(message.clock) || 0, peerId: String(message.peerId || '') };
+    if (message.type === 'command' && ['play', 'pause', 'seek'].includes(message.action) && Number.isFinite(message.seconds) && message.seconds >= 0 && message.seconds <= 86400 && Number.isSafeInteger(message.at) && Math.abs(Date.now() - message.at) < 24 * 60 * 60 * 1000 && VIDEO_ID.test(message.videoId || '')) {
+      const incoming = { clock: Number.isSafeInteger(message.clock) && message.clock >= 0 ? message.clock : 0, peerId: typeof message.peerId === 'string' ? message.peerId.slice(0, 128) : '' };
       this.clock = Math.max(this.clock, incoming.clock);
       if (this.compare(incoming, this.lastCommand) <= 0) return;
       this.lastCommand = incoming;
@@ -210,7 +210,7 @@ export class YouTubeTogether {
       this.applyRemoteState(message.action, message.seconds + (message.action === 'play' ? elapsed : 0));
       return;
     }
-    if (message.type === 'snapshot' && !this.isHost && message.videoId === this.videoId && Number.isFinite(message.seconds) && ['play', 'pause'].includes(message.action)) {
+    if (message.type === 'snapshot' && !this.isHost && message.videoId === this.videoId && Number.isFinite(message.seconds) && message.seconds >= 0 && message.seconds <= 86400 && Number.isSafeInteger(message.at) && Math.abs(Date.now() - message.at) < 24 * 60 * 60 * 1000 && ['play', 'pause'].includes(message.action)) {
       const elapsed = message.action === 'play' ? Math.max(0, (Date.now() + this.clockOffset - (message.at || Date.now())) / 1000) : 0;
       this.applyRemoteState(message.action, message.seconds + elapsed);
     }

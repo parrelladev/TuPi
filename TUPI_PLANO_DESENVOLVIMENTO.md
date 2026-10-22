@@ -36,7 +36,6 @@ Este arquivo é a fonte de verdade para o desenvolvimento do TuPi 2.0. Antes de 
 - Configuração de qualidade por fonte: resolução, FPS, bitrate desejado e prioridade nitidez/fluidez; adaptação baseada em métricas reais.
 - Chat P2P; transferência de arquivos P2P com progresso, cancelamento e integridade.
 - YouTube Watch Together: cada navegador reproduz o vídeo diretamente do YouTube; sincronizar comandos e posição.
-- Reprodução sincronizada de vídeo local, inicialmente quando ambos possuem o arquivo; posteriormente envio prévio P2P.
 - Implantação simples por terminal, sem Docker ou banco de dados obrigatório.
 
 ### Não objetivos da versão 2.0
@@ -138,8 +137,7 @@ TuPi/
 │       └── features/
 │           ├── chat.js
 │           ├── files.js
-│           ├── youtube.js
-│           └── local-player.js
+│           └── youtube.js
 ├── tests/
 ├── .env.example
 └── README.md
@@ -341,34 +339,63 @@ Tarefas:
 
 **Aceite:** dois navegadores podem abrir o mesmo vídeo e sincronizar comandos em condições normais; erros de embed e divergências são apresentados claramente; sem tráfego de vídeo pelo servidor TuPi.
 
-### M7 — Vídeo local sincronizado
-
-Tarefas:
-- [ ] Modo inicial: cada peer seleciona localmente o mesmo arquivo, sem upload.
-- [ ] Comparar identidade do conteúdo (hash ou verificação robusta apropriada); não confiar apenas no nome.
-- [ ] Sincronizar play/pause/seek/posição com o mesmo protocolo de M6, adaptado ao `<video>` nativo.
-- [ ] Tratar codecs incompatíveis, buffering, duração diferente e autoplay.
-- [ ] Modo opcional posterior: transferir o arquivo por M5 e iniciar após confirmação de integridade.
-- [ ] Deixar streaming progressivo P2P de arquivo arbitrário para uma fase futura, após avaliação técnica.
-
-**Aceite:** reprodução sincronizada do mesmo arquivo em dois dispositivos, sem enviar o conteúdo pelo servidor.
-
 ### M8 — Estabilidade, segurança e lançamento self-host
 
+**Status:** endurecimento de código e documentação implementados; aceite de integração permanece pendente.
+
 Tarefas:
-- [ ] TTL para salas vazias; rate limiting e limites de payload/criação/conexão.
-- [ ] Validar mensagens de sinalização e de DataChannel; não usar `innerHTML` com conteúdo de peers.
-- [ ] Política de segurança de conteúdo compatível com WebRTC e YouTube opcional; cabeçalhos HTTP básicos.
-- [ ] Reconexão controlada de sinalização e recuperação WebRTC/ICE restart; evitar duplicação de peers.
-- [ ] Configuração de STUN/TURN via `.env`, sem credenciais hardcoded no frontend/repositório; documentar que credenciais TURN entregues ao navegador são visíveis e preferir credenciais temporárias quando possível.
-- [ ] Documentar HTTPS/WSS em acesso remoto; `localhost` pode ser usado no desenvolvimento.
-- [ ] Documentar proxy reverso opcional (Caddy/Nginx) sem torná-lo obrigatório para teste local.
-- [ ] Validar `npm install`, `npm start`, `npm run dev`, `npm run check` e `npm test`.
-- [ ] Testar Chrome, Firefox, Edge e navegadores móveis suportados; redes diferentes, NAT restritivo, TURN e perda de conexão.
+- [x] TTL para salas vazias; rate limiting e limites de payload/criação/conexão.
+- [x] Validar mensagens de sinalização e de DataChannel; conteúdo recebido de peers é inserido como texto.
+- [x] Política de segurança de conteúdo compatível com WebRTC e YouTube opcional; cabeçalhos HTTP básicos.
+- [x] Reconexão controlada de sinalização e tentativa de ICE restart; evitar ofertas repetidas do mesmo peer.
+- [x] Configuração de STUN/TURN via `.env`, sem credenciais hardcoded no frontend/repositório; documentar que credenciais TURN entregues ao navegador são visíveis e preferir credenciais temporárias quando possível.
+- [x] Documentar HTTPS/WSS em acesso remoto; `localhost` pode ser usado no desenvolvimento.
+- [x] Documentar proxy reverso opcional (Caddy/Nginx) sem torná-lo obrigatório para teste local.
+- [x] Executar `npm install --ignore-scripts --offline`, `npm start`, `npm run dev` e `npm run check`; dependências atualizadas, os dois modos iniciaram e a checagem passou.
+- [x] `npm test`: 6 testes passaram, incluindo recusa de SDP malformado, cabeçalhos, configuração ICE, limite de criação, sala, saída e limite de participantes.
+- [x] O proprietário confirmou testes nos navegadores e relatou funcionamento redondo. A lista exata de versões/dispositivos não foi registrada.
+- [ ] Validar redes diferentes, NAT restritivo, TURN real e perda de conexão.
 - [ ] Medir bundle estático, uso de memória, CPU, bitrate e comportamento em sessão prolongada.
-- [ ] Atualizar README, `.env.example`, troubleshooting, permissões e limitações.
+- [x] Atualizar README, `.env.example`, troubleshooting, permissões e limitações.
+
+**Validação local:** `npm install --ignore-scripts --offline`, `npm start`, `npm run dev`, `npm run check`, `node --check tests/server.test.js` e `git diff --check` passaram. `npm test` passou (6 testes). O primeiro teste dentro do sandbox não alcançou o servidor filho por restrição de loopback; a execução autorizada com acesso local passou integralmente.
+
+**Validação pendente:** configuração TURN real, redes diferentes/NAT restritivo, perda de conexão e medições de bundle/CPU/memória/bitrate em sessão prolongada. O proprietário confirmou que os navegadores testados estão funcionando redondo; versões e dispositivos não foram especificados.
 
 **Aceite:** instalação pelo terminal documentada e reproduzível, sem Docker; aplicação funcional em cenários suportados e limitações conhecidas registradas.
+
+### M9 — Notificações no chat
+
+**Status:** implementação concluída; validação manual entre dois peers pendente.
+
+Tarefas:
+- [x] Adicionar indicação visual de novas mensagens e estado de mensagens não lidas no chat.
+- [x] Adicionar notificação sonora configurável, respeitando ativação/interação exigida pelo navegador, opção de silenciar e preferências de acessibilidade.
+
+**Validação local:** `npm run check`, `npm test` (6 testes) e `git diff --check` passaram. Os testes automatizados existentes cobrem o servidor; não exercitam interface, áudio ou interação real entre dois peers.
+
+**Aceite:** indicação visual, contador de não lidas, controle de som e rótulos acessíveis implementados. Confirmação manual em dois navegadores permanece pendente.
+
+### M10 — Validação de redes e desempenho
+
+**Status:** planejado; não iniciado.
+
+Tarefas:
+- [ ] Validar sessões entre redes diferentes, incluindo NAT restritivo, uso de TURN real e recuperação após perda de conexão.
+- [ ] Medir tamanho do bundle, CPU, memória, bitrate de envio/recebimento e comportamento em sessão prolongada; registrar ambiente e método para que os resultados sejam reproduzíveis.
+
+**Aceite:** cenários de rede, medições e limitações ficam documentados com ambiente e método reproduzíveis.
+
+### M11 — Avaliação de controle remoto
+
+**Status:** estudo de viabilidade planejado; funcionalidade não aprovada para implementação de produto.
+
+Tarefas:
+- [ ] Investigar viabilidade de controle remoto: definir se o objetivo é controlar apenas a interface do TuPi ou o computador inteiro; mapear permissões, consentimento explícito, início/parada, revogação, plataformas e riscos de segurança.
+- [ ] Fazer prova de conceito isolada para controle remoto apenas depois da análise. Controle de mouse/teclado do sistema inteiro não é oferecido por APIs web comuns; avaliar a necessidade de um componente nativo separado e seu custo de instalação, distribuição, manutenção e segurança.
+- [ ] Medir o tráfego e a latência dos comandos na prova de conceito. Eventos de controle tendem a usar poucos dados comparados ao vídeo, mas o custo real depende da frequência dos eventos, da arquitetura e da captura de tela.
+
+**Aceite:** a decisão de prosseguir ou não fica registrada com base em análise de segurança e prova de conceito; nenhum acesso remoto é habilitado sem consentimento claro e revogável.
 
 ---
 
@@ -436,8 +463,10 @@ feat/m3-multimedia
 feat/m4-quality
 feat/m5-file-transfer
 feat/m6-youtube-sync
-feat/m7-local-video-sync
 chore/m8-selfhost-hardening
+feat/m9-chat-notifications
+test/m10-network-validation
+research/m11-remote-control
 ```
 
 Para cada marco, entregar:
@@ -485,7 +514,6 @@ O servidor deverá continuar acessível em `http://localhost:3000` por padrão. 
 - A transmissão de áudio da aba/sistema é prioritária? Implementar somente onde houver suporte comprovado.
 - Qual o comportamento desejado ao clicar em “sair”: destruir a sala ou permitir que o peer restante aguarde? Hoje o servidor mantém a sala enquanto há participante; preservar inicialmente.
 - Qual limite padrão de arquivo e política de transferência simultânea? Definir por teste de rede/memória.
-- Como lidar com vídeo local de codec incompatível? Mostrar erro e oferecer alternativa manual; evitar transcodificação no servidor.
 - O modo “qualidade automática” terá qual agressividade? Calibrar com medições, não por números inventados.
 - O ícone TuPi final deverá ser redesenhado em SVG a partir do conceito visual aprovado e revisado antes de aplicação em todas as telas.
 
@@ -497,4 +525,4 @@ O servidor deverá continuar acessível em `http://localhost:3000` por padrão. 
 
 ## 12. Definição de pronto do TuPi 2.0
 
-TuPi 2.0 estará pronto quando dois participantes puderem entrar por link, controlar independentemente microfone, câmera e tela, transmitir simultaneamente com configurações de qualidade observáveis, trocar mensagens e arquivos diretamente, assistir juntos a um vídeo do YouTube ou arquivo local em cenários suportados, usar a interface responsiva aprovada e hospedar tudo com comandos Node.js documentados, sem Docker, banco de dados ou framework pesado obrigatório — com testes e limitações registrados.
+TuPi 2.0 estará pronto quando dois participantes puderem entrar por link, controlar independentemente microfone, câmera e tela, transmitir simultaneamente com configurações de qualidade observáveis, trocar mensagens e arquivos diretamente, assistir juntos a um vídeo do YouTube em cenários suportados, usar a interface responsiva aprovada e hospedar tudo com comandos Node.js documentados, sem Docker, banco de dados ou framework pesado obrigatório — com testes e limitações registrados.
