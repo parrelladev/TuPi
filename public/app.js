@@ -6,6 +6,7 @@ import { Media } from './js/features/media.js';
 import { QualitySettings } from './js/core/quality.js';
 import { ConnectionStats } from './js/core/stats.js';
 import { FileTransfers } from './js/features/files.js';
+import { YouTubeTogether } from './js/features/youtube.js';
 
 const ui = createUI();
 const chat = new Chat(ui);
@@ -13,6 +14,7 @@ const media = new Media(ui);
 const quality = new QualitySettings(ui, media);
 media.quality = quality;
 const files = new FileTransfers(ui, { shouldPause: () => quality.adaptiveLevel > 0 });
+const youtube = new YouTubeTogether(ui);
 const rtcConfig = {
   iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
   // Production: add your own TURN service for restrictive NATs:
@@ -28,6 +30,7 @@ const peer = new PeerSession({
   media,
   chat,
   files,
+  youtube,
   ui,
   sendSignal: message => signaling?.send(message),
   onPeerLeft: () => {

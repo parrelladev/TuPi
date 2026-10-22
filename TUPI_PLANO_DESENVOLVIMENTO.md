@@ -304,7 +304,7 @@ Tarefas:
 
 ### M5 — Transferência de arquivos P2P
 
-**Status:** implementação concluída no workspace; validação funcional entre dois peers ainda pendente.
+**Status:** aprovado pelo proprietário em 22/10/2026; a validação funcional entre dois peers segue sem evidência registrada.
 
 Tarefas:
 - [x] Criar DataChannel `files` específico para arquivos, separado do canal `messages`.
@@ -326,14 +326,18 @@ Tarefas:
 
 ### M6 — Watch Together: YouTube
 
+**Status:** implementação inicial concluída; validação funcional em dois navegadores pendente.
+
 Tarefas:
-- [ ] UI para colar URL/ID de vídeo e abrir player incorporado.
-- [ ] Integrar YouTube IFrame Player API; cada peer baixa o vídeo diretamente do YouTube.
-- [ ] Sincronizar play/pause/seek/estado e estimativa de posição via DataChannel de controle.
-- [ ] Usar relógio/estimativa de offset e correção suave de drift, com tolerância configurável.
-- [ ] Resolver comandos concorrentes (versão sequencial, timestamp lógico ou autoridade explícita).
-- [ ] Tratar autoplay bloqueado, anúncios, buffering, vídeo indisponível e embed desabilitado.
-- [ ] Não baixar/redistribuir vídeos do YouTube nem tentar contornar restrições.
+- [x] UI para colar URL/ID de vídeo e abrir player incorporado.
+- [x] Integrar YouTube IFrame Player API; cada peer baixa o vídeo diretamente do YouTube.
+- [x] Sincronizar play/pause/seek/estado e estimativa de posição via DataChannel de controle.
+- [x] Aplicar tolerância configurável, correção suave de drift e snapshots periódicos do criador da sala.
+- [x] Resolver comandos concorrentes com relógio lógico e desempate determinístico por peer.
+- [x] Apresentar mensagens para autoplay bloqueado, buffering, vídeo indisponível e incorporação desativada; preservar os controles padrão do player YouTube.
+- [x] Não baixar/redistribuir vídeos do YouTube nem tentar contornar restrições.
+
+**Validação pendente:** executar `npm run check` e validar com dois navegadores: carga do mesmo vídeo, sincronização play/pause/seek, comando simultâneo, autoplay bloqueado, buffering, vídeo indisponível/embed bloqueado e recuperação após desconexão do peer. A validação exige conexão ao YouTube e não foi confirmada neste workspace.
 
 **Aceite:** dois navegadores podem abrir o mesmo vídeo e sincronizar comandos em condições normais; erros de embed e divergências são apresentados claramente; sem tráfego de vídeo pelo servidor TuPi.
 

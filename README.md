@@ -42,6 +42,7 @@ HOST=0.0.0.0 PORT=3000 npm start
 - `RTCPeerConnection` transporta microfone, câmera e tela por faixas de envio independentes; cada navegador controla suas fontes sem ligar dispositivos automaticamente.
 - `RTCDataChannel` transporta texto diretamente entre os navegadores.
 - Um canal `RTCDataChannel` separado transporta arquivos diretamente entre os navegadores. O recebimento pede consentimento, valida os blocos com SHA-256 encadeado e permite cancelar a transferência.
+- YouTube Watch Together usa um terceiro canal P2P para sincronizar o vídeo incorporado em cada navegador; o servidor TuPi não recebe nem retransmite vídeo.
 - As salas e mensagens ficam somente em memória; as salas são removidas quando o último usuário desconecta.
 
 ## Qualidade e diagnóstico
@@ -55,6 +56,10 @@ A lista de codecs usa as capacidades anunciadas pelo navegador. A Web API não o
 Na sala, escolha um arquivo em **Transferir arquivo**. A outra pessoa precisa aceitar o recebimento; a transferência começa somente depois do consentimento. Os navegadores compatíveis com `showSaveFilePicker` gravam os blocos diretamente no destino escolhido, sem manter o arquivo inteiro na memória. Nos demais navegadores, o arquivo é montado em memória até o limite de 64 MiB. Acima desse limite o recebimento é recusado, e o usuário precisa usar um navegador com gravação direta em disco.
 
 O canal usa blocos de 64 KiB, controle de fluxo pelo buffer do DataChannel e pausa quando o ajuste adaptativo de qualidade detecta congestionamento. Cada bloco tem hash SHA-256 conferido antes de ser gravado; a transferência também valida a ordem, a quantidade de blocos e o tamanho total antes de concluir. O limite máximo de oferta é 20 GiB; limites reais podem ser menores por navegador ou espaço em disco. A transferência usa WebRTC P2P (ou TURN quando necessário), não passa pelo servidor TuPi. Só há uma transferência ativa por sala; sair da sala ou desconectar cancela e limpa o estado.
+
+### YouTube Watch Together
+
+Na sala, abra **YouTube**, cole um link ou ID de vídeo e selecione **Abrir vídeo**. Cada pessoa recebe o mesmo vídeo e o reproduz do YouTube no próprio navegador. Reproduzir, pausar e buscar posição são enviados pelo canal de controle P2P; o criador da sala envia snapshots periódicos para corrigir divergências. A tolerância de sincronização pode ser ajustada na interface. O player incorporado depende de disponibilidade do vídeo, permissão de incorporação, conexão com o YouTube e suporte/autoplay do navegador. Quando o autoplay estiver bloqueado, cada pessoa deve pressionar Reproduzir. Anúncios e buffering são controlados pelo YouTube e podem causar diferenças temporárias. O TuPi não baixa nem redistribui o vídeo.
 
 ## Limitações intencionais do MVP
 - **Sem TURN configurado por padrão:** algumas redes corporativas, CGNATs e NATs restritivos não conseguirão conexão. Configure credenciais TURN em `public/app.js` antes de publicar.
