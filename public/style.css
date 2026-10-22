@@ -61,7 +61,7 @@ body{display:flex;flex-direction:column;min-height:100vh}
 .columns .chat{height:clamp(380px,calc(100vh - 270px),760px);border-radius:19px;box-shadow:none}
 .room.chat-collapsed .columns{grid-template-columns:minmax(0,1fr)}
 .room.chat-collapsed #chatPanel{display:none}
-.room-toolbar{width:max-content;max-width:100%;margin:12px auto 0;padding:7px 10px;display:flex;align-items:center;justify-content:center;gap:4px;border:1px solid #eee9ed;border-radius:20px;background:#fff;box-shadow:0 8px 28px #34253812}
+.room-toolbar{width:max-content;max-width:100%;margin:20px auto 0;padding:7px 10px;display:flex;align-items:center;justify-content:center;gap:4px;border:1px solid #eee9ed;border-radius:20px;background:#fff;box-shadow:0 8px 28px #34253812}
 .room-toolbar .toolbar-action{width:78px;min-width:66px;height:60px;min-height:60px;padding:7px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:14px;background:transparent;color:#5e5660;font-size:10px;font-weight:600}
 .room-toolbar .toolbar-action>span:last-child:not(.sr-only):not(.chat-unread-badge){display:none}
 .room-toolbar .toolbar-action:hover:not(:disabled){background:#f7f4f6;transform:none}
