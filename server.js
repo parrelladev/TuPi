@@ -22,20 +22,73 @@ const HOST = process.env.HOST || '::';
 const IPV6 = process.env.IPV6 || '';
 const PUBLIC = path.join(__dirname, 'public');
 const rooms = new Map(); // roomId -> Set<WebSocket>
+const fruitNames = ['abacaxi', 'banana', 'caju', 'cereja', 'goiaba', 'kiwi', 'manga', 'melancia', 'pera', 'uva'];
+const roomNames = new Map(); // fruit name -> roomId
+const roomFruitById = new Map(); // roomId -> fruit name
+const roomExpiryTimers = new Map();
 const MAX_PAYLOAD = 64 * 1024;
-const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
+const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png' };
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   if (req.method === 'POST' && url.pathname === '/api/rooms') {
+    const available = fruitNames.filter(name => !roomNames.has(name));
+    if (!available.length) {
+      res.writeHead(503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ error: 'Todas as frutas estão em uso. Tente novamente em alguns minutos.' }));
+      return;
+    }
     const id = crypto.randomBytes(16).toString('hex');
+    const roomName = available[crypto.randomInt(available.length)];
     rooms.set(id, new Set());
+    roomNames.set(roomName, id);
+    roomFruitById.set(id, roomName);
+    const expiry = setTimeout(() => {
+      if (rooms.get(id)?.size === 0) {
+        rooms.delete(id);
+        roomNames.delete(roomName);
+        roomFruitById.delete(id);
+      }
+      roomExpiryTimers.delete(id);
+    }, 5 * 60 * 1000);
+    expiry.unref();
+    roomExpiryTimers.set(id, expiry);
     res.writeHead(201, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-    res.end(JSON.stringify({ roomId: id }));
+    res.end(JSON.stringify({ roomId: id, roomName }));
+    return;
+  }
+  if (req.method === 'GET' && url.pathname.startsWith('/api/rooms/')) {
+    let code;
+    try { code = decodeURIComponent(url.pathname.slice('/api/rooms/'.length)).toLowerCase(); }
+    catch {
+      res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ error: 'Nome ou link de sala inválido.' }));
+      return;
+    }
+    const id = roomNames.get(code) || (roomFruitById.has(code) ? code : null);
+    if (!id || !rooms.has(id)) {
+      res.writeHead(404, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ error: 'Sala não encontrada. Confira o nome da fruta ou o link.' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ roomId: id, roomName: roomFruitById.get(id) }));
     return;
   }
   if (req.method !== 'GET') { res.writeHead(405); res.end('Method not allowed'); return; }
-  const files = { '/': 'index.html', '/index.html': 'index.html', '/app.js': 'app.js', '/style.css': 'style.css' };
+  const files = {
+    '/': 'index.html',
+    '/index.html': 'index.html',
+    '/app.js': 'app.js',
+    '/style.css': 'style.css',
+    '/assets/tupi-logo.svg': 'assets/tupi-logo.svg',
+    '/assets/tupi-logo.png': 'assets/tupi-logo.png',
+    '/js/ui.js': 'js/ui.js',
+    '/js/core/signaling.js': 'js/core/signaling.js',
+    '/js/core/peer.js': 'js/core/peer.js',
+    '/js/features/chat.js': 'js/features/chat.js',
+    '/js/features/media.js': 'js/features/media.js'
+  };
   const file = files[url.pathname];
   if (!file) { res.writeHead(404); res.end('Not found'); return; }
   fs.readFile(path.join(PUBLIC, file), (err, body) => {
@@ -55,7 +108,14 @@ function leave(ws) {
   if (!peers) return;
   peers.delete(ws);
   for (const other of peers) send(other, { type: 'peer-left' });
-  if (!peers.size) rooms.delete(roomId);
+  if (!peers.size) {
+    rooms.delete(roomId);
+    const roomName = roomFruitById.get(roomId);
+    roomNames.delete(roomName);
+    roomFruitById.delete(roomId);
+    clearTimeout(roomExpiryTimers.get(roomId));
+    roomExpiryTimers.delete(roomId);
+  }
 }
 
 wss.on('connection', (ws) => {
@@ -71,6 +131,8 @@ wss.on('connection', (ws) => {
       const peers = rooms.get(msg.roomId);
       if (!peers) { send(ws, { type: 'error', message: 'Sala não existe ou expirou. Crie uma nova.' }); return; }
       if (peers.size >= 2) { send(ws, { type: 'error', message: 'A sala já está cheia (máximo 2).' }); return; }
+      clearTimeout(roomExpiryTimers.get(msg.roomId));
+      roomExpiryTimers.delete(msg.roomId);
       ws.roomId = msg.roomId;
       const first = peers.size === 0;
       peers.add(ws);

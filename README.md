@@ -1,6 +1,8 @@
-# PeerTalk — MVP WebRTC P2P
+# TuPi — comunicação P2P no navegador
 
 Sala minimalista para **2 pessoas** com voz, compartilhamento de tela e chat de texto.
+
+A interface oferece criação de sala ou entrada pelo nome de uma fruta ou pelo link de convite. Cada sala recebe uma fruta disponível entre dez opções; por isso, até dez salas podem estar ativas ao mesmo tempo. Os nomes exibidos são frutas e os links mantêm um identificador aleatório de 128 bits. Microfone e captura de tela só são ativados quando cada pessoa escolhe os controles na sala. O visual usa a identidade TuPi e se adapta a telas grandes e celulares.
 
 ## Requisitos
 - Node.js 20+
@@ -15,7 +17,7 @@ npm start
 
 O endereço IPv6 usado apenas na mensagem de inicialização fica em `.env` (esse arquivo é ignorado pelo Git). Copie `.env.example` para `.env` e preencha `IPV6=` com o endereço público. Se preferir, configure `IPV6` diretamente nas variáveis de ambiente do serviço.
 
-Abra **http://localhost:3000** em duas abas do mesmo computador. Clique em **Criar sala** na primeira, copie o link e abra na segunda. Ative microfone e/ou compartilhe a tela. Use fones para evitar microfonia ao testar no mesmo dispositivo.
+Abra **http://localhost:3000** em duas abas do mesmo computador. Clique em **Criar nova sala** na primeira e digite o nome da fruta exibido na segunda, ou abra o link de convite. Ative microfone e/ou compartilhe a tela pelos controles. Use fones para evitar microfonia ao testar no mesmo dispositivo.
 
 Para desenvolvimento com reinício automático:
 
@@ -34,7 +36,8 @@ HOST=0.0.0.0 PORT=3000 npm start
 ```
 
 ## Como funciona
-- `POST /api/rooms` cria uma sala com ID aleatório de 128 bits.
+- `POST /api/rooms` cria uma sala com nome único de fruta e ID de convite aleatório de 128 bits.
+- `GET /api/rooms/:nome-ou-id` resolve o nome manual da fruta ou o ID de um link ativo.
 - `ws(s)://.../signal` encaminha SDP/ICE entre os dois participantes, sem manipular a mídia.
 - `RTCPeerConnection` transporta microfone (áudio) e tela (vídeo).
 - `RTCDataChannel` transporta texto diretamente entre os navegadores.
@@ -53,12 +56,14 @@ HOST=0.0.0.0 PORT=3000 npm start
 ## Organização
 
 ```
-peertalk-mvp/
+TuPi/
 ├── package.json
 ├── server.js          # HTTP + WebSocket para sinalização
 ├── public/
+│   ├── assets/        # marca vetorial local
+│   ├── js/            # UI, sinalização, WebRTC, mídia e chat
 │   ├── index.html     # interface
 │   ├── style.css      # estilos responsivos
-│   └── app.js         # WebRTC, captura e chat
+│   └── app.js         # inicialização e ciclo de vida
 └── README.md
 ```
