@@ -2,7 +2,7 @@
 
 Sala minimalista para **2 pessoas** com voz, compartilhamento de tela e chat de texto.
 
-A interface oferece criação de sala ou entrada pelo nome de uma fruta ou pelo link de convite. Cada sala recebe uma fruta disponível entre dez opções; por isso, até dez salas podem estar ativas ao mesmo tempo. Os nomes exibidos são frutas e os links mantêm um identificador aleatório de 128 bits. Microfone e captura de tela só são ativados quando cada pessoa escolhe os controles na sala. O visual usa a identidade TuPi e se adapta a telas grandes e celulares.
+A interface oferece criação de sala ou entrada pelo nome de uma fruta ou pelo link de convite. Cada sala recebe uma fruta disponível entre dez opções; por isso, até dez salas podem estar ativas ao mesmo tempo. Os links usam o nome da fruta, por exemplo `?room=manga`; o ID aleatório é usado apenas internamente pelo servidor. Microfone e captura de tela só são ativados quando cada pessoa escolhe os controles na sala. O visual usa a identidade TuPi e se adapta a telas grandes e celulares.
 
 ## Requisitos
 - Node.js 20+
@@ -36,7 +36,7 @@ HOST=0.0.0.0 PORT=3000 npm start
 ```
 
 ## Como funciona
-- `POST /api/rooms` cria uma sala com nome único de fruta e ID de convite aleatório de 128 bits.
+- `POST /api/rooms` cria uma sala com nome único de fruta e ID interno aleatório de 128 bits.
 - `GET /api/rooms/:nome-ou-id` resolve o nome manual da fruta ou o ID de um link ativo.
 - `ws(s)://.../signal` encaminha SDP/ICE entre os dois participantes, sem manipular a mídia.
 - `RTCPeerConnection` transporta microfone (áudio) e tela (vídeo).

@@ -62,7 +62,7 @@ async function enterRoom(id, roomName = 'TuPi') {
   ui.$('chatToggleBtn').setAttribute('aria-label', chatInitiallyOpen ? 'Ocultar chat' : 'Mostrar chat');
   ui.$('roomTitle').textContent = `Sala ${roomName}`;
   const invite = new URL(location.href);
-  invite.searchParams.set('room', id);
+  invite.searchParams.set('room', roomName.toLowerCase());
   ui.$('inviteUrl').value = invite.href;
   history.replaceState(null, '', `${invite.pathname}${invite.search}`);
   ui.status('Conectando ao servidor de sinalização...');
