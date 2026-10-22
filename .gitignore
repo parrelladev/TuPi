@@ -2,3 +2,7 @@
 .env.*
 !.env.example
 node_modules/
+logs/
+scripts/cloudflared.exe
+Iniciar-TuPi.bat
+Iniciar-TuPi.ps1
