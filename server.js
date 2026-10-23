@@ -70,7 +70,7 @@ function limited(map, key, max, windowMs = RATE_WINDOW_MS) {
 function setSecurityHeaders(res) {
   res.setHeader('Content-Security-Policy', CSP);
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), display-capture=(self), fullscreen=(self), geolocation=()');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
@@ -134,13 +134,13 @@ const server = http.createServer((req, res) => {
     try { code = decodeURIComponent(url.pathname.slice('/api/rooms/'.length)).toLowerCase(); }
     catch {
       res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      res.end(JSON.stringify({ error: 'Nome ou link de sala inválido.' }));
+      res.end(JSON.stringify({ error: 'Código ou link de convite inválido.' }));
       return;
     }
-    const id = roomNames.get(code) || (roomFruitById.has(code) ? code : null);
+    const id = /^[a-f0-9]{32}$/.test(code) ? code : null;
     if (!id || !rooms.has(id)) {
       res.writeHead(404, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      res.end(JSON.stringify({ error: 'Sala não encontrada. Confira o nome da fruta ou o link.' }));
+      res.end(JSON.stringify({ error: 'Convite inválido ou expirado. Solicite um novo link completo; a fruta é apenas o nome da sala.' }));
       return;
     }
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -218,7 +218,7 @@ wss.on('connection', (ws, req) => {
     if (!msg || typeof msg.type !== 'string') return;
     if (msg.type === 'join') {
       if (ws.roomId) { send(ws, { type: 'error', message: 'Este socket já está em uma sala.' }); return; }
-      if (typeof msg.roomId !== 'string' || !/^[a-f0-9]{32}$/.test(msg.roomId)) { send(ws, { type: 'error', message: 'Link de sala inválido.' }); return; }
+      if (typeof msg.roomId !== 'string' || !/^[a-f0-9]{32}$/.test(msg.roomId)) { send(ws, { type: 'error', message: 'Link de sala inválido. Solicite um novo convite completo; a fruta é apenas o nome da sala.' }); return; }
       const peers = rooms.get(msg.roomId);
       if (!peers) { send(ws, { type: 'error', message: 'Sala não existe ou expirou. Crie uma nova.' }); return; }
       if (peers.size >= 2) { send(ws, { type: 'error', message: 'A sala já está cheia (máximo 2).' }); return; }

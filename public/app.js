@@ -70,7 +70,7 @@ async function enterRoom(id, roomName = 'TuPi') {
   ui.setChatOpen(false);
   ui.$('roomTitle').textContent = `Sala ${roomName}`;
   const invite = new URL(location.href);
-  invite.searchParams.set('room', roomName.toLowerCase());
+  invite.searchParams.set('room', id);
   ui.$('inviteUrl').value = invite.href;
   history.replaceState(null, '', `${invite.pathname}${invite.search}`);
   ui.status('Conectando ao servidor de sinalização...');
@@ -127,7 +127,7 @@ async function resolveRoom(value) {
 ui.$('joinForm').addEventListener('submit', event => {
   event.preventDefault();
   const value = ui.$('roomCode').value.trim();
-  if (!value) { ui.notify('Digite o nome da fruta ou cole o link da sala.'); return; }
+  if (!value) { ui.notify('Digite o código completo ou cole o link de convite. A fruta é apenas o nome da sala.'); return; }
   let code = value;
   try {
     if (value.includes('://')) code = new URL(value).searchParams.get('room') || '';

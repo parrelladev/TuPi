@@ -92,6 +92,17 @@ test('cria sala com ID aleatório de 128 bits', async () => {
   const first = await createRoom();
   const second = await createRoom();
   assert.notEqual(first, second);
+  const lookup = await fetch(`${baseUrl}/api/rooms/${first}`);
+  assert.equal(lookup.status, 200);
+  const room = await lookup.json();
+  assert.equal(room.roomId, first);
+  const byName = await fetch(`${baseUrl}/api/rooms/${room.roomName.toUpperCase()}`);
+  assert.equal(byName.status, 404);
+  const denied = await byName.json();
+  assert.match(denied.error, /novo link completo/);
+  assert.equal(denied.roomId, undefined);
+  assert.equal((await fetch(`${baseUrl}/api/rooms/%E0%A4%A`)).status, 400);
+  assert.equal((await fetch(`${baseUrl}/api/rooms/inexistente`)).status, 404);
 });
 
 test('recusa ID inválido e sala inexistente', async () => {
@@ -145,7 +156,7 @@ test('publica cabeçalhos básicos e configuração ICE sem cache', async () => 
   assert.equal(page.status, 200);
   assert.match(page.headers.get('content-security-policy'), /frame-src.*youtube/);
   assert.equal(page.headers.get('x-content-type-options'), 'nosniff');
-  assert.equal(page.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
+  assert.equal(page.headers.get('referrer-policy'), 'no-referrer');
   const config = await fetch(`${baseUrl}/api/config`);
   assert.equal(config.headers.get('cache-control'), 'no-store');
   assert.deepEqual(await config.json(), { iceServers: [] });

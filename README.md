@@ -2,7 +2,7 @@
 
 Sala minimalista para **2 pessoas** com voz, compartilhamento de tela e chat de texto.
 
-A interface oferece criação de sala ou entrada pelo nome de uma fruta ou pelo link de convite. Cada sala recebe uma fruta disponível entre dez opções; por isso, até dez salas podem estar ativas ao mesmo tempo. Os links usam o nome da fruta, por exemplo `?room=manga`; o ID aleatório é usado apenas internamente pelo servidor. Microfone, câmera e captura de tela só são ativados quando cada pessoa escolhe os controles na sala. Em “Dispositivos e áudio”, cada participante pode selecionar microfone/câmera e alternar entre processamento padrão (redução de eco/ruído e ganho automático, se suportados) e áudio natural. O visual usa a identidade TuPi e se adapta a telas grandes e celulares.
+A interface oferece criação de sala ou entrada pelo código completo ou pelo link de convite. Cada sala recebe uma fruta disponível entre dez opções; por isso, até dez salas podem estar ativas ao mesmo tempo. A fruta é apenas um rótulo visual: o código aleatório de 128 bits (32 caracteres hexadecimais), presente em `?room=<codigo>`, é a credencial de acesso. Use **Copiar link** na sala para compartilhar o convite. Microfone, câmera e captura de tela só são ativados quando cada pessoa escolhe os controles na sala. Em “Dispositivos e áudio”, cada participante pode selecionar microfone/câmera e alternar entre processamento padrão (redução de eco/ruído e ganho automático, se suportados) e áudio natural. O visual usa a identidade TuPi e se adapta a telas grandes e celulares.
 
 ## Requisitos
 - Node.js 20+
@@ -17,7 +17,7 @@ npm start
 
 Configurações locais ficam em `.env` (ignorado pelo Git). Copie `.env.example` para `.env`; `IPV6=` só afeta a mensagem de inicialização. STUN/TURN é opcional para teste local, mas TURN pode ser necessário para redes restritivas. Defina `ICE_SERVERS` como array JSON, por exemplo `[{"urls":["stun:stun.seudominio:3478"]}]`, ou use `STUN_URL`, `TURN_URL`, `TURN_USERNAME` e `TURN_CREDENTIAL`. Não salve credenciais permanentes em um repositório. Valores TURN enviados ao navegador são visíveis aos participantes; prefira credenciais temporárias emitidas pelo serviço TURN.
 
-Abra **http://localhost:3000** em duas abas do mesmo computador. Clique em **Criar nova sala** na primeira e digite o nome da fruta exibido na segunda, ou abra o link de convite. Ative microfone, câmera e/ou tela independentemente pelos controles. Use fones para evitar microfonia ao testar no mesmo dispositivo.
+Abra **http://localhost:3000** em duas abas do mesmo computador. Clique em **Criar nova sala** na primeira e abra o link de **Copiar link** na segunda, ou cole o convite/código completo na Home. Ative microfone, câmera e/ou tela independentemente pelos controles. Use fones para evitar microfonia ao testar no mesmo dispositivo.
 
 Para desenvolvimento com reinício automático:
 
@@ -36,10 +36,10 @@ HOST=127.0.0.1 PORT=3000 npm start
 ```
 
 ## Como funciona
-- `POST /api/rooms` cria uma sala com nome único de fruta e ID interno aleatório de 128 bits.
-- `GET /api/rooms/:nome-ou-id` resolve o nome manual da fruta ou o ID de um link ativo.
+- `POST /api/rooms` cria uma sala e retorna `{ roomId, roomName }`; `roomId` é o código secreto aleatório de 128 bits, `roomName` é a fruta visual.
+- `GET /api/rooms/:codigo` aceita somente o código completo de uma sala ativa e retorna `{ roomId, roomName }`, sem cache. A consulta aceita hexadecimal em maiúsculas e normaliza para minúsculas. Fruta, código incorreto ou removido recebem 404 com orientação para solicitar novo convite, sem revelar credenciais ou existência de sala por fruta.
 - `GET /api/config` entrega a configuração pública de ICE; credenciais TURN disponibilizadas ao browser podem ser inspecionadas pelos participantes.
-- `ws(s)://.../signal` encaminha SDP/ICE entre os dois participantes, sem manipular a mídia.
+- `ws(s)://.../signal` exige `{ type: "join", roomId: "<codigo completo em minúsculas>" }`. O servidor valida formato, existência e limite de dois antes de admitir o socket ou encaminhar SDP/ICE. Sem credencial válida, responde `error`; o socket não ocupa vaga nem recebe sinalização da sala.
 - `RTCPeerConnection` transporta microfone, câmera e tela por faixas de envio independentes; cada navegador controla suas fontes sem ligar dispositivos automaticamente.
 - `RTCDataChannel` transporta texto diretamente entre os navegadores.
 - O aviso sonoro de novas mensagens vem ativado e toca para cada mensagem recebida; o botão **Som** permite silenciá-lo, e a preferência fica salva neste navegador. O áudio só começa após uma interação do usuário, conforme as regras do navegador. Mensagens recebidas com o chat fechado ou a aba em segundo plano acendem uma bolinha no botão **Chat** até o painel ser aberto.
@@ -71,6 +71,7 @@ Na sala, abra **YouTube**, cole um link ou ID de vídeo e selecione **Abrir víd
 - Uma sala com participante conectado permanece ativa; a sala é removida quando o último sai. Salas recém-criadas sem entrada expiram em cinco minutos.
 - Se o criador fechar a sala e a outra pessoa continuar, o link permanece válido enquanto houver participante.
 - O endereço da sala é um token de acesso: quem o conhece pode entrar, caso exista uma vaga.
+- Trate link e código como segredo de portador; eles não verificam a identidade da pessoa. Não publique convites nem registre URLs completas em logs de proxy, analytics ou anexos. A aplicação não registra convites e envia `Referrer-Policy: no-referrer`, mas o código permanece na URL/histórico do navegador e é enviado no caminho de consulta da API. Use HTTPS/WSS fora de localhost; quem opera o servidor/proxy pode conhecer o convite.
 - Salas e limites de requisição ficam em memória do processo. Rate limiting reduz abuso básico, mas não substitui proxy/WAF ou proteção distribuída em implantação pública.
 - A sinalização tenta reconectar com backoff limitado; o peer iniciador pode tentar ICE restart. Isso não garante recuperação em todas as redes; TURN pode ser necessário.
 - O TuPi não transmite áudio da aba/sistema durante compartilhamento de tela; apenas áudio do microfone. Áudio da captura de tela ainda não está implementado.
@@ -81,6 +82,10 @@ Na sala, abra **YouTube**, cole um link ou ID de vídeo e selecione **Abrir víd
 
 Configure Caddy ou Nginx para terminar TLS e encaminhar `Host`, `X-Forwarded-For` e conexões WebSocket para o TuPi em `127.0.0.1:3000`. O proxy precisa permitir o upgrade WebSocket em `/signal`. O TuPi não habilita TLS diretamente e não exige proxy para `localhost`.
 
+### Migração dos convites por fruta (V2-01)
+
+Convites antigos como `?room=manga` e nomes de frutas digitados na Home deixam de conceder acesso. A mensagem orienta solicitar um novo link completo; não há redirecionamento ou resolução da fruta para o segredo. Links antigos que já contêm o ID completo continuam válidos enquanto a sala existir. Reiniciar/atualizar o servidor elimina as salas em memória: crie outra sala e compartilhe seu novo link. Recarregue as páginas antigas para obter o novo cliente e use **Copiar link**; não reutilize convites por fruta. Após expiração ou última saída, o código antigo não funciona, mesmo se outra sala receber a mesma fruta.
+
 ## Checagem e testes
 
 ```bash
@@ -89,6 +94,8 @@ npm test
 ```
 
 Os testes automatizados cobrem as rotas e o limite de participantes do servidor. A validação de câmera, microfone, compartilhamento de tela, navegador móvel, ICE/TURN e redes diferentes ainda exige teste manual.
+
+O [relatório V2-01](docs/v2/V2-01_RELATORIO.md) registra o contrato de ingresso, a migração dos convites e a validação isolada de ingresso autorizado, recusa e descoberta por fruta. O teste de expiração acelera somente o timer no processo de teste; produção continua com cinco minutos.
 
 ## Organização
 
