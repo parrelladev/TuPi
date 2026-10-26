@@ -1,0 +1,72 @@
+
+> TuPi@1.0.0 check
+> node scripts/check-syntax.js
+
+
+> TuPi@1.0.0 test
+> node --test
+
+TAP version 13
+# Subtest: cria sala com ID aleatório de 128 bits
+ok 1 - cria sala com ID aleatório de 128 bits
+  ---
+  duration_ms: 295.844275
+  type: 'test'
+  ...
+# Subtest: recusa ID inválido e sala inexistente
+ok 2 - recusa ID inválido e sala inexistente
+  ---
+  duration_ms: 55.300283
+  type: 'test'
+  ...
+# Subtest: limita a dois peers e remove a sala após a saída do último
+ok 3 - limita a dois peers e remove a sala após a saída do último
+  ---
+  duration_ms: 30.602776
+  type: 'test'
+  ...
+# Subtest: publica cabeçalhos básicos e configuração ICE sem cache
+ok 4 - publica cabeçalhos básicos e configuração ICE sem cache
+  ---
+  duration_ms: 12.417485
+  type: 'test'
+  ...
+# Subtest: não encaminha oferta SDP malformada
+ok 5 - não encaminha oferta SDP malformada
+  ---
+  duration_ms: 115.656267
+  type: 'test'
+  ...
+# Subtest: encaminha offer, answer e ICE entre dois peers nos dois sentidos
+ok 6 - encaminha offer, answer e ICE entre dois peers nos dois sentidos
+  ---
+  duration_ms: 18.02598
+  type: 'test'
+  ...
+# Subtest: permite reentrada enquanto há um peer e remove também o nome após a última saída
+ok 7 - permite reentrada enquanto há um peer e remove também o nome após a última saída
+  ---
+  duration_ms: 30.210373
+  type: 'test'
+  ...
+# Subtest: mantém a sinalização isolada entre salas
+ok 8 - mantém a sinalização isolada entre salas
+  ---
+  duration_ms: 116.096538
+  type: 'test'
+  ...
+# Subtest: limita criação de salas por endereço
+ok 9 - limita criação de salas por endereço
+  ---
+  duration_ms: 4.317652
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 911.968638

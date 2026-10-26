@@ -15,7 +15,11 @@ npm install
 npm start
 ```
 
-Configurações locais ficam em `.env` (ignorado pelo Git). Copie `.env.example` para `.env`; `IPV6=` só afeta a mensagem de inicialização. STUN/TURN é opcional para teste local, mas TURN pode ser necessário para redes restritivas. Defina `ICE_SERVERS` como array JSON, por exemplo `[{"urls":["stun:stun.seudominio:3478"]}]`, ou use `STUN_URL`, `TURN_URL`, `TURN_USERNAME` e `TURN_CREDENTIAL`. Não salve credenciais permanentes em um repositório. Valores TURN enviados ao navegador são visíveis aos participantes; prefira credenciais temporárias emitidas pelo serviço TURN.
+Configurações locais ficam em `.env` (ignorado pelo Git). Copie `.env.example` para `.env`; `IPV6=` só afeta a mensagem de inicialização.
+
+O foco do TuPi é o uso em computadores domésticos. Não há serviço TURN incluído nem exigência de contratá-lo: a configuração permanece opcional para quem precisar de relay. Mesmo redes domésticas podem ter NAT restritivo ou CGNAT; nesses casos, a conexão direta pode falhar e TURN pode ser necessário.
+
+Para configurar STUN/TURN opcionalmente, defina `ICE_SERVERS` como array JSON, por exemplo `[{"urls":["stun:stun.seudominio:3478"]}]`, ou use `STUN_URL`, `TURN_URL`, `TURN_USERNAME` e `TURN_CREDENTIAL`. Sem TURN, deixe suas variáveis vazias. Não salve credenciais permanentes em um repositório. Valores TURN enviados ao navegador são visíveis aos participantes; prefira credenciais temporárias emitidas pelo serviço TURN.
 
 Abra **http://localhost:3000** em duas abas do mesmo computador. Clique em **Criar nova sala** na primeira e abra o link de **Copiar link** na segunda, ou cole o convite/código completo na Home. Ative microfone, câmera e/ou tela independentemente pelos controles. Use fones para evitar microfonia ao testar no mesmo dispositivo.
 
@@ -96,6 +100,17 @@ npm test
 Os testes automatizados cobrem as rotas e o limite de participantes do servidor. A validação de câmera, microfone, compartilhamento de tela, navegador móvel, ICE/TURN e redes diferentes ainda exige teste manual.
 
 O [relatório V2-01](docs/v2/V2-01_RELATORIO.md) registra o contrato de ingresso, a migração dos convites e a validação isolada de ingresso autorizado, recusa e descoberta por fruta. O teste de expiração acelera somente o timer no processo de teste; produção continua com cinco minutos.
+
+O [relatório do M10](M10_RELATORIO.md) registra os nove testes do servidor, o teste
+local com dois peers no navegador, o inventário de assets e as lacunas de redes e
+desempenho. Para repetir o inventário sem instalar ferramentas adicionais:
+
+```bash
+node scripts/m10-assets.js
+```
+
+O relatório também descreve a coleta opcional de CPU/RSS do servidor em Linux e o
+roteiro ainda pendente de TURN, redes diferentes e carga de mídia prolongada.
 
 ## Organização
 

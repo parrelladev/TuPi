@@ -1,528 +1,374 @@
-# TuPi 2.0 — Plano mestre de desenvolvimento
+# TuPi — Plano de evolução para a versão 2.0 estável
 
-> **Status:** especificação para implementação incremental com agentes de IA  
-> **Idioma do produto:** português brasileiro  
-> **Base analisada:** repositório `parrelladev/TuPi`, branch `master`, arquivos `README.md`, `package.json`, `server.js`, `public/index.html`, `public/style.css` e `public/app.js` (análise de 22/10/2026).  
-> **Referência visual:** protótipo aprovado pelo proprietário: fundo branco, gradientes laranja/vermelho/magenta/roxo, logo próprio com duas figuras conectadas, cartões arredondados, interface de sala e versões mobile. **Não copiar o logo do Google Stadia.**
+> **Revisão:** 23/10/2026 · **Idioma:** português brasileiro.
+> **Estado do produto:** recursos centrais implementados; candidato a beta controlada, com pendências para lançamento estável público.
+> **Objetivo deste plano:** consolidar a base existente, corrigir riscos comprovados e produzir evidências de qualidade para a 2.0.
+> **Escopo desta revisão:** planejamento e documentação; nenhuma tarefa futura está marcada como executada por esta edição.
 
-## 0. Como usar este documento com uma IA
+## 0. Fonte de verdade e regras de execução
 
-Este arquivo é a fonte de verdade para o desenvolvimento do TuPi 2.0. Antes de qualquer alteração, o agente deve:
+Este plano substitui o roteiro anterior de construção do produto. Não reiniciar os antigos M0–M9 nem reimplementar recursos já presentes. Inspecionar o checkout e o status do Git antes de trabalhar; há alterações locais de M10 que devem ser preservadas.
 
-1. Ler este documento e inspecionar o código atual do repositório; **não assumir que a estrutura ainda é idêntica** à descrita aqui.
-2. Identificar o marco em execução e **não implementar marcos posteriores sem autorização**.
-3. Descrever brevemente o plano, os arquivos a modificar, riscos e testes previstos.
-4. Trabalhar em uma branch específica (`feat/<nome-do-marco>`), mantendo `master` funcional; não apagar código sem compreender seu papel.
-5. Fazer mudanças pequenas e coesas, executar testes, documentar o que mudou e listar limitações conhecidas.
-6. Nunca declarar uma funcionalidade como testada se não houver teste real. Distinguir teste estático, teste automatizado em navegador e teste com dois dispositivos/redes.
-7. Evitar dependências sem necessidade demonstrada. Não instalar framework, UI kit, banco de dados, Docker ou serviço SaaS por conveniência.
+Referências:
 
-**Instrução reutilizável para o agente:**
+- [Parecer de maturidade](PARECER_V2.0.md): avaliação que motivou esta revisão.
+- [Relatório M10](M10_RELATORIO.md): métodos, resultados locais e lacunas.
+- [Evidências M10](docs/m10/): inventário, amostras, saída de testes e imagem da sessão local.
+- [Plano anterior preservado](docs/PLANO_HISTORICO_2026-10-23.md): histórico de decisões e entregas; não é o roteiro vigente.
+- [README](README.md) e [.env.example](.env.example): comportamento e configuração atualmente publicados.
 
-> Leia `TUPI_PLANO_DESENVOLVIMENTO.md` integralmente. Implemente apenas o marco [IDENTIFICADOR]. Preserve o funcionamento existente, a leveza, o limite de dois participantes e a execução com `npm start`. Antes de codificar, apresente arquivos impactados e riscos. Ao finalizar, informe alterações, testes executados, critérios de aceite atendidos e pendências. Não adicione Docker, React, banco de dados ou serviços externos obrigatórios.
+Regras para cada etapa:
 
----
+1. Trabalhar somente no escopo solicitado pelo proprietário. Uma solicitação de revisão do plano não autoriza executar suas implementações.
+2. Ler a etapa, inspecionar os arquivos afetados e apresentar brevemente mudanças, riscos e validações previstas.
+3. Reutilizar uma branch adequada; para novas branches, usar `codex/<etapa>`. Preservar alterações existentes e manter a branch principal funcional. Não exigir worktree novo.
+4. Fazer alterações pequenas; preservar `npm start`, limite de dois peers e recursos existentes. Refatoração somente se necessária à correção, com justificativa e regressão verificada.
+5. Priorizar APIs nativas e `node:test`. Não introduzir dependências pesadas ou infraestrutura por conveniência.
+6. Distinguir implementação, análise estática, teste automatizado de servidor, teste de navegador e teste em dois computadores/redes. Não inferir aprovação de uma matriz inteira a partir de um relato geral.
+7. Registrar todas as falhas observadas, inclusive quando uma repetição passa. Não aumentar timeouts ou remover asserções apenas para obter aprovação.
+8. Ao concluir, entregar resumo, arquivos, comandos, evidências, aceites atendidos e pendências. Não iniciar automaticamente a etapa seguinte sem escopo autorizado.
+9. Se faltar ambiente, concluir o trabalho independente e registrar o cenário como pendente. Não inventar dispositivos, credenciais, medições ou serviços.
 
-## 1. Visão e escopo do produto
+## 1. Produto e decisões consolidadas
 
-**TuPi** é uma aplicação web leve, self-hosted, de comunicação P2P para **exatamente até duas pessoas por sala**, voltada especialmente a gamers e ao compartilhamento de imagem com a maior fidelidade viável. O nome combina uma referência brasileira ao termo Tupi e o trocadilho sonoro com **peer-to-peer**.
+TuPi é uma aplicação web leve, self-hosted, para comunicação entre **até duas pessoas por sala**, com foco em computadores domésticos, gamers e compartilhamento de imagem. A 2.0 deve consolidar a experiência atual com confiabilidade demonstrada.
 
-### Capacidades-alvo
+### Capacidades da 2.0
 
-- Criar sala, compartilhar link e entrar sem conta.
-- Microfone confiável, com seleção de dispositivo e controles de processamento.
-- Câmera e compartilhamento de tela independentes para cada participante; ambos podem compartilhar telas e usar câmeras simultaneamente.
-- Layout dinâmico que prioriza o conteúdo transmitido e funciona em desktop/mobile.
-- Configuração de qualidade por fonte: resolução, FPS, bitrate desejado e prioridade nitidez/fluidez; adaptação baseada em métricas reais.
-- Chat P2P; transferência de arquivos P2P com progresso, cancelamento e integridade.
-- YouTube Watch Together: cada navegador reproduz o vídeo diretamente do YouTube; sincronizar comandos e posição.
-- Implantação simples por terminal, sem Docker ou banco de dados obrigatório.
+- Criar sala e entrar por convite sem conta, com ingresso protegido contra descoberta trivial.
+- Entrar com os dispositivos desligados; controlar microfone, câmera e tela independentemente em ambos os peers.
+- Selecionar microfone/câmera e processamento de áudio padrão ou natural.
+- Ajustar qualidade da tela e apresentar valores efetivos e diagnóstico; câmera mantém o perfil padrão e seleção de dispositivo.
+- Exibir duas telas e câmeras sem substituir involuntariamente uma fonte pela outra.
+- Trocar mensagens e arquivos P2P com consentimento, progresso, cancelamento e verificação de integridade.
+- Assistir ao YouTube com comandos e posição sincronizados nos cenários suportados.
+- Hospedar com comandos Node documentados, sem build obrigatório de frontend.
 
-### Não objetivos da versão 2.0
+### Decisões já tomadas pelo proprietário
 
-- Mais de dois participantes, SFU, gravação centralizada, armazenamento de mídia no servidor, contas obrigatórias, transcodificação no backend.
-- Prometer 4K60, latência fixa ou conexão estritamente direta em todas as redes.
-- Contornar DRM, restrições de incorporação do YouTube, bloqueios de navegador ou permissões de captura.
+| Tema | Diretriz vigente |
+| --- | --- |
+| Público principal | Computadores domésticos; suporte mobile limitado ao que for realmente validado. |
+| TURN | Opcional e configurável. Nenhum serviço será provisionado ou exigido como condição da 2.0 doméstica. |
+| Configuração ICE | Preservar `ICE_SERVERS` ou `STUN_URL` / `TURN_URL` / credenciais em `.env`. |
+| Interface | Preservar a identidade aprovada, Home simples, sala com prioridade para mídia e controles acessíveis. |
+| Marca | Preservar o logo PNG fornecido; redesenho SVG não é condição do lançamento. |
+| Câmera | Perfil padrão de captura; painel avançado de qualidade da câmera retirado do escopo. |
+| Áudio de aba/sistema | Continua adiado; compartilhamento de tela não deve prometer esse áudio. |
+| Encerramento | Quem permanece pode aguardar; última saída remove a sala, salvo ajuste fundamentado em V2-04. |
+| Confirmação funcional | Proprietário relatou projeto testado e funcionando; registrar detalhes adicionais quando disponíveis. |
+| Controle remoto | Antigo M11 é pesquisa futura, fora da 2.0 e sem implementação de produto autorizada. |
 
-### Regras de produto
+Mesmo redes domésticas podem exigir relay. Sem TURN, aceitar e comunicar que algumas conexões não se estabelecem. Não prometer compatibilidade universal, 4K60, aceleração por GPU ou latência fixa.
 
-1. **No máximo dois peers**; limite validado no servidor.
-2. O servidor sinaliza e serve a aplicação; mídia e dados seguem via WebRTC (diretamente quando possível, ou por TURN se necessário).
-3. O app deve funcionar sem internet pública depois de instalado, exceto quando usar serviços escolhidos explicitamente (ex.: YouTube, STUN/TURN externos); documentar a diferença entre instalação local e conectividade entre redes.
-4. Qualidade efetiva depende de hardware, navegador, codec, captura, rede e congestionamento.
-5. O usuário controla separadamente áudio, câmera, tela e transferências.
-6. O usuário pode entrar na sala com todos os dispositivos desligados.
+### Fora do escopo
 
----
+Mais de dois participantes, SFU, contas obrigatórias, gravação central, armazenamento de mídia/arquivos no servidor, banco obrigatório, Docker, framework obrigatório de frontend, controle remoto, rebranding e reescrita arquitetural. Não contornar DRM, autoplay, permissões ou restrições do YouTube.
 
-## 2. Diagnóstico da base atual
+## 2. Base real e evidências disponíveis
 
-Arquivos inspecionados:
+Base da avaliação: commit `de38b09` e alterações locais em `codex/m10-network-validation`. A versão declarada no pacote, lockfile e rodapé ainda é `1.0.0`; não mudar a versão antes da etapa de lançamento.
 
-| Arquivo | Situação atual | Implicação |
-|---|---|---|
-| `package.json` | `node >=20`, dependência `ws ^8.18.0`; scripts `start`, `dev`, `check` | Preservar comandos de terminal e dependências mínimas. |
-| `server.js` | Servidor HTTP estático, `POST /api/rooms`, WebSocket `/signal`, salas em `Map`, limite de 2 | Base útil; modularizar com cautela. |
-| `public/index.html` | Landing e sala são **duas seções do mesmo HTML**, não páginas separadas | Criar telas/estados sem necessariamente introduzir roteador externo. |
-| `public/style.css` | CSS monolítico, tema escuro, responsividade básica | Separar tokens, layout, componentes e responsividade. |
-| `public/app.js` | DOM, WebSocket, WebRTC, microfone, tela, chat e ciclo de vida no mesmo arquivo | Principal alvo da refatoração. |
-| `README.md` | Descreve MVP e limitações | Atualizar ao longo dos marcos. |
-
-### Problemas técnicos específicos confirmados
-
-- `app.js` possui `audioSender` e apenas **um** `videoSender`: câmera e tela não são fontes independentes.
-- `renderScreen()` escolhe tela remota ou local, sem layout para as duas simultâneas.
-- `getDisplayMedia()` usa `frameRate: 20`, com áudio da tela desativado; não há painel de qualidade.
-- STUN público de exemplo; TURN não configurado por padrão.
-- O WebSocket de sinalização transmite `offer`, `answer`, `ice` e eventos de sala; futuras renegociações exigem disciplina para evitar colisões.
-- O frontend usa DOM direto, sem estado centralizado por responsabilidade.
-- Não há reconexão automática, testes automatizados robustos, persistência ou proteção antiabuso completa.
-- `server.js` mantém salas em memória; isso é adequado para self-host simples, mas exige TTL para salas vazias e limitação de criação.
-
-**Atenção:** não substituir tudo de uma vez. Primeiro isolar responsabilidades, manter a experiência atual funcionando e só depois introduzir novas fontes e protocolos.
-
----
-
-## 3. Decisões de arquitetura
-
-### Tecnologias
-
-- **Backend:** Node.js 20+ com `node:http` e `ws`.
-- **Frontend:** HTML semântico, CSS moderno, JavaScript ES modules nativos; sem React/Vue/Next/Tailwind obrigatórios.
-- **Mídia:** WebRTC `RTCPeerConnection`, `RTCRtpTransceiver`, `getUserMedia`, `getDisplayMedia`.
-- **Dados:** `RTCDataChannel` separado por finalidade (chat, controle/sincronização e arquivos).
-- **Armazenamento:** salas em memória; configurações locais opcionais via `localStorage`, sem guardar segredos ou mídia.
-- **Execução:** `npm install`, `npm start`; desenvolvimento com `npm run dev`; **não criar Dockerfile ou compose**.
-- **Testes:** `node:test` para módulos isoláveis; adicionar Playwright somente se o custo for justificado, como dependência de desenvolvimento. Testes de mídia com dois navegadores e duas redes são obrigatórios antes do lançamento.
-
-### Estrutura-alvo sugerida (adaptável)
+### Estrutura atual a preservar
 
 ```text
 TuPi/
-├── package.json
-├── server.js                 # entrypoint preservado para npm start
-├── server/
-│   ├── rooms.js
-│   ├── signaling.js
-│   ├── config.js
-│   └── static.js
+├── server.js
+├── package.json / package-lock.json
 ├── public/
-│   ├── index.html
-│   ├── assets/
-│   │   ├── tupi-logo.svg
-│   │   └── icons.svg
-│   ├── css/
-│   │   ├── tokens.css
-│   │   ├── base.css
-│   │   ├── components.css
-│   │   ├── home.css
-│   │   ├── room.css
-│   │   └── responsive.css
+│   ├── app.js
+│   ├── index.html / style.css
+│   ├── assets/                         # PNG e favicon locais
 │   └── js/
-│       ├── app.js
-│       ├── state.js
-│       ├── ui/
-│       │   ├── home.js
-│       │   ├── prejoin.js
-│       │   ├── room.js
-│       │   ├── media-tile.js
-│       │   └── controls.js
-│       ├── core/
-│       │   ├── signaling.js
-│       │   ├── peer.js
-│       │   ├── media.js
-│       │   ├── negotiation.js
-│       │   ├── quality.js
-│       │   └── stats.js
-│       └── features/
-│           ├── chat.js
-│           ├── files.js
-│           └── youtube.js
-├── tests/
+│       ├── ui.js
+│       ├── core/                      # signaling, peer, quality, stats
+│       └── features/                  # media, chat, files, youtube
+├── tests/server.test.js
+├── scripts/                           # sintaxe e medições M10
+├── docs/m10/
 ├── .env.example
 └── README.md
 ```
 
-Não há obrigação de criar todos os arquivos imediatamente. Criar módulos conforme cada marco exigir. Evitar abstrações prematuras e bibliotecas para tarefas que APIs nativas resolvem.
+| Área | Implementado agora | Evidência e limite |
+| --- | --- | --- |
+| Execução | Node 20+, `node:http`, `ws`, scripts start/dev/check/test | Node 22.23.3, npm 10.9.9 e ws 8.22.0 usados na avaliação; Node mínimo e outros SOs ainda exigem registro. |
+| Salas | Map em memória, dez frutas, ID interno de 128 bits, limite de dois, TTL de 5 min para sala nunca ocupada | Testes de criação, consultas, ingresso, saída e isolamento; privacidade do convite por fruta reprovada no parecer. |
+| Frontend | ES modules nativos, UI clara responsiva e identidade aprovada | Aprovação do proprietário e sessão local em navegador; sem certificação ampla de versões. |
+| Mídia | Senders/transceivers independentes de áudio, câmera e tela, troca de dispositivos | Implementação presente; falta matriz detalhada de combinações e falhas. |
+| Qualidade | Perfis de tela, constraints, bitrate desejado, adaptação e `getStats()` | Diagnóstico soma bitrate de vídeo enviado e usa perda acumulada; não mede sozinho envio/recebimento por fonte. |
+| Dados | Canais messages/files/control; hashes por bloco, fallback em RAM até 64 MiB e oferta até 20 GiB | Limites de implementação, não tamanhos máximos já certificados em teste real. |
+| Rede | Retry de WebSocket, tentativa de ICE restart, configuração ICE e orientação HTTPS/WSS | Reentrada local comprovada; quedas abruptas e recuperação simultânea sem caracterização. |
+| Segurança básica | CSP, validação de mensagens, limites e heartbeat | Proteções existentes não tornam secreto um convite previsível. |
 
-### Contratos internos recomendados
+### Histórico de evidências e pendências
 
-- `RoomState`: `idle | creating | prejoin | joining | waiting | connecting | connected | reconnecting | failed | left`.
-- `LocalMediaState` e `RemoteMediaState`: `mic`, `camera`, `screen`, cada qual com `enabled`, `track`, `stream`, `error` e metadados de qualidade, quando aplicável.
-- `MediaSource`: `{ owner: 'local'|'remote', kind: 'camera'|'screen', stream, status }`.
-- `QualityProfile`: `{ resolution, fps, maxBitrateBps, priority, adaptive }`.
-- `ConnectionStats`: RTT, jitter, packet loss, bitrate efetivo, frames enviados/recebidos, FPS e tipo de candidato ICE quando disponível.
-- Separar estado de UI (chat aberto, tile em destaque) de estado de sessão/mídia.
+- Antigos M0–M2: baseline, módulos e interface registrados/aprovados no histórico. `M0_BASELINE.md` é citado no plano antigo, mas não existe no checkout; não tratá-lo como evidência disponível.
+- Antigos M3–M6 e M9: recursos implementados, com aceite detalhado de mídia, arquivos, YouTube e notificações ainda a consolidar. Não apagar a confirmação funcional do proprietário.
+- Antigo M8: hardening e self-host implementados; validação de redes e desempenho transferida ao M10.
+- M10: seis testes originais ampliados para nove; duas abas reais trocaram chat nos dois sentidos, saíram/reentraram e confirmaram limpeza do convite após a última saída.
+- Na avaliação posterior, `npm run check` passou; `npm test` teve **8/9 com timeout**, seguido de **9/9 sem mudanças**. Isso é instabilidade observada, com causa ainda indeterminada.
+- Assets M10: 14 arquivos em `public/`, 788281 bytes brutos; JS/CSS/SVG somam 114958 bytes. Gzip é apenas comparação, não compressão servida pelo backend atual.
+- Servidor com dois peers ociosos: 30,005 s, RSS de 60300–60304 KiB; zero ticks de CPU observados à resolução de 10 ms/tick. Não representa uso de mídia nos navegadores.
+- Parecer: cliente sem convite descobriu sala consultando até dez frutas e entrou na vaga disponível, em servidor local isolado. Não foi comprovada interceptação de sala já ocupada por dois peers.
+
+Os relatórios M10 e de maturidade são registros datados. Resultados futuros devem ser anexados com data/commit; não reescrever falhas históricas como se nunca tivessem ocorrido.
+
+## 3. Arquitetura e contratos a preservar
+
+- Manter Node/HTTP/ws no backend e HTML/CSS/ES modules no frontend. Não criar a antiga árvore-alvo de módulos apenas para cumprir um desenho.
+- Mídia e DataChannels trafegam via WebRTC; o servidor não deve receber arquivos para armazenamento nem decodificar/transcodificar mídia.
+- Salas em memória são adequadas ao escopo. Reinício de processo perde as salas; persistência não é requisito.
+- Preservar os caminhos `POST /api/rooms`, `GET /api/config`, `GET /api/rooms/:codigo` e `/signal`. A semântica de autorização por código deve mudar em V2-01, com migração documentada.
+- Validar os payloads no servidor e nos canais de dados. Se o contrato mudar, documentar compatibilidade; evitar misturar clientes com protocolos incompatíveis.
+- Preservar fontes independentes, transceivers estáveis e identificação de tracks; corrigir associação/negociação se um caso real ou teste reproduzir falha. Não exigir perfect negotiation como reescrita preventiva.
+- Distinguir conexão de sinalização, sessão WebRTC e estado da UI. O fluxo deve informar quando aguarda, negocia, conecta, tenta recuperar, falha ou encerra; não exige nova biblioteca de estado.
+- Manter cleanup explícito de tracks, canais, timers e listeners. Não ativar captura automaticamente ao reconectar.
+- Alterações em privacidade ou lifecycle devem incluir testes de regressão e instrução de compatibilidade para convites antigos.
 
-### Sinalização e negociação
+## 4. Sequência de evolução e condições de passagem
+
+Os novos IDs **V2-01 a V2-06** evitam confusão com o histórico M0–M11. Todos começam pendentes. O próximo marco recomendado é **V2-01**; esta revisão do plano não o executa.
+
+| Ordem | Marco | Dependência | Resultado esperado |
+| --- | --- | --- | --- |
+| 1 | V2-01 — Ingresso protegido | Base atual | Descobrir uma fruta não concede acesso à sala. |
+| 2 | V2-02 — Testes confiáveis | V2-01 | Causa do timeout determinada e regressão automatizada consistente. |
+| 3 | V2-03 — Aceite funcional integrado | V2-01 e V2-02 | Matriz de recursos validada em dois computadores. |
+| 4 | V2-04 — Redes, desempenho e estabilidade | V2-03 | Sessão prolongada, falhas e métricas com mídia registradas. |
+| 5 | V2-05 — Candidata a lançamento | V2-01 a V2-04 | Pacote reproduzível, documentação e versão RC coerentes. |
+| 6 | V2-06 — Liberação estável | V2-05 | Regressão final e decisão de lançamento registradas. |
 
-- Preservar `POST /api/rooms` e `/signal` durante a migração.
-- Introduzir um protocolo versionado e validado ao expandir mensagens; não confiar em payload do cliente.
-- Implementar o padrão **perfect negotiation** (peers polite/impolite, flags de oferta e rollback conforme suporte) ou outra estratégia comprovada de serialização para evitar offer glare.
-- Definir transceivers estáveis de áudio, câmera e tela; associar tracks recebidas por `mid`/metadados negociados, sem presumir ordem de `ontrack`.
-- Tratar `mute`, `unmute`, `ended`, `replaceTrack`, renegociação, ICE restart, peer-left e cleanup.
-- Reconexão de WebSocket não equivale a reconexão de WebRTC: desenhar recuperação dos dois estados separadamente.
+Preparar documentos e ambientes de uma etapa posterior é permitido quando fizer parte do pedido e não depender de resultado pendente. Não aprovar a etapa sem suas evidências. Regressão crítica de conexão, áudio, fontes independentes, chat, integridade de arquivos ou limite de dois impede promover a versão.
 
----
+### V2-01 — Proteger convites e acesso às salas
 
-## 4. Design system e UX
+**Status:** implementado e validado localmente em 23/10/2026; ver [evidências e limitações](docs/v2/V2-01_RELATORIO.md). Ingresso em dois computadores permanece pendente em V2-03. **Motivo:** descoberta e ingresso sem convite reproduzidos. **Prioridade:** corrigir antes da distribuição pública com promessa de privacidade.
 
-### Identidade visual aprovada
+**Direção técnica proposta:** aproveitar o identificador aleatório de 128 bits existente como credencial de convite, após verificar todo o seu percurso. A fruta permanece rótulo visual; entrada manual aceita código completo ou link. Não adicionar contas, banco ou autenticação externa.
 
-- Fundo predominante branco/off-white; texto grafite quase preto.
-- Gradiente de marca laranja → vermelho → magenta → roxo, usado em CTAs e detalhes; **não cobrir todo o conteúdo com gradientes**.
-- Cartões brancos, cantos arredondados, sombras discretas, espaço generoso.
-- Logo **original** do TuPi com duas formas/pessoas conectadas; referência conceitual a dois peers e à identidade brasileira. Não reproduzir logo/silhueta do Google Stadia. O protótipo é referência visual, não um SVG final: redesenhar marca vetorial própria.
-- Tipografia moderna legível; preferir fontes do sistema ou fonte local opcional, sem dependência obrigatória de CDN.
-- Ícones SVG locais; não usar emojis como ícones definitivos de controle.
-- Acessibilidade: foco visível, contraste, rótulos ARIA, atalhos não conflitantes, mensagens de erro claras e respeito a `prefers-reduced-motion`.
+- [x] Mapear criação, consulta, convite, ingresso WebSocket e logs para impedir que o segredo seja obtido somente por uma fruta.
+- [x] Gerar/compartilhar convite imprevisível e validá-lo também no servidor, na consulta e no ingresso. ID interno isoladamente aleatório não basta se alguma rota o revela por nome previsível.
+- [x] Impedir a resolução pública de fruta para a credencial. A lista conhecida de dez frutas não pode localizar e conceder ingresso a uma sala.
+- [x] Atualizar Home, copiar convite, entrada manual e mensagens de código inválido/expirado. Explicar claramente que o nome exibido da fruta não é o código completo de acesso.
+- [x] Avaliar entrada apenas por fruta: dispensada em favor do código/link completo; não há fallback ou fluxo de aprovação a implementar.
+- [x] Definir migração: convites antigos apenas por fruta deixam de conceder acesso e exibem orientação para solicitar novo convite. Não redirecionar silenciosamente para o convite secreto.
+- [x] Preservar limite de dois, separação de salas, expiração e configuração ICE. Não registrar credenciais, convites completos ou SDP em logs.
+- [x] Adicionar testes positivos de convite válido e negativos de fruta, código incorreto, expirado, terceiro peer e cliente sem credencial; repetir o cenário de descoberta do parecer esperando recusa.
 
-### Telas
+**Arquivos prováveis:** `server.js`, `public/app.js`, UI/HTML de entrada, `tests/server.test.js`, `README.md`.
 
-**Home:** logo, título, subtítulo, CTA “Criar nova sala”, entrada por link/ID e informações discretas de privacidade. Sem menu lateral, login ou páginas de marketing complexas.
-
-**Pré-entrada:** visualização da câmera, teste de microfone, escolha de dispositivos e botão “Entrar na sala”. Pré-entrada deve ser opcional para não adicionar fricção. Lidar com permissões negadas e ausência de dispositivos.
-
-**Sala:** barra superior enxuta (logo, link, status), área de mídia adaptativa, chat lateral recolhível no desktop e painel/aba no mobile, controles inferiores acessíveis. O compartilhamento de tela tem prioridade sobre câmera; **dois compartilhamentos simultâneos devem receber espaço equivalente por padrão**, com opção de destacar um. O usuário nunca deve perder o controle de suas próprias fontes.
-
-### Matriz de layouts
-
-| Fontes ativas | Desktop | Mobile |
-|---|---|---|
-| Sem vídeo | Avatares e estados | Avatares e controles |
-| Duas câmeras | Tiles lado a lado | Tiles empilhados |
-| Uma tela + câmeras | Tela grande + câmeras pequenas | Tela destacada + miniaturas |
-| Duas telas | Duas áreas equivalentes, alternância de foco | Alternância de foco e miniaturas; rotação quando útil |
-| Tela e câmera do mesmo peer | Fontes independentes, PiP opcional | Tela prioritária, câmera minimizada |
-| Chat aberto | Painel lateral sem sobrepor controles essenciais | Painel em primeiro plano com retorno rápido |
-
-**Mobile:** usar `playsinline`, considerar safe areas e teclado virtual. Captura de tela mobile não é universal; esconder/desabilitar recurso com explicação quando não suportado. Não prometer suporte total a navegadores móveis sem teste.
-
----
-
-## 5. Plano por marcos (executar na ordem)
-
-### M0 — Baseline e testes de regressão
-
-**Objetivo:** registrar o funcionamento atual antes de refatorar.
-
-Tarefas:
-- [x] Rodar `npm install`, `npm run check`, `npm start`.
-- [x] Testar fluxo um a um: microfone, compartilhar tela, chat, sair e reentrar (confirmado pelo proprietário em dois pontos).
-- [x] Registrar fluxos, mensagens de sinalização, estados e limitações em `M0_BASELINE.md`.
-- [x] Adicionar testes mínimos do servidor: criação de sala, ID inválido, sala inexistente, limite de dois, saída e limpeza.
-- [x] Criar checklist manual de regressão e baseline de tamanho do frontend/dependências.
-
-**Aceite:** nenhum comportamento existente foi perdido no fluxo um a um; testes e checklist documentados. O cenário manual de terceiro participante foi dispensado pelo proprietário; o limite de duas conexões segue validado automaticamente. A correção de feedback para permissões negadas está implementada, aguardando reteste manual.
-
-### M1 — Refatoração modular sem alteração funcional
-
-**Status:** aprovado pelo proprietário; reteste manual de navegador segue pendente para registro de evidência.
-
-Tarefas:
-- [x] Extrair sinalização WebSocket, sessão WebRTC, mídia, chat e UI de `public/app.js` para módulos nativos.
-- [x] Centralizar ciclo de vida e cleanup; eventos de formulário e controles são registrados uma vez.
-- [x] Separar estado de sessão da manipulação de DOM.
-- [x] Preservar rotas e URLs de convite existentes (`?room=<id>`); o servidor serve os módulos por uma lista explícita de caminhos.
-- [x] Manter `npm start` e `npm run dev` sem adicionar dependências.
-
-**Validação:** `npm run check` passou para o entrypoint e todos os módulos; `npm test` passou (3 testes). `npm start` iniciou em porta alternativa 3189 porque a porta 3000 já estava ocupada; home, entrypoint e os cinco módulos responderam HTTP 200 com tipo JavaScript correto.
-
-**Pendente para aceite:** repetir no navegador os fluxos M0 após a extração e entrar/sair repetidamente. Não havia navegador disponível para automação nesta sessão.
-
-**Aceite:** fluxos de M0 funcionam; sem duplicação de streams/listeners após entrar/sair repetidas vezes.
-
-### M2 — Interface TuPi aprovada e responsividade
-
-**Status:** aprovado pelo proprietário após revisão da interface e confirmação de responsividade.
-
-Tarefas:
-- [x] Aplicar logo local fornecido pelo proprietário em PNG e tokens de marca.
-- [x] Atualizar Home e sala em HTML/CSS/JS modular, mantendo entrada direta opcional pela URL/código e controles sem ligar dispositivos automaticamente.
-- [x] Criar componentes visuais de botão, painel, tile de participante, controles, status, toast e chat; não há modal nesta etapa pois não há fluxo que o exija.
-- [x] Implementar estados vazios, aguardando peer, permissão negada e sala cheia com as mensagens/eventos existentes.
-- [x] Adaptar estilos para desktop, tablet e celular; controles da sala permanecem disponíveis.
-- [x] Não adicionar navegação lateral.
-
-**Validação:** `npm run check` passou; `npm test` passou (3 testes); `git diff --check` sem erros; home, CSS, app, módulo de UI e logo retornaram HTTP 200 com tipos MIME esperados.
-
-**Revisão visual:** a home e a sala foram abertas no navegador integrado a 790 px; a hierarquia visual e os controles foram conferidos. A revisão revelou transbordamento horizontal de 23 px causado por decoração da home, corrigido com recorte do elemento ornamental; após a correção, largura do documento e viewport ficaram iguais (790 px). O fluxo de criar e sair de uma sala local também foi conferido. O proprietário confirmou a responsividade no celular e dos demais elementos da interface, inclusive após a Home ficar sem navbar e sem a faixa inferior. O proprietário aprovou a direção visual final media-first.
-
-**Ajuste posterior da Home:** por solicitação do proprietário, removido o mockup ilustrativo e centralizadas as ações principais: botão grande para criar sala, campo/call to action de entrada por código e texto de gratuidade.
-Em uma iteração seguinte, removida também a navbar da Home; o logo foi centralizado acima das ações e o botão de criação teve sua altura reduzida.
-Removida a faixa inferior a pedido do proprietário. A referência a featureStrip no ciclo de entrada/saída é opcional, permitindo manter a Home sem essa faixa.
-Logo atualizado para o PNG fornecido pelo proprietário; favicon e imagem da Home agora usam o arquivo local public/assets/tupi-logo.png.
-Adicionado rodapé escuro compartilhado pela Home e pela sala com ano, versão, link do repositório e indicação da tecnologia peer-to-peer.
-Direção media-first aproximada do mockup: logo, código e copiar no cabeçalho; área de mídia principal; tela local e remota lado a lado quando ambas estão ativas; chat lateral no desktop e deslizante no celular; dock inferior com microfone, câmera, tela, chat, mais e sair. A lista de participantes foi removida, mantendo apenas um contador de pessoas na sala. Os botões de câmera e mais estão visíveis e desativados até suas funções serem implementadas; sobreposição de câmera depende da captura independente planejada para M3.
-
-**Aceite:** aprovado pelo proprietário. Prévia de câmera/teste de microfone e menus de funções futuras continuam sem ativação até suas implementações.
-
-**Critério de aceite:** layout responsivo, acessível e funcional com recursos existentes; sem regressões. **Atendido e aprovado pelo proprietário.**
-
-**Ajuste posterior de salas:** corrigida a entrada manual, que exigia o ID interno completo de 128 bits enquanto a interface mostrava apenas parte dele. As salas passaram a receber nomes únicos de frutas entre dez opções; criação e entrada aceitam o nome, e os links compartilhados usam o nome da fruta (`?room=manga`). O identificador aleatório permanece interno. Há limite de dez salas simultâneas; salas criadas e não usadas expiram após cinco minutos.
-
-### M3 — Microfone robusto e câmera independente
-
-**Status:** implementação concluída nesta branch; aceite funcional pendente da matriz manual com dois peers e dispositivos reais.
-
-Tarefas:
-- [x] Separar `audioSender`, `cameraSender` e `screenSender`/transceivers.
-- [x] Adicionar câmera via `getUserMedia({video: ...})` e preview local.
-- [x] Permitir microfone, câmera e tela em qualquer combinação, em ambos os peers.
-- [x] Seleção de microfone/câmera; troca sem deixar tracks antigas abertas.
-- [x] Configurar `echoCancellation`, `noiseSuppression`, `autoGainControl` com perfis padrão e natural, quando suportados.
-- [x] Implementar negociação de transceivers estáveis e identificação de fontes remotas pela ordem/mid dos transceivers.
-- [x] Lidar com permissões, dispositivos removidos e interrupção de captura pelo sistema.
-- [ ] Considerar áudio de aba/sistema apenas quando suportado; não confundir com microfone. (Adiado: não habilitado neste marco.)
-
-**Validação pendente:** rodar `npm run check`, `npm test` e `git diff --check`; depois testar com dois peers as combinações independentes, troca de dispositivo, permissões e interrupção de captura. A validação automatizada não substitui o teste de mídia em dois navegadores/dispositivos.
-
-**Aceite:** matriz completa com 0/1/2 câmeras, 0/1/2 telas e áudio de ambos; ligar/desligar qualquer fonte não derruba as outras; sem eco/duplicação de áudio em cenários comuns.
-
-### M4 — Controle de qualidade e diagnóstico
-
-**Status:** controles de qualidade e diagnóstico implementados; validação de mídia com dois peers/dispositivos reais pendente.
-
-Tarefas:
-- [x] Perfis iniciais e personalizados de tela: 480p, 720p, 1080p, 1440p, 4K tentativo, nativa e 30–144 FPS. Perfis aplicam solicitações e exibem valores efetivos quando o navegador informa.
-- [ ] Perfil avançado de qualidade da câmera removido do escopo por decisão do proprietário (22/10/2026); câmera usa constraints padrão de 720p/30 e seleção de dispositivo.
-- [x] UI para resolução, FPS, bitrate máximo desejado e foco automático/jogo/vídeo (fluidez/nitidez).
-- [x] Consultar codecs divulgados por `RTCRtpSender.getCapabilities()` sem presumir AV1/VP9. A Web API não confirma de modo interoperável o uso de encoder de hardware.
-- [x] Aplicar constraints de captura e `RTCRtpSender.setParameters()` quando disponíveis; exibir a resolução/FPS efetivos da captura.
-- [x] Monitorar `getStats()` e mostrar bitrate/FPS medidos, RTT, jitter, perda e estado da conexão ICE.
-- [x] Ajuste adaptativo conservador com histerese: reduz gradualmente o teto após congestionamento persistente e recupera em amostras estáveis.
-- [x] Indicar conexão direta ou relay TURN somente quando o candidato local permitir identificação.
-- [ ] Testar carga CPU/GPU, estabilidade e consumo de rede durante duas telas simultâneas.
-
-**Validação automatizada:** `npm run check` passou; `npm test` passou (3 testes); `git diff --check` sem erros.
-
-**Pendente para aceite:** teste manual em dois peers com capturas simultâneas, conferência de bitrate/CPU/GPU sob carga, variação e queda de rede, e compatibilidade dos constraints/estatísticas nos navegadores suportados. Os testes existentes cobrem servidor, não simulam captura ou conexão WebRTC.
-
-**Aceite:** solicitações de perfil e métricas reais implementadas; aceite de mídia e estabilidade pendente da validação manual acima.
-
-### M5 — Transferência de arquivos P2P
-
-**Status:** aprovado pelo proprietário em 22/10/2026; a validação funcional entre dois peers segue sem evidência registrada.
-
-Tarefas:
-- [x] Criar DataChannel `files` específico para arquivos, separado do canal `messages`.
-- [x] Definir metadados (ID, nome, tamanho, MIME, chunks, status), validação e limite de 20 GiB por oferta.
-- [x] Exigir consentimento explícito para recebimento.
-- [x] Enviar chunks de 64 KiB com controle por buffer, confirmação após gravação e um bloco em voo.
-- [x] Mostrar progresso, permitir cancelamento e limpar recursos em desconexão/saída.
-- [x] Verificar SHA-256 de cada bloco, além da ordem, quantidade de blocos e tamanho total.
-- [x] Pausar envio quando o ajuste adaptativo existente sinalizar congestionamento persistente.
-- [x] Documentar gravação incremental com `showSaveFilePicker` e fallback em memória limitado a 64 MiB.
-
-**Validação automatizada:** `npm run check` passou. `git diff --check` passou. `npm test` não concluiu: os três testes existentes falharam porque o processo servidor do fixture não iniciou em até 5 segundos; a suíte usa bind/spawn local e não chegou a executar as asserções dos casos.
-
-**Pendente para aceite:** validar dois peers reais, aceitação/recusa, arquivos vazios/pequenos/grandes, cancelamento nos dois lados, confirmação de hash, navegador sem `showSaveFilePicker` e transferência durante carga de mídia. O suporte de `showSaveFilePicker` depende do navegador/contexto seguro.
-
-**Aceite:** implementação do protocolo, controles e documentação concluídos; aceite funcional de transferência e impacto em áudio/vídeo pendente dos testes manuais acima.
-
-**Aceite:** arquivo recebido íntegro; cancelamento funciona; arquivos grandes não exigem buffer completo em RAM; transferência não inviabiliza áudio/vídeo em testes de rede.
-
-### M6 — Watch Together: YouTube
-
-**Status:** implementação inicial concluída; validação funcional em dois navegadores pendente.
-
-Tarefas:
-- [x] UI para colar URL/ID de vídeo e abrir player incorporado.
-- [x] Integrar YouTube IFrame Player API; cada peer baixa o vídeo diretamente do YouTube.
-- [x] Sincronizar play/pause/seek/estado e estimativa de posição via DataChannel de controle.
-- [x] Aplicar tolerância configurável, correção suave de drift e snapshots periódicos do criador da sala.
-- [x] Resolver comandos concorrentes com relógio lógico e desempate determinístico por peer.
-- [x] Apresentar mensagens para autoplay bloqueado, buffering, vídeo indisponível e incorporação desativada; preservar os controles padrão do player YouTube.
-- [x] Não baixar/redistribuir vídeos do YouTube nem tentar contornar restrições.
-
-**Validação pendente:** executar `npm run check` e validar com dois navegadores: carga do mesmo vídeo, sincronização play/pause/seek, comando simultâneo, autoplay bloqueado, buffering, vídeo indisponível/embed bloqueado e recuperação após desconexão do peer. A validação exige conexão ao YouTube e não foi confirmada neste workspace.
-
-**Aceite:** dois navegadores podem abrir o mesmo vídeo e sincronizar comandos em condições normais; erros de embed e divergências são apresentados claramente; sem tráfego de vídeo pelo servidor TuPi.
-
-### M8 — Estabilidade, segurança e lançamento self-host
-
-**Status:** endurecimento de código e documentação implementados; aceite de integração permanece pendente.
-
-Tarefas:
-- [x] TTL para salas vazias; rate limiting e limites de payload/criação/conexão.
-- [x] Validar mensagens de sinalização e de DataChannel; conteúdo recebido de peers é inserido como texto.
-- [x] Política de segurança de conteúdo compatível com WebRTC e YouTube opcional; cabeçalhos HTTP básicos.
-- [x] Reconexão controlada de sinalização e tentativa de ICE restart; evitar ofertas repetidas do mesmo peer.
-- [x] Configuração de STUN/TURN via `.env`, sem credenciais hardcoded no frontend/repositório; documentar que credenciais TURN entregues ao navegador são visíveis e preferir credenciais temporárias quando possível.
-- [x] Documentar HTTPS/WSS em acesso remoto; `localhost` pode ser usado no desenvolvimento.
-- [x] Documentar proxy reverso opcional (Caddy/Nginx) sem torná-lo obrigatório para teste local.
-- [x] Executar `npm install --ignore-scripts --offline`, `npm start`, `npm run dev` e `npm run check`; dependências atualizadas, os dois modos iniciaram e a checagem passou.
-- [x] `npm test`: 6 testes passaram, incluindo recusa de SDP malformado, cabeçalhos, configuração ICE, limite de criação, sala, saída e limite de participantes.
-- [x] O proprietário confirmou testes nos navegadores e relatou funcionamento redondo. A lista exata de versões/dispositivos não foi registrada.
-- [ ] Validar redes diferentes, NAT restritivo, TURN real e perda de conexão.
-- [ ] Medir bundle estático, uso de memória, CPU, bitrate e comportamento em sessão prolongada.
-- [x] Atualizar README, `.env.example`, troubleshooting, permissões e limitações.
-
-**Validação local:** `npm install --ignore-scripts --offline`, `npm start`, `npm run dev`, `npm run check`, `node --check tests/server.test.js` e `git diff --check` passaram. `npm test` passou (6 testes). O primeiro teste dentro do sandbox não alcançou o servidor filho por restrição de loopback; a execução autorizada com acesso local passou integralmente.
-
-**Validação pendente:** configuração TURN real, redes diferentes/NAT restritivo, perda de conexão e medições de bundle/CPU/memória/bitrate em sessão prolongada. O proprietário confirmou que os navegadores testados estão funcionando redondo; versões e dispositivos não foram especificados.
-
-**Aceite:** instalação pelo terminal documentada e reproduzível, sem Docker; aplicação funcional em cenários suportados e limitações conhecidas registradas.
-
-### M9 — Notificações no chat
-
-**Status:** implementação concluída; validação manual entre dois peers pendente.
-
-Tarefas:
-- [x] Adicionar indicação visual de novas mensagens e estado de mensagens não lidas no chat.
-- [x] Adicionar notificação sonora configurável, respeitando ativação/interação exigida pelo navegador, opção de silenciar e preferências de acessibilidade.
-
-**Validação local:** `npm run check`, `npm test` (6 testes) e `git diff --check` passaram. Os testes automatizados existentes cobrem o servidor; não exercitam interface, áudio ou interação real entre dois peers.
-
-**Aceite:** indicação visual, contador de não lidas, controle de som e rótulos acessíveis implementados. Confirmação manual em dois navegadores permanece pendente.
-
-### M10 — Validação de redes e desempenho
-
-**Status:** planejado; não iniciado.
-
-Tarefas:
-- [ ] Validar sessões entre redes diferentes, incluindo NAT restritivo, uso de TURN real e recuperação após perda de conexão.
-- [ ] Medir tamanho do bundle, CPU, memória, bitrate de envio/recebimento e comportamento em sessão prolongada; registrar ambiente e método para que os resultados sejam reproduzíveis.
-
-**Aceite:** cenários de rede, medições e limitações ficam documentados com ambiente e método reproduzíveis.
-
-### M11 — Avaliação de controle remoto
-
-**Status:** estudo de viabilidade planejado; funcionalidade não aprovada para implementação de produto.
-
-Tarefas:
-- [ ] Investigar viabilidade de controle remoto: definir se o objetivo é controlar apenas a interface do TuPi ou o computador inteiro; mapear permissões, consentimento explícito, início/parada, revogação, plataformas e riscos de segurança.
-- [ ] Fazer prova de conceito isolada para controle remoto apenas depois da análise. Controle de mouse/teclado do sistema inteiro não é oferecido por APIs web comuns; avaliar a necessidade de um componente nativo separado e seu custo de instalação, distribuição, manutenção e segurança.
-- [ ] Medir o tráfego e a latência dos comandos na prova de conceito. Eventos de controle tendem a usar poucos dados comparados ao vídeo, mas o custo real depende da frequência dos eventos, da arquitetura e da captura de tela.
-
-**Aceite:** a decisão de prosseguir ou não fica registrada com base em análise de segurança e prova de conceito; nenhum acesso remoto é habilitado sem consentimento claro e revogável.
-
----
-
-## 6. Critérios globais de qualidade
-
-### Testes mínimos por mudança
-
-- Executar checagem de sintaxe e testes existentes.
-- Testar criação, entrada, saída e retorno à sala.
-- Testar estados sem peer e com dois peers.
-- Testar permissão negada para microfone/câmera/tela.
-- Testar encerramento da captura pelo navegador.
-- Testar com chat aberto e fechado.
-- Verificar se streams/tracks e listeners são liberados após sair.
-- Verificar comportamento em viewport pequeno e teclado mobile.
-- Não introduzir chamadas externas de telemetria, fontes ou analytics sem decisão explícita.
-
-### Matriz de integração prioritária
-
-| Cenário | Resultado esperado |
-|---|---|
-| Peer A câmera, Peer B câmera | Ambos se veem |
-| Peer A tela, Peer B tela | Ambas as telas visíveis e independentes |
-| A câmera + tela, B câmera + tela | Quatro fontes de vídeo gerenciadas corretamente |
-| A microfone, B microfone | Áudio bidirecional estável |
-| A desliga câmera durante tela | Tela continua sem interrupção |
-| B sai durante transferência | Transferência cancela/recupera estado sem corromper UI |
-| Rede cai e retorna | Estados claros; recuperação quando possível |
-| Dois links de sala em paralelo | Salas isoladas |
-| Terceiro usuário tenta entrar | Servidor recusa sem afetar os dois conectados |
-| Celular sem `getDisplayMedia` | Interface explica indisponibilidade, sem botão quebrado |
-
-### Orçamento de leveza
-
-- Não adicionar dependência de runtime frontend sem justificativa explícita.
-- Medir tamanho total dos assets (JS/CSS/SVG) em M0 e a cada marco; **não fixar orçamento arbitrário antes do baseline**.
-- Evitar polling intenso; usar eventos e coleta de `getStats()` em frequência moderada.
-- Evitar decodificar/duplicar streams desnecessariamente; pausar renderizações invisíveis quando apropriado sem interromper a transmissão.
-- O servidor não deve decodificar/transcodificar mídia nem receber arquivos para armazenamento.
-- TURN é um relay opcional necessário em algumas redes e pode consumir muita banda; documentar seu custo operacional.
-
----
-
-## 7. Segurança, privacidade e limites
-
-- Links de sala funcionam como credenciais de acesso: gerar IDs criptograficamente aleatórios, não registrar links completos em logs e permitir encerramento/expiração.
-- WebRTC cifra transporte, mas isso **não equivale** a E2EE com autenticação/verificação de identidade. Documentar modelo de confiança.
-- Solicitar permissão para captura e recepção de arquivos; indicar claramente quando câmera/microfone/tela estão ativos.
-- Validar e limitar mensagens, nomes de arquivos e URLs; proteger contra XSS, DoS e consumo excessivo de memória.
-- Não registrar conteúdo de chats, arquivos ou mídia no servidor.
-- Para o YouTube, respeitar políticas e limitações da plataforma; o serviço externo poderá receber dados de acesso conforme seu funcionamento.
-- O navegador pode bloquear autoplay, captura de tela e áudio do sistema; comunicar limitações sem mascará-las.
-
----
-
-## 8. Estratégia de versionamento e entregas para IA
-
-Branches sugeridas:
-
-```text
-feat/m0-baseline
-refactor/m1-modules
-feat/m2-visual
-feat/m3-multimedia
-feat/m4-quality
-feat/m5-file-transfer
-feat/m6-youtube-sync
-chore/m8-selfhost-hardening
-feat/m9-chat-notifications
-test/m10-network-validation
-research/m11-remote-control
-```
-
-Para cada marco, entregar:
-
-1. Resumo de alterações e motivação.
-2. Lista de arquivos criados/modificados.
-3. Comandos para executar e testar.
-4. Evidências de teste e cenários **não testados**.
-5. Critérios de aceite marcados como atendidos/não atendidos.
-6. Limitações, riscos e recomendações para o próximo marco.
-7. README atualizado quando a instalação, UX ou configuração mudar.
-
-**Regra de bloqueio:** não avançar se o marco atual introduzir regressão crítica em conexão, microfone, tela, chat, criação de sala ou limite de dois peers.
-
----
-
-## 9. Comandos de execução desejados
+**Risco:** compatibilidade dos convites antigos e confusão entre nome e código. Validar o fluxo ponta a ponta antes de remover caminhos antigos de ingresso.
+
+**Aceite:** dois peers autorizados entram sem conta; fruta conhecida não revela segredo nem concede acesso; terceiro é recusado; convite removido não pode ser reutilizado. Tratar o link como credencial de portador, sem alegar identidade verificada dos participantes.
+
+### V2-02 — Tornar a regressão automatizada confiável
+
+**Status:** pendente. **Objetivo:** distinguir falha de fixture de falha do produto e resolver a causa, sem mascarar o timeout.
+
+- [ ] Reproduzir e instrumentar o teste de limite/última saída com logs locais mínimos e sanitizados; preservar as saídas de falha e o ambiente.
+- [ ] Verificar a ordem entre fechamento local do socket, evento no servidor, remoção da sala e tentativa seguinte de ingresso. Essa é hipótese de investigação, não diagnóstico confirmado.
+- [ ] Sincronizar o teste com comportamento observável/eventos ou consulta limitada ao estado final. Evitar sleeps arbitrários e simples aumento de timeout como solução.
+- [ ] Isolar credenciais e configuração `.env`; impedir que fixtures ou rate limits compartilhados criem dependência incidental da ordem dos testes.
+- [ ] Cobrir a correção de V2-01 e manter criação, consultas, relay de sinalização, limite de dois, saída, limpeza, isolamento e configuração pública de ICE.
+- [ ] Acrescentar casos focados de segurança/limites somente quando verificarem contratos relevantes; não buscar uma contagem arbitrária de testes.
+- [ ] Melhorar diagnóstico e encerramento do servidor filho: erro de startup legível, prazo finito e ausência de processos/sockets pendurados, inclusive quando uma asserção falha.
+- [ ] Executar `npm run check`, `npm test` e dez execuções consecutivas da suíte em processos novos no ambiente registrado. Repetição serve para investigar a instabilidade já observada, não como garantia universal.
+
+**Arquivos prováveis:** `tests/server.test.js`, helpers pequenos se necessários, scripts de checagem; código de produção somente se a causa o exigir.
+
+**Aceite:** causa e correção documentadas, asserções preservadas e dez execuções sem falha intermitente ou skip de cenário crítico. Registrar Node/SO/duração e qualquer limitação do sandbox separadamente de falha funcional.
+
+### V2-03 — Consolidar o aceite funcional da 2.0
+
+**Status:** pendente. **Objetivo:** registrar o que já funciona e corrigir apenas regressões reproduzidas.
+
+- [ ] Identificar dispositivos, SOs, versões de navegador e cenários dos testes já feitos pelo proprietário. Aproveitar evidências específicas existentes; não exigir repetir tudo por falta de automação.
+- [ ] Executar a matriz da seção 5 em dois computadores reais, com áudio audível e fontes remotas verificadas. Duas abas locais continuam úteis, mas não substituem esse ensaio.
+- [ ] Validar microfone/câmera/tela independentes, seleção e troca de dispositivos, permissão negada, captura cancelada/encerrada e ausência de API.
+- [ ] Validar chat nos dois sentidos, leitura/não lidas, som ligado/desligado e restrições de autoplay; falha sonora não pode interromper a mensagem.
+- [ ] Validar arquivos vazios, pequenos, acima de 64 MiB quando houver gravação direta, recusa, cancelamento em ambos e saída durante envio. Comparar hash do arquivo original/final, além dos hashes por bloco do protocolo.
+- [ ] Validar navegador sem gravação incremental: aceitar dentro do limite, recusar acima dele com explicação e sem consumo ilimitado de RAM. Documentar o maior tamanho realmente testado, sem certificar automaticamente os 20 GiB ofertáveis.
+- [ ] Validar YouTube play/pause/seek, comandos concorrentes, buffering, autoplay bloqueado, vídeo indisponível e embed recusado; separar falha do serviço externo de falha no TuPi.
+- [ ] Verificar a UI aprovada em desktop e viewport pequeno: duas telas equivalentes, câmeras independentes, chat e menus sem ocultar controles, teclado/foco, rótulos e mensagens compreensíveis.
+- [ ] Registrar navegadores efetivamente suportados. Chrome/Edge/Firefox são candidatos citados hoje; testar ou restringir a promessa no README antes do release.
+
+**Arquivos prováveis:** relatório/matriz em `docs/v2/`; módulos de mídia/dados/UI apenas para falhas encontradas, com casos mínimos de regressão quando úteis.
+
+**Aceite:** todos os fluxos centrais passam nos ambientes declarados, com evidência por cenário. Uma capacidade prometida que falha deve ser corrigida ou ter o escopo explicitamente renegociado antes de promover a versão; não removê-la silenciosamente para aprovar o marco.
+
+### V2-04 — Completar M10: redes e desempenho com mídia
+
+**Status:** pendente; aproveita integralmente a validação local já registrada em M10.
+
+- [ ] Registrar sessão entre dois computadores e entre duas redes domésticas distintas quando disponíveis, com HTTPS/WSS válido e configuração ICE sanitizada.
+- [ ] Testar sem TURN como cenário principal; registrar sucesso direto ou limitação clara da rede. Falha por NAT restritivo deve ser diagnosticada, não transformada em promessa de conectividade universal.
+- [ ] Testar perda de rede de um peer por 10 s e 60 s, retorno e queda simultânea dos dois. Registrar estados, temporizações, tracks e DataChannels antes/depois.
+- [ ] Definir o resultado suportado após cada falha: recuperação quando viável ou orientação clara para reentrar/criar nova sala. Preservar remoção da sala na última saída, salvo necessidade comprovada de ajuste mínimo.
+- [ ] Testar reinício do servidor: informar perda da sala sem loops de reconexão intermináveis ou indicação enganosa de conexão.
+- [ ] Medir a sessão de 60 minutos com duas telas e áudio, incluindo um trecho com câmeras, chat e transferência consentida. Começar com perfil 720p30 e registrar o perfil e captura efetiva; outros perfis conforme capacidade do ambiente.
+- [ ] Medir CPU/RAM dos navegadores e servidor separadamente; coletar bitrate de envio e recebimento, FPS, RTT, jitter, perda no intervalo e par ICE selecionado. Usar relatórios WebRTC do navegador se a UI não oferecer tudo.
+- [ ] Amostrar a cada 5 s após 2 min de aquecimento; guardar série temporal, mediana, p95, máximos e eventos. Para testes curtos, usar janelas de 10 min por combinação relevante, sem alegar que já foram executadas.
+- [ ] Repetir pelo menos dez ciclos de entrada/saída verificando liberação de tracks, canais, timers e ausência de crescimento persistente de recursos; não confundir RSS retido pelo runtime com vazamento comprovado.
+- [ ] Comparar com o baseline M10, sem usar o consumo do servidor ocioso como orçamento de mídia. Fixar limites de suporte a partir das medições e de falhas perceptíveis, sem teto universal arbitrário.
+- [ ] Preservar configuração TURN e validar seu parsing/retorno com dados sintéticos. Ensaio real de relay fica opcional e adiado até haver serviço disponível; teste sintético não comprova relay.
+
+**TURN opcional:** não provisionar SaaS/servidor como requisito, não pedir segredos no chat e não bloquear a 2.0 doméstica pela ausência de ensaio real de TURN. Se alguém o configurar, credenciais entregues ao browser são visíveis; preferir temporárias. Só declarar uso real com par selecionado `relay` e tráfego observado.
+
+**Aceite:** relatório reproduzível de rede, falhas, estabilidade e mídia nos ambientes suportados; nenhum travamento persistente, corrupção de arquivo ou perda de controle das fontes nos cenários aprovados. Limitações de rede e procedimento de recuperação explícitos. Dados ausentes permanecem pendentes ou fora do suporte declarado; TURN real é a exceção opcional já decidida.
+
+### V2-05 — Preparar a candidata a lançamento
+
+**Status:** pendente. **Dependência:** V2-01 a V2-04 aprovados para o escopo publicado.
+
+- [ ] Consolidar a matriz de suporte, instruções de convite protegido, permissões, requisitos de contexto seguro e limitações de rede/arquivos/YouTube no README.
+- [ ] Conferir `.env.example`, prioridade de variáveis, ICE vazio e configuração opcional STUN/TURN; não incluir credenciais reais.
+- [ ] Verificar instalação em checkout limpo com `npm ci`, além de execução start/dev/check/test. O teste offline em cache de M10 não substitui instalação limpa. Usuários continuam podendo usar `npm install` conforme README.
+- [ ] Registrar teste na versão mínima de Node declarada e no ambiente principal. Se o mínimo não puder ser suportado, ajustar requisito com justificativa e evidência antes de publicar.
+- [ ] Verificar HTTP de todos os assets efetivamente referenciados, MIME, CSP e upgrade WebSocket atrás do proxy HTTPS escolhido. Tratar a rota SVG residual ausente se ainda existir; otimizar logo somente se necessário, preservando a marca aprovada.
+- [ ] Auditar o diff final: ausência de segredos, logs de conteúdo, dependência acidental, arquivos de teste temporários e alterações não relacionadas. Avaliar dependências com ferramentas disponíveis e registrar achados pertinentes, sem declarar auditoria de segurança completa.
+- [ ] Preparar `CHANGELOG.md` ou notas equivalentes com alterações desde 1.0, migração de convites, limites, navegadores e problemas conhecidos.
+- [ ] Sincronizar pacote, lockfile e rodapé em `2.0.0-rc.1` quando a candidata estiver pronta. Não editar antecipadamente os relatórios históricos para mudar a versão medida.
+- [ ] Registrar commit candidato, comandos e resultados. Se um defeito exigir correção, gerar nova candidata e repetir as verificações afetadas.
+
+**Aceite:** instalação reproduzível, candidata identificável, versão coerente e documentação correspondente ao código. RC permanece candidata; a promoção estável depende de V2-06.
+
+### V2-06 — Liberar a versão 2.0 estável
+
+**Status:** pendente. **Dependência:** V2-05 aprovado.
+
+- [ ] Conferir a definição de pronto da seção 12 com referências às evidências de V2-01 a V2-05.
+- [ ] Executar regressão final no commit candidato: convites, dois peers, áudio/câmera/tela, chat, arquivo, YouTube e saída/reentrada nos cenários suportados. Evidências anteriores do mesmo código continuam válidas; alterações exigem reteste das áreas afetadas.
+- [ ] Revisar problemas conhecidos: nenhum defeito crítico de acesso, integridade, conexão ou ciclo de vida pode ficar oculto como simples limitação.
+- [ ] Registrar aceite do proprietário da candidata com escopo e limitações apresentados. Não reinterpretar a confirmação geral anterior como aprovação de código futuro.
+- [ ] Atualizar pacote, lockfile, rodapé e notas para `2.0.0`, sem mudanças funcionais extras, e executar check/test sobre o estado final.
+- [ ] Preparar tag/release e procedimento de retorno à versão anterior, incluindo impacto nos convites. Publicação e deploy somente quando autorizados pelo proprietário; revisar o material completo antes dessa ação.
+
+**Aceite:** versão estável identificada, regressão e decisão de lançamento registradas; documentação e artefato correspondem ao mesmo código. Um release preparado localmente não deve ser descrito como publicado.
+
+## 5. Matriz mínima de integração
+
+Todos os cenários abaixo começam como **pendentes de registro específico** nesta revisão, exceto as evidências locais M10 explicitamente mencionadas na seção 2. Relato geral de funcionamento não significa reprovação nem aprovação automática de cada linha.
+
+| ID | Cenário | Resultado para aceite | Etapa |
+| --- | --- | --- | --- |
+| A01 | Convite válido em dois computadores | Entrada simples, sem conta, fontes inicialmente desligadas | V2-01/03 |
+| A02 | Conhecer/consultar fruta sem segredo | Sem descoberta da credencial ou ingresso automático | V2-01 |
+| A03 | Terceiro participante | Recusa sem afetar os dois autorizados | V2-01/02 |
+| A04 | Última saída e convite antigo | Sala removida e erro compreensível; sem ingresso em sala nova por reuso de fruta | V2-01/02 |
+| A05 | Duas salas em paralelo | Sinalização e dados sem mistura | V2-02/03 |
+| M01 | Dois microfones | Áudio audível nos dois sentidos, sem duplicação; usar fones no teste | V2-03 |
+| M02 | Duas câmeras e duas telas | Quatro fontes de vídeo corretas, sem trocar câmera por tela | V2-03 |
+| M03 | Ligar/desligar fonte ou trocar dispositivo | Outras fontes continuam; track antiga encerrada | V2-03 |
+| M04 | Permissão negada/captura cancelada/API ausente | Feedback correto, possibilidade de continuar sem essa fonte | V2-03 |
+| M05 | Encerrar captura no navegador | UI e envio atualizados, sem conexão derrubada indevidamente | V2-03 |
+| C01 | Chat aberto/fechado/aba em segundo plano | Mensagens bidirecionais, indicador de não lidas e preferência de som corretos | V2-03 |
+| F01 | Arquivo vazio/pequeno/grande no modo suportado | Consentimento e hash final correspondente; progresso coerente | V2-03 |
+| F02 | Recusar/cancelar/sair durante transferência | Sem sucesso falso, estado liberado e destino parcial descartado quando aplicável | V2-03 |
+| F03 | Sem gravação incremental | Limite de 64 MiB respeitado e recusa explicada acima dele | V2-03 |
+| Y01 | YouTube play/pause/seek/comandos concorrentes | Mesmo vídeo e sincronização dentro da tolerância configurada após estabilizar | V2-03 |
+| Y02 | Autoplay/buffering/vídeo indisponível/embed bloqueado | Estado claro e controles utilizáveis; sem promessa de sincronizar anúncios | V2-03 |
+| U01 | Viewport pequeno/teclado/foco/chat/menus | Controles alcançáveis, sem transbordamento impeditivo; mídia mobile conforme suporte | V2-03 |
+| N01 | Duas redes domésticas sem TURN | Resultado/rota registrados, limitações comunicadas | V2-04 |
+| N02 | Queda e retorno de rede, um e ambos | Recuperação ou orientação de nova sala conforme contrato publicado | V2-04 |
+| P01 | Sessão de 60 min com duas telas e áudio | Mídia utilizável, métricas e eventos registrados, fontes controláveis | V2-04 |
+| P02 | Dez ciclos de entrada/saída | Recursos liberados e nenhum crescimento persistente inexplicado | V2-04 |
+| I01 | Instalação limpa e start/dev/check/test | Execução documentada sem infraestrutura obrigatória extra | V2-05 |
+| O01 | TURN real, se houver serviço | Par selecionado relay e tráfego nos dois sentidos | Opcional |
+
+## 6. Evidências, medições e testes
+
+Para novas entregas, criar arquivos em `docs/v2/` conforme necessário. Não criar relatórios vazios marcados como aprovação. Cada registro deve conter:
+
+- Etapa, cenário/ID, data/hora, commit e diferenças locais relevantes.
+- SO/Node/browser com versões, dispositivos, CPU/RAM e configuração de captura necessária à interpretação.
+- Rede de cada peer sem IPs pessoais; HTTPS/WSS e configuração ICE sanitizada.
+- Procedimento, duração, resultado esperado/observado, falhas e conclusão (passou/falhou/pendente/não aplicável com motivo).
+- Fonte da evidência: automação, navegador do agente ou relato detalhado do proprietário; anexos sanitizados quando úteis.
+- Para desempenho, amostras e método, não apenas uma captura pontual ou o valor máximo configurado.
+
+Cálculo de bitrate: `8 × delta_bytes / delta_t_s`, com timestamps e contadores da mesma fonte/SSRC. Não atravessar resets de conexão. Separar envio/recebimento, áudio/vídeo e DataChannels quando disponíveis. Perda no intervalo usa deltas; a porcentagem acumulada da UI não substitui essa medida. Indicar unidade e convenção de CPU; medir browser/renderizador/GPU relevantes separadamente do sinalizador.
+
+Nenhum orçamento universal de CPU, RAM, bitrate ou FPS é imposto antes da medição. Registrar o que é utilizável nos ambientes suportados e reduzir a promessa de perfil quando hardware/rede não sustentarem o solicitado. Campos indisponíveis não devem ser preenchidos com zero.
+
+### Comandos preservados
 
 ```bash
-# Instalação
 npm install
-
-# Execução normal
 npm start
-
-# Desenvolvimento
 npm run dev
-
-# Checagem (preservar e ampliar)
 npm run check
-
-# Testes (adicionar conforme marcos)
 npm test
 ```
 
-O servidor deverá continuar acessível em `http://localhost:3000` por padrão. Acesso remoto a APIs de captura requer HTTPS em navegadores modernos, com WSS para sinalização. Proxy TLS é opcional na instalação local, mas normalmente necessário para implantação pública.
+Ferramentas de medição existentes, opcionais:
 
-**Não usar Docker. Não exigir build frontend. Não exigir banco de dados.**
+```bash
+node scripts/m10-assets.js
+# Linux com getconf; substituir 12345 pelo PID confirmado do servidor:
+node scripts/m10-process.js 12345 60
+```
 
----
+`npm run check` atual verifica entrypoint/módulos de produto; scripts novos e testes modificados devem receber checagem apropriada. Não repetir ensaios caros sem mudança, falha ou preocupação nova que os justifique. Playwright só entra como dependência se o benefício concreto justificar seu custo; testes reais com dois dispositivos continuam necessários para mídias físicas.
 
-## 10. Decisões em aberto (não inventar requisitos)
+## 7. Segurança, privacidade e implantação
 
-- Qual o conjunto de navegadores móveis oficialmente suportados? Definir após testes reais.
-- A transmissão de áudio da aba/sistema é prioritária? Implementar somente onde houver suporte comprovado.
-- Qual o comportamento desejado ao clicar em “sair”: destruir a sala ou permitir que o peer restante aguarde? Hoje o servidor mantém a sala enquanto há participante; preservar inicialmente.
-- Qual limite padrão de arquivo e política de transferência simultânea? Definir por teste de rede/memória.
-- O modo “qualidade automática” terá qual agressividade? Calibrar com medições, não por números inventados.
-- O ícone TuPi final deverá ser redesenhado em SVG a partir do conceito visual aprovado e revisado antes de aplicação em todas as telas.
+- O convite protegido é credencial de acesso, sem equivaler a autenticação da identidade. Não registrar o segredo em logs ou incluí-lo em anexos públicos.
+- WebRTC cifra o transporte; não declarar E2EE com verificação de identidade. Explicar a confiança no servidor de sinalização.
+- O limite de dois restringe ocupação, não substitui proteção de ingresso. Testar ambos separadamente.
+- Permissões e captura são controladas pelo navegador e pela pessoa. Reconectar não deve ativar fontes que estavam desligadas.
+- Validar mensagens, metadados, tamanhos, ordem e estado dos protocolos; impedir XSS e consumo ilimitado de memória. Consentimento não dispensa validação do arquivo.
+- Não armazenar conteúdo de chat, arquivos ou mídia no servidor, nem adicionar telemetria/CDNs/analytics obrigatórios.
+- `localhost` permite desenvolvimento local; acesso remoto de captura exige HTTPS/WSS válido. O backend não termina TLS; proxy opcional para localhost e necessário conforme a implantação remota escolhida.
+- `TRUST_PROXY` só deve ser ativado com proxy confiável que sobrescreve o cabeçalho; documentar os limites em memória/processo único sem prometer proteção distribuída.
+- Sem internet, o núcleo pode funcionar numa rede local adequada após instalação; YouTube e servidores ICE externos dependem desses serviços. Instalação e conectividade são requisitos distintos.
+- TURN é configuração avançada opcional e pode gerar consumo de banda/custo para quem o operar. Nenhuma credencial permanente deve ser commitada.
 
----
+## 8. UX e compatibilidade de produto
 
-## 11. Primeiro prompt de execução recomendado
+Preservar fundo claro, gradientes laranja/vermelho/magenta/roxo em pontos de marca, cartões arredondados, logo local e fontes sem CDN obrigatória. Não reabrir decisões visuais aprovadas sem necessidade de usabilidade ou pedido do proprietário.
 
-> Analise o repositório TuPi e este plano. Comece exclusivamente pelo **M0 — Baseline e testes de regressão**. Não altere a arquitetura ainda. Verifique os comandos de terminal, documente o comportamento atual com dois peers, adicione testes mínimos do servidor sem dependências pesadas e produza um relatório de lacunas. Mantenha o código existente funcional. Ao terminar, apresente evidências e proponha o conjunto mínimo de alterações do M1, sem executá-lo automaticamente.
+Home continua com criação e entrada simples; ajustar o texto do código conforme V2-01. Não criar login, menu lateral, onboarding obrigatório ou pré-entrada como condição de lançamento. Escolha de dispositivos pode permanecer nos controles existentes.
 
-## 12. Definição de pronto do TuPi 2.0
+Na sala, priorizar telas, manter duas telas equivalentes por padrão e câmeras independentes. Chat aberto, menus e teclado móvel não podem impedir microfone/câmera/tela/sair. Verificar safe areas, `playsinline`, foco visível, rótulos, contraste e redução de movimento sem redesenhar toda a interface.
 
-TuPi 2.0 estará pronto quando dois participantes puderem entrar por link, controlar independentemente microfone, câmera e tela, transmitir simultaneamente com configurações de qualidade observáveis, trocar mensagens e arquivos diretamente, assistir juntos a um vídeo do YouTube em cenários suportados, usar a interface responsiva aprovada e hospedar tudo com comandos Node.js documentados, sem Docker, banco de dados ou framework pesado obrigatório — com testes e limitações registrados.
+Não declarar suporte a toda captura mobile. Informar indisponibilidade com clareza e restringir a matriz publicada ao que foi validado. Limites por navegador de arquivos, autoplay e YouTube precisam aparecer na documentação e na situação de erro correspondente.
+
+## 9. Registro desta revisão
+Plano reorientado em 23/10/2026 a partir do parecer de maturidade, da validação M10 e das decisões do proprietário. O objetivo passou de construir os recursos já existentes para concluir proteção de ingresso, regressão confiável, aceite integrado e preparação de release. A versão anterior foi preservada como histórico; nenhuma funcionalidade foi implementada ou reprovada automaticamente por esta revisão.
+
+## 10. Pendências de decisão e trabalho futuro
+
+| Tema | Tratamento |
+| --- | --- |
+| Entrada manual por fruta | Proposta de V2-01: fruta visual + código/link imprevisível. Se for essencial manter fruta como entrada, adotar aprovação explícita e documentar o fluxo antes de implementá-lo. |
+| Navegadores e sistemas oficialmente suportados | Definir por evidências de V2-03/05; não presumir suporte universal. |
+| Reconexão quando ambos caem | Caracterizar e formalizar em V2-04, preservando a regra atual enquanto não houver justificativa de mudança. |
+| Tamanho de arquivo suportado | Publicar o que foi medido por navegador; separar do teto de oferta de 20 GiB. |
+| Calibração adaptativa | Ajustar somente com medições/falhas; não inventar agressividade nova para cumprir marco. |
+| Áudio da aba/sistema e controle remoto | Fora da 2.0; demandam pedido e análise próprios. |
+| Logo SVG, otimização visual e novos módulos | Melhorias posteriores ou correções pontuais justificadas; não bloqueiam por preferência estética. |
+| Ensaios TURN real | Opcionais, quando houver serviço disponível; manter suporte configurável existente. |
+
+A numeração antiga M11 continua apenas como referência histórica de pesquisa de controle remoto, sem início automático após a 2.0.
+
+## 11. Próximo pedido de execução sugerido
+
+> Leia este plano e o parecer de maturidade. Execute somente V2-01 — Proteger convites e acesso às salas. Preserve a arquitetura, as fontes independentes, o limite de dois participantes, `npm start` e TURN opcional. Verifique a proposta de fruta como rótulo visual e código/link aleatório como credencial. Apresente o contrato de ingresso e a migração dos convites antigos antes de alterar os arquivos, sem pedir confirmação adicional para escolhas rotineiras dentro do escopo autorizado. Implemente a correção mínima, valide ingresso autorizado/recusado e descoberta por fruta em servidor isolado, e entregue evidências e limitações. Não execute V2-02 ou publique a versão automaticamente.
+
+## 12. Definição de pronto da 2.0 estável
+
+- [ ] Convite imprevisível/protegido, ingresso validado no servidor e descoberta por fruta sem acesso automático.
+- [ ] Limite de dois, isolamento, ciclo de vida e teste anteriormente intermitente verificados consistentemente.
+- [ ] Dois computadores nos navegadores declarados entram, usam microfone/câmera/tela independentemente e mantêm controle das fontes.
+- [ ] Chat/notificações, arquivos com consentimento/integridade/cancelamento e YouTube sincronizado passam nos cenários suportados.
+- [ ] Interface aprovada preservada, controles acessíveis e limitações mobile registradas.
+- [ ] Sessão prolongada e falhas de rede caracterizadas, com métricas de mídia e instruções reais de recuperação.
+- [ ] Instalação limpa, comandos, HTTPS/WSS e configuração opcional de ICE documentados e verificados.
+- [ ] Nenhuma dependência pesada, banco, Docker, build ou serviço TURN obrigatório introduzido.
+- [ ] Problemas críticos resolvidos; limitações restantes explícitas, sem convertê-las em aprovações fictícias.
+- [ ] Candidata revisada, aceite do proprietário registrado, versão/lockfile/UI/notas coerentes em `2.0.0` e regressão final aprovada.
+
+**Marco beta:** pode existir avaliação controlada antes desses aceites, identificada como beta e com riscos conhecidos comunicados. A classificação beta não autoriza divulgar convites previsíveis como privados nem publicar sem autorização.
+
+**Marco estável:** só declarar quando os itens acima estiverem atendidos no escopo publicado. Ausência de TURN real não bloqueia o lançamento doméstico; falhas de acesso, integridade ou recursos prometidos bloqueiam.
