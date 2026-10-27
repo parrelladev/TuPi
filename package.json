@@ -1,6 +1,6 @@
 {
   "name": "TuPi",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Minimal WebRTC P2P voice, screen share and text chat",
   "scripts": {
