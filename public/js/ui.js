@@ -1,13 +1,9 @@
-import { pop, swap, toastProgress } from './fx.js';
+import { pop, toastProgress } from './fx.js';
 
 const TOAST_MS = 4300;
 
 export function createUI() {
   const $ = id => document.getElementById(id);
-  let effectiveScreenQuality = '';
-  let localScreenAudio = false;
-  let screenAudioNote = '';
-  const noAudioLabel = () => ' · sem áudio';
   let unreadChatCount = 0;
   let remoteFlags = { camera: true, screen: true, screenAudio: false };
   let lastCamera = [null, null];
@@ -40,7 +36,6 @@ export function createUI() {
     $('status').closest('.status-chip').dataset.tone = tone;
   }
   const getRemoteFlags = () => remoteFlags;
-  function setScreenAudioNote(note) { screenAudioNote = note; $('screenBadge').title = note; }
   function setScreenAudio(stream) {
     const element = $('screenAudio');
     element.srcObject = stream;
@@ -181,14 +176,6 @@ export function createUI() {
     $('screenViews').classList.toggle('has-media', hasLocal || hasRemote);
     $('screenViews').parentElement.classList.toggle('active', hasLocal || hasRemote);
     $('screenPlaceholder').classList.toggle('hidden', hasLocal || hasRemote);
-    let badge = hasBoth ? 'Duas telas ativas' : hasRemote ? 'Tela do convidado' : hasLocal ? 'Sua tela compartilhada' : 'Aguardando compartilhamento';
-    localScreenAudio = Boolean(localTrack && localStream.getAudioTracks().some(track => track.readyState === 'live'));
-    if (hasLocal && effectiveScreenQuality) badge += ` · ${effectiveScreenQuality}`;
-    if (hasLocal && !hasBoth) badge += localScreenAudio ? ' · com áudio' : noAudioLabel();
-    if (hasRemote && !hasBoth) badge += remoteFlags.screenAudio ? ' · com áudio' : ' · sem áudio';
-    const badgeChanged = $('screenBadge').textContent.trim() !== badge;
-    $('screenBadge').innerHTML = '<i></i> ' + badge;
-    if (badgeChanged) swap($('screenBadge'));
     $('screenBtn').querySelector('span:last-child').textContent = hasLocal ? 'Parar tela' : 'Compartilhar tela';
     $('screenBtn').setAttribute('aria-label', hasLocal ? 'Parar compartilhamento de tela' : 'Compartilhar tela');
     emitLocalMedia();
@@ -253,15 +240,9 @@ export function createUI() {
     emitLocalMedia();
   }
 
-  function setScreenState(state) {
-    if (state === 'denied') $('screenBadge').innerHTML = '<i></i> Permissão de tela negada';
-    else if (state === 'error') $('screenBadge').innerHTML = '<i></i> Falha ao compartilhar';
-  }
-
   function setSourceState(source, state) {
     if (source === 'microfone') setMicState(state);
     if (source === 'câmera') notify(state === 'denied' ? 'Permita o acesso à câmera nas configurações do navegador.' : 'Não foi possível ativar a câmera.');
-    if (source === 'tela') setScreenState(state);
   }
 
   function setPeerMediaStatus(message) { $('peerMediaStatus').textContent = message; }
@@ -275,12 +256,6 @@ export function createUI() {
       $('qualityDiagnostics').prepend(element);
     }
     element.textContent = message;
-    effectiveScreenQuality = message.replace(/^Tela:\s*/, '');
-    if (!$('localMediaTile').classList.contains('hidden')) {
-      const badge = $('screenBadge');
-      const indicator = document.createElement('i');
-      badge.replaceChildren(indicator, document.createTextNode(` Sua tela compartilhada · ${effectiveScreenQuality}${localScreenAudio ? ' · com áudio' : noAudioLabel()}`));
-    }
   }
   function setConnectionDiagnostics(message) {
     let element = $('connectionDiagnostics');
@@ -332,5 +307,5 @@ export function createUI() {
     setAudioPlaybackBlocked(false);
   }
 
-  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, setScreenAudioNote, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, setScreenLocked, isScreenLocked, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setConnectionQuality, getTranscript, setCodecCapabilities, closeShareSettings, clearRoomView };
+  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, setScreenLocked, isScreenLocked, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setConnectionQuality, getTranscript, setCodecCapabilities, closeShareSettings, clearRoomView };
 }

@@ -118,7 +118,6 @@ export class Media {
       const audioTrack = stream.getAudioTracks()[0] || null;
       await this.screenAudioSender?.replaceTrack(audioTrack);
       const note = audioTrack ? '' : this.noAudioReason(track, wantAudio);
-      this.ui.setScreenAudioNote(note);
       if (wantAudio && !audioTrack) this.ui.notify(`O navegador não enviou o áudio: ${note}`);
       this.ui.renderScreen(stream, this.remoteScreenStream);
       await this.quality?.applySource();
@@ -155,7 +154,7 @@ export class Media {
     if (source === 'screen') await this.screenAudioSender?.replaceTrack(null);
     if (source === 'mic') this.ui.setMicState('off');
     if (source === 'camera') this.ui.renderCamera(null, this.remoteCameraStream);
-    if (source === 'screen') { this.ui.setScreenAudioNote(''); this.ui.renderScreen(null, this.remoteScreenStream); }
+    if (source === 'screen') this.ui.renderScreen(null, this.remoteScreenStream);
   }
 
   async changeDevice(kind, deviceId) {
