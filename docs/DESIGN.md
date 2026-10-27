@@ -390,3 +390,11 @@ Atributos de dados de `.person`: `data-speaking` (fala), `data-present` (convida
 - **Cache:** rede primeiro, cache como reserva; assim o app nunca fica preso a uma versão antiga, e o lobby abre offline. `/signal` e `/api/*` nunca passam pelo cache.
 - **Download em stream:** sem `showSaveFilePicker` (Firefox, Safari), o recebimento abre um `MessagePort` com o SW, que devolve os blocos como resposta de `/sw-download/<id>` com `Content-Disposition: attachment`. O navegador grava em disco; cada bloco só é confirmado quando o SW tem espaço (contrapressão). Cancelar o download no navegador cancela a transferência.
 - **Instalação:** `manifest.webmanifest` + ícones 192/512; o item **Mais > Instalar o TuPi** aparece apenas quando o navegador dispara `beforeinstallprompt`.
+
+### 6.5 Protocolos de transferência de arquivos
+
+- **v2 (compatível):** blocos de 64 KiB, um em voo, `ack` por bloco. A velocidade fica em torno de `64 KiB / RTT` (≈ 1,2 MiB/s com 40 ms).
+- **v3 (rápido):** blocos de 128 KiB, janela de 16 blocos (`window` na oferta), `ack` cumulativo a cada `window/4` blocos e no último. Em teste local com 40 ms de RTT simulado, 8 MiB foram de 1,2 para ≈ 7,6 MiB/s.
+- **Seleção:** seletor Automático / Rápido / Compatível (guardado em `tupi-file-mode`). Automático escolhe o rápido a partir de 4 MiB; o painel indica a recomendação por arquivo. Escolhas fora da recomendação são permitidas e avisadas no status.
+- **Compatibilidade:** o receptor entende v2 e v3; se o receptor só conhecer v2 e rejeitar por protocolo, o remetente refaz a oferta em v2.
+- **Inalterado:** hash SHA-256 por bloco, ordem estrita, consentimento, limites e download em stream.
