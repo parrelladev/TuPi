@@ -27,7 +27,7 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
         document.querySelector("#landing").classList.add("hidden");
         document.querySelector("#room").classList.remove("hidden");
         document.body.classList.add("in-room");
-        document.querySelector("#stagePanel").classList.add("whiteboard-active");
+        document.querySelector(".screen-area").classList.add("hidden");
         window.b = new Whiteboard((m) => window.s.send(JSON.stringify(m)));
         window.messages = [];
         await new Promise((resolve) => {
@@ -131,6 +131,27 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     await a.screenshot({ path: path.join(OUTPUT_DIR, "whiteboard-validation.png"), animations: "disabled" });
     for (const c of contexts) await c.close();
     const actualContexts = await Promise.all([browser.newContext(), browser.newContext()]);
+    for (const context of actualContexts) await context.addInitScript(() => {
+      // Uma faixa real gerada por canvas exercita o transporte WebRTC sem seletor do SO.
+      navigator.mediaDevices.getDisplayMedia = async () => {
+        const canvas = document.createElement('canvas');canvas.width=640;canvas.height=360;
+        const ctx=canvas.getContext('2d');
+        const draw=()=>{ctx.fillStyle='#243652';ctx.fillRect(0,0,640,360);ctx.fillStyle='white';ctx.font='30px Arial';ctx.fillText('Tela compartilhada em andamento',30,100);ctx.fillText(String(Date.now()),30,180);};
+        draw();const stream=canvas.captureStream(10);const timer=setInterval(draw,100);stream.getVideoTracks()[0].addEventListener('ended',()=>clearInterval(timer));return stream;
+      };
+      // Player determinístico: o teste verifica continuidade sem depender da rede do YouTube.
+      window.__playerDestroyed=0;
+      window.YT={Player:class {
+        constructor(id,options){this.time=0;this.state=2;this.started=Date.now();window.__testPlayer=this;const host=typeof id==='string'?document.getElementById(id):id;host.textContent='YouTube · reprodução de teste';host.style.color='white';setTimeout(()=>options.events.onReady(),0);}
+        getCurrentTime(){return this.time+(this.state===1?(Date.now()-this.started)/1000:0);}
+        getDuration(){return 600;}getPlayerState(){return this.state;}
+        playVideo(){if(this.state!==1){this.started=Date.now();this.state=1;}}
+        pauseVideo(){this.time=this.getCurrentTime();this.state=2;}
+        seekTo(time){this.time=time;this.started=Date.now();}
+        getAvailablePlaybackRates(){return [1];}setPlaybackRate(){}setVolume(){}mute(){}unMute(){}
+        destroy(){window.__playerDestroyed++;}
+      }};
+    });
     const actualPages = await Promise.all(actualContexts.map((c) => c.newPage()));
     for (const p2 of actualPages) {
       await p2.goto("http://127.0.0.1:3139");
@@ -167,17 +188,66 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     assert.equal(await p.locator(".wb-editor").inputValue(), "Vamos planejar");
     assert.equal(await p.locator("#cameraBtn").getAttribute("aria-pressed"), "false");
     await p.locator('[data-tool="select"]').click();
-    await p.locator("#youtubeToggleBtn").click();
-    assert.equal(await p.locator("#mediaModeSwitch").getAttribute("data-mode"), "youtube");
-    await p.locator("#whiteboard").waitFor({ state: "hidden" });
-    await p.locator("#whiteboardBtn").click();
-    assert.equal(await p.locator("#mediaModeSwitch").getAttribute("data-mode"), "whiteboard");
-    await p.locator("#youtubePanel").waitFor({ state: "hidden" });
-    await p.locator("#screenBtn").click();
-    assert.equal(await p.locator("#mediaModeSwitch").getAttribute("data-mode"), "screen");
-    assert.equal(await p.locator("#whiteboard").isVisible(), false);
-    await p.locator("#whiteboardBtn").click();
-    assert.equal(await p.locator("#screenSettings").evaluate((el) => el.open), false);
+    await p.locator('#youtubeToggleBtn').click();
+    assert.ok(await p.locator('#whiteboard').isVisible());
+    assert.ok(await p.locator('#youtubePanel').isVisible());
+    await p.locator('#youtubeForm button').click();
+    await p.waitForFunction(()=>!!window.__testPlayer);
+    await p.locator('#youtubePlay').click();
+    await p.waitForFunction(()=>window.__testPlayer.getPlayerState()===1);
+    await p.locator('#screenBtn').click();
+    assert.notEqual(await p.locator('#screenBtn').getAttribute('aria-disabled'),'true');
+    await p.locator('#shareAudioCheck').uncheck();
+    await p.locator('#shareConfiguredBtn').click();
+    await p.waitForFunction(()=>document.querySelector('#stagePanel').dataset.panelCount==='3');
+    await actualPages[1].waitForFunction(()=>document.querySelector('.screen-area').classList.contains('active'));
+    for(const page of actualPages){for(const selector of ['.screen-area','#youtubePanel','#whiteboard'])assert.ok(await page.locator(selector).isVisible(),'Três recursos visíveis nas duas sessões');}
+    const alive=()=>p.evaluate(()=>document.querySelector('#localScreenVideo').srcObject.getVideoTracks()[0].readyState==='live'&&window.__testPlayer.getPlayerState()===1&&window.__playerDestroyed===0);
+    assert.ok(await alive());
+    await p.waitForFunction(()=>document.querySelector('#youtubePanel').classList.contains('stage-compact'));
+    await p.locator('[aria-controls="stageVideoControls"]').click();
+    assert.ok(await p.locator('#stageVideoControls').evaluate(el=>el.open));
+    assert.ok(await p.locator('#stageVideoControls #youtubeForm').isVisible());
+    await p.keyboard.press('Escape');
+    assert.ok(await alive());
+    await p.locator('[data-stage-expand="youtube"]').click();
+    await p.waitForFunction(()=>!document.querySelector('#youtubePanel').classList.contains('stage-compact'));
+    assert.ok(await p.locator('#youtubePanel > #youtubeForm').isVisible());
+    assert.ok(await alive());
+    await p.locator('[data-stage-expand="youtube"]').click();
+    await p.locator('#whiteboardBtn').click();
+    assert.equal(await p.locator('#whiteboard').isVisible(),false);
+    assert.ok(await alive());
+    await p.locator('#whiteboardBtn').click();
+    assert.equal(await p.locator('#stagePanel').getAttribute('data-panel-count'),'3');
+    assert.ok(await alive());
+    await p.locator('[data-stage-focus="youtube"]').click();
+    assert.ok(await p.locator('#youtubePanel').evaluate(el=>el.classList.contains('stage-primary')));
+    const divider=p.locator('.stage-divider');await divider.focus();await p.keyboard.press('ArrowLeft');assert.equal(await divider.getAttribute('aria-valuenow'),'58');const handle=await divider.boundingBox();await p.mouse.move(handle.x+handle.width/2,handle.y+handle.height/2);await p.mouse.down();await p.mouse.move(handle.x-50,handle.y+handle.height/2);await p.mouse.up();assert.ok(Number(await divider.getAttribute('aria-valuenow'))<58);
+    await p.locator('[data-stage-expand="whiteboard"]').click();
+    assert.equal(await p.locator('#youtubePanel').isVisible(),false);assert.ok(await alive());
+    await p.locator('[data-stage-expand="whiteboard"]').click();
+    assert.ok(await p.locator('#youtubePanel').isVisible());
+    await p.locator('[data-stage-focus="whiteboard"]').click();
+    await p.screenshot({path:path.join(OUTPUT_DIR,'simultaneous-desktop.png'),animations:'disabled'});
+    for(const size of [{width:1024,height:768},{width:768,height:1024},{width:390,height:844}]){
+      await p.setViewportSize(size);
+      for(const selector of ['.screen-area','#youtubePanel','#whiteboard']){const b=await p.locator(selector).boundingBox();assert.ok(b&&b.width>100&&b.height>80);assert.ok(b.x>=0&&b.x+b.width<=size.width+1);}
+      assert.ok(await alive());
+      await p.screenshot({path:path.join(OUTPUT_DIR,'simultaneous-'+size.width+'.png'),animations:'disabled'});
+      await p.locator('[data-stage-expand="whiteboard"]').click();
+      const expanded=await p.locator('#whiteboard svg').boundingBox();assert.ok(expanded.height>200);
+      await p.locator('[data-stage-expand="whiteboard"]').click();
+    }
+    await p.setViewportSize({width:1280,height:720});
+    // Encerrar só a tela não afeta os outros recursos.
+    await p.locator('#screenBtn').click();
+    await p.waitForFunction(()=>document.querySelector('#stagePanel').dataset.panelCount==='2');
+    assert.equal(await p.evaluate(()=>window.__testPlayer.getPlayerState()),1);
+    assert.ok(await p.locator('#whiteboard').isVisible());
+    await p.locator('#youtubeToggleBtn').click();
+    assert.ok(await p.locator('#whiteboard').isVisible());
+    assert.equal(await p.locator('#stagePanel').getAttribute('data-panel-count'),'1');
     await p.locator('[data-tool="select"]').click();
     await p.screenshot({ path: path.join(OUTPUT_DIR, "whiteboard-validation.png"), animations: "disabled" });
     await p.locator('[data-action="shortcuts"]').click();
@@ -199,7 +269,7 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
       await p.locator('[data-action="fit"]').click();
       await p.screenshot({ path: path.join(OUTPUT_DIR, "whiteboard-" + size.width + "-validation.png"), animations: "disabled" });
     }
-    console.log("PASS: integração no palco, seletor de três modos, propriedades contextuais, atalhos separados e layout desktop/tablet/mobile.");
+    console.log("PASS: painéis simultâneos nas duas sessões, faixa WebRTC ativa, player preservado, destaque, ampliação, divisor e layouts responsivos.");
     console.log("PASS: duas sessões, 8 ferramentas, sincronização, undo/redo, permissões diretas, isolamento, reabertura, reconexão e PNG/PDF.");
   } catch (error) {
     for (const [i, context] of (browser?.contexts() || []).entries()) {

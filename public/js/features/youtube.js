@@ -254,8 +254,8 @@ export class YouTubeTogether {
     button.setAttribute('aria-pressed', String(open));
     button.setAttribute('aria-label', open ? 'Fechar YouTube Watch Together' : 'Abrir YouTube Watch Together');
     button.classList.toggle('is-on', open);
-    this.ui.$('mediaModeSwitch').dataset.mode = open ? 'youtube' : 'screen';
-    this.ui.$('stagePanel').classList.toggle('youtube-active', open);
+
+
     if (changed) this.onModeChange?.(open);
   }
 

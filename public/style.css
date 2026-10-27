@@ -232,7 +232,7 @@ input[type=range] { padding: 0; accent-color: var(--pink); box-shadow: none; bor
 .camera-views .media-tile { width: min(210px, 22vw); min-height: 90px; aspect-ratio: 4 / 3; border-radius: 14px; background: #24212a; box-shadow: 0 6px 20px #211b2b40; --fx-from: scale(.7) translateY(-10px); }
 .camera-views video { width: 100%; height: 100%; object-fit: cover; }
 .camera-views .media-name { left: 8px; bottom: 7px; padding: 3px 6px; background: transparent; backdrop-filter: none; font-size: 10px; text-shadow: 0 1px 4px #000; }
-.stage.youtube-active .screen-area { display: none; }
+
 .media-tile.fx { --fx-from: scale(.94); }
 
 .chat { display: flex; flex-direction: column; min-height: 0; width: var(--chat-w); height: auto; align-self: stretch; overflow: hidden; box-shadow: none; border-radius: 22px; transition: opacity .3s var(--out), transform .5s var(--out), display .5s allow-discrete; }
@@ -307,22 +307,11 @@ input[type=range] { padding: 0; accent-color: var(--pink); box-shadow: none; bor
 @keyframes ring-yt { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, #ff2d55 42%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
 .tb.is-on, .tb.is-on:hover:not(:disabled) { background: color-mix(in srgb, #ff2d55 15%, var(--surface)); color: light-dark(#e8213f, #ff7a8e); }
 .tb.is-on:hover:not(:disabled) { animation: ring-yt 1.2s ease-out infinite; }
-.btn-primary.tb.is-off, .btn-primary.tb.is-off:hover:not(:disabled) { background: var(--surface-2); color: var(--muted); box-shadow: none; opacity: .5; filter: grayscale(1); cursor: not-allowed; transform: none; }
-.btn-primary.tb.is-off::after { display: none; }
 .media-mode-switch { position: relative; display: grid; grid-template-columns: repeat(3, 96px); gap: 4px; }
-.media-mode-switch::before { content: ""; position: absolute; top: 0; left: 0; width: 96px; height: 100%; border-radius: 16px; background: var(--brand); box-shadow: var(--shadow-brand); pointer-events: none; transition: transform .3s var(--out), width .3s var(--out); }
-.media-mode-switch[data-mode="youtube"]::before { transform: translateX(100px); }
-.media-mode-switch[data-mode="whiteboard"]::before { transform: translateX(200px); }
 .media-mode-switch > .screen-settings { z-index: 2; min-width: 0; }
-.media-mode-switch > #youtubeToggleBtn, .media-mode-switch > #whiteboardBtn { position: relative; z-index: 1; }
-.media-mode-switch #screenBtn, .media-mode-switch #youtubeToggleBtn, .media-mode-switch #whiteboardBtn,
-.media-mode-switch #screenBtn:hover, .media-mode-switch #youtubeToggleBtn:hover, .media-mode-switch #whiteboardBtn:hover { width: 100%; background: transparent; box-shadow: none; transform: none; animation: none; filter: none; }
-.media-mode-switch #screenBtn { color: var(--ink-2); }
+.media-mode-switch #screenBtn, .media-mode-switch #youtubeToggleBtn, .media-mode-switch #whiteboardBtn { width: 100%; background: transparent; color: var(--ink-2); box-shadow: none; }
 .media-mode-switch #screenBtn::after { display: none; }
-.media-mode-switch[data-mode="screen"] #screenBtn,
-.media-mode-switch[data-mode="youtube"] #youtubeToggleBtn,
-.media-mode-switch[data-mode="whiteboard"] #whiteboardBtn { color: #fff; }
-.media-mode-switch #screenBtn.is-off { color: var(--muted); }
+.media-mode-switch #screenBtn.is-on, .media-mode-switch #youtubeToggleBtn.is-on, .media-mode-switch #whiteboardBtn.is-on, .media-mode-switch #screenBtn.is-on:hover, .media-mode-switch #youtubeToggleBtn.is-on:hover, .media-mode-switch #whiteboardBtn.is-on:hover { background: var(--brand); color: #fff; box-shadow: var(--shadow-brand); animation: none; }
 .button-leave { background: var(--danger-bg); color: var(--danger-ink); }
 .button-leave:hover:not(:disabled) { background: var(--danger-ink); color: #fff; }
 .chat-toggle { position: relative; }
@@ -639,9 +628,6 @@ body.in-room { height: 100dvh; overflow: hidden; }
   .room-toolbar > .tb-group:nth-child(2) { flex: 3 1 0; }
   .room-toolbar > .tb-group:last-child { flex: 1 1 0; }
   .media-mode-switch { flex: 1; width: 100%; min-width: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
-  .media-mode-switch::before { width: calc(100% / 3); border-radius: 15px; }
-  .media-mode-switch[data-mode="youtube"]::before { transform: translateX(100%); }
-  .media-mode-switch[data-mode="whiteboard"]::before { transform: translateX(200%); }
   .tb-label { display: none; }
   .tb .control-icon i { font-size: 22px; }
   .chat-unread-badge { top: 7px; right: calc(50% - 17px); }

@@ -1,3 +1,4 @@
+import { StageLayout } from './js/features/stage-layout.js';
 import { Whiteboard } from './js/features/whiteboard/index.js';
 import { createUI } from './js/ui.js';
 import { Signaling } from './js/core/signaling.js';
@@ -52,22 +53,9 @@ let autoTick = null;
 let autoAttempt = 0;
 let connectedAt = 0;
 
-function closeYouTubeMode() {
-  if (!youtube.isOpen()) return;
-  youtube.setPanelOpen(false);youtube.send({ type: 'panel', open: false });youtube.closeSession();
-}
-function renderMediaMode() {
-  const open=whiteboard.isOpen();
-  ui.$('stagePanel').classList.toggle('whiteboard-active',open);
-  ui.$('mediaModeSwitch').dataset.mode=open?'whiteboard':youtube.isOpen()?'youtube':'screen';
-  const button=ui.$('whiteboardBtn');button.setAttribute('aria-expanded',String(open));button.setAttribute('aria-pressed',String(open));button.setAttribute('aria-label',open?'Fechar Quadro Branco':'Abrir Quadro Branco');
-}
-whiteboard.onModeChange=open=>{if(open)closeYouTubeMode();renderMediaMode();};
-youtube.onModeChange=open=>{
-  if(open){whiteboard.close();if(media.screenStream){void media.stopSource('screen');ui.notify('Compartilhamento de tela encerrado para abrir o YouTube.');}}
-  ui.setScreenLocked(false);renderMediaMode();
-};
-ui.$('screenBtn').addEventListener('click',()=>{whiteboard.close();closeYouTubeMode();renderMediaMode();},{capture:true});
+const stageLayout = new StageLayout(ui, youtube, whiteboard);
+whiteboard.onModeChange = () => stageLayout.update();
+youtube.onModeChange = () => stageLayout.update();
 
 const peer = new PeerSession({
   rtcConfig,

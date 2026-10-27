@@ -1,5 +1,4 @@
 /* Interface do quadro branco; utiliza os tokens visuais globais. */
-.stage.whiteboard-active > .screen-area, .stage.whiteboard-active > .youtube-panel { display: none; transition: none; }
 .wb { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; min-width: 0; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); color: var(--ink); overflow: hidden; --fx-from: translateY(-14px) scale(.98); }
 .wb.hidden { display: none; transition: none; }
 .wb-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }

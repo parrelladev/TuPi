@@ -68,17 +68,6 @@ export function createUI() {
     $('lobbyLeaveBtn').classList.toggle('hidden', !joined);
   }
 
-  let screenLocked = false;
-  function setScreenLocked(locked) {
-    screenLocked = locked;
-    const button = $('screenBtn');
-    button.classList.toggle('is-off', locked);
-    button.setAttribute('aria-disabled', String(locked));
-    button.title = locked ? 'Feche o YouTube para compartilhar a tela' : '';
-    if (locked) closeShareSettings();
-  }
-  const isScreenLocked = () => screenLocked;
-
   function setReconnectBusy(busy) {
     const button = $('reconnectBtn');
     button.dataset.busy = String(busy);
@@ -307,5 +296,5 @@ export function createUI() {
     setAudioPlaybackBlocked(false);
   }
 
-  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, setScreenLocked, isScreenLocked, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setConnectionQuality, getTranscript, setCodecCapabilities, closeShareSettings, clearRoomView };
+  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setConnectionQuality, getTranscript, setCodecCapabilities, closeShareSettings, clearRoomView };
 }

@@ -133,6 +133,8 @@ const server = http.createServer((req, res) => {
     '/js/features/whiteboard/view.js': 'js/features/whiteboard/view.js',
     '/js/features/whiteboard/renderer.js': 'js/features/whiteboard/renderer.js',
     '/js/features/whiteboard/export.js': 'js/features/whiteboard/export.js',
+    '/css/stage-layout.css': 'css/stage-layout.css',
+    '/js/features/stage-layout.js': 'js/features/stage-layout.js',
     '/css/whiteboard.css': 'css/whiteboard.css',
     '/js/features/chat.js': 'js/features/chat.js',
     '/js/features/files.js': 'js/features/files.js',
