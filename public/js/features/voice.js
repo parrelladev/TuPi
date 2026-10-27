@@ -129,11 +129,11 @@ export class Voice {
   }
 
   renderAvatars() {
-    for (const id of ['avatarLocal', 'miniLocalAvatar', 'lobbyAvatar']) this.$(id).innerHTML = avatarMarkup(this.avatarId);
+    for (const id of ['avatarLocal', 'lobbyAvatar']) this.$(id).innerHTML = avatarMarkup(this.avatarId);
     const remoteId = this.remote?.avatar;
-    for (const id of ['avatarRemote', 'miniRemoteAvatar']) this.$(id).innerHTML = remoteId ? avatarMarkup(remoteId) : unknownAvatarMarkup;
+    for (const id of ['avatarRemote']) this.$(id).innerHTML = remoteId ? avatarMarkup(remoteId) : unknownAvatarMarkup;
     const name = avatarById(this.avatarId).name;
-    for (const id of ['avatarLocalBtn', 'avatarMini', 'lobbyAvatarBtn']) this.$(id).setAttribute('aria-label', `Trocar meu avatar (atual: ${name})`);
+    for (const id of ['avatarLocalBtn', 'lobbyAvatarBtn']) this.$(id).setAttribute('aria-label', `Trocar meu avatar (atual: ${name})`);
     for (const id of ['avatarPicker', 'lobbyPicker']) this.$(id).querySelectorAll('.picker-option').forEach(option => option.setAttribute('aria-selected', String(option.dataset.avatar === this.avatarId)));
   }
 
@@ -182,7 +182,7 @@ export class Voice {
 
   bindControls() {
     const pairs = [
-      { picker: this.$('avatarPicker'), triggers: [this.$('avatarLocalBtn'), this.$('avatarMini')], focus: this.$('avatarMini') },
+      { picker: this.$('avatarPicker'), triggers: [this.$('avatarLocalBtn')], focus: this.$('avatarLocalBtn') },
       { picker: this.$('lobbyPicker'), triggers: [this.$('lobbyAvatarBtn')], focus: this.$('lobbyAvatarBtn') }
     ];
     for (const { picker, triggers, focus } of pairs) {
@@ -225,7 +225,7 @@ export class Voice {
     saveAvatarId(id);
     this.renderAvatars();
     this.renderNames();
-    for (const element of ['avatarLocal', 'miniLocalAvatar', 'lobbyAvatar']) pop(this.$(element));
+    for (const element of ['avatarLocal', 'lobbyAvatar']) pop(this.$(element));
     this.profileListeners.forEach(listener => listener());
   }
 
@@ -398,8 +398,8 @@ export class Voice {
     }
     this.updateOutput();
     const sides = [
-      ['local', this.meters.local.read(this.context, now), ['personLocal', 'avatarMini', 'lobbyPreview']],
-      ['remote', this.meters.remote.read(this.context, now), ['personRemote', 'miniRemote']]
+      ['local', this.meters.local.read(this.context, now), ['personLocal', 'lobbyPreview']],
+      ['remote', this.meters.remote.read(this.context, now), ['personRemote']]
     ];
     let changed = false;
     for (const [side, meter, ids] of sides) {

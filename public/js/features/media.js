@@ -115,7 +115,7 @@ export class Media {
       await this.screenSender?.replaceTrack(track);
       const audioTrack = stream.getAudioTracks()[0] || null;
       await this.screenAudioSender?.replaceTrack(audioTrack);
-      if (wantAudio && !audioTrack) this.ui.notify('O navegador nÃ£o compartilhou o Ã¡udio. Na janela de seleÃ§Ã£o, marque a opÃ§Ã£o de compartilhar Ã¡udio (Chrome ou Edge).');
+      if (wantAudio && !audioTrack) this.ui.notify('O navegador não compartilhou o áudio. Na janela de seleção, marque a opção de compartilhar áudio (Chrome ou Edge).');
       this.ui.renderScreen(stream, this.remoteScreenStream);
       await this.quality?.applySource();
       return true;
@@ -172,7 +172,7 @@ export class Media {
     } catch { /* Device enumeration is optional and browser-controlled. */ }
   }
 
-  // Liga ou desliga o envio do Ã¡udio da tela sem parar a captura.
+  // Liga ou desliga o envio do áudio da tela sem parar a captura.
   setScreenAudioEnabled(enabled) { this.screenStream?.getAudioTracks().forEach(track => { track.enabled = enabled; }); }
   hasScreenAudio() { return Boolean(this.screenStream?.getAudioTracks().some(track => track.readyState === 'live')); }
 

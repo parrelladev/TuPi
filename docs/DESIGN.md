@@ -99,7 +99,7 @@ Tela de pré-entrada inspirada no "Pronto para participar?" do Google Meet. Não
 ### 5.1 Avatares e nomes
 
 - **Avatares:** 30 ícones de animais em SVG (`public/assets/avatars/*.svg`, vindos de `pack_icones/fundo-colorido`), recortados em círculo. O id é o nome do arquivo (`gato`, `raposa-em-pe`, `canguru-01`…). O servidor só serve os arquivos dessa pasta, listados na inicialização.
-- **Seletor:** grade de 5 colunas (4 no celular) com rolagem, com o avatar atual marcado. Existe no lobby (sobre a prévia) e na chamada (acima da barra de voz).
+- **Seletor:** grade de 5 colunas (4 no celular) com rolagem, com o avatar atual marcado. Existe no lobby (sobre a prévia) e na chamada (no seu card).
 - **Nome:** o padrão é o nome do avatar ("Gato", "Raposa-ruiva"…) e acompanha o avatar enquanto você não digitar outro. Pode ser trocado no lobby (campo **Seu nome**) e na chamada (clique no seu nome no card; Enter salva, Esc cancela; vazio volta ao padrão). Máximo de 24 caracteres, sem caracteres de controle. A escolha fica salva (`tupi-name`; só quando personalizada).
 - **Sincronização:** o nome e o avatar vão no canal de presença e a outra pessoa os vê no card, nos rótulos "Nome · Tela" e "Nome · Câmera", na barra de voz e no rótulo das mensagens do chat.
 
@@ -122,7 +122,7 @@ Tela de pré-entrada inspirada no "Pronto para participar?" do Google Meet. Não
 
 - **Cabeçalho:** logo, chip de status com ponto colorido (âmbar = aguardando, verde = conectado, vermelho = erro, via `data-tone`), botão circular **Reconectar** (`#reconnectBtn`) dentro do chip e contador de participantes. O botão continua visível no mobile, onde o texto do status é escondido.
 - **Palco:** `.screen-area` (raio 22 px) com badge de estado, botão "Ativar áudio recebido", grade de telas (1 ou 2 colunas) e, sem tela compartilhada, a **tela de participantes** (seção 6.1). As miniaturas de câmera no canto superior direito só aparecem enquanto há uma tela compartilhada; sem tela, a câmera aparece dentro do card de cada pessoa.
-- **Barra de voz** (`#voiceBar`): logo abaixo do palco, sempre visível, inclusive durante o compartilhamento de tela (seção 6.1).
+- **Controles de voz:** ficam dentro de cada card, acima do avatar (seção 6.1). Não há mais uma barra separada; durante o compartilhamento de tela ou o YouTube os cards ficam ocultos e os controles também (use `M` para o microfone).
 - **Chat:** cabeçalho (título, botão Som, status), mensagens, painel de transferência de arquivo (criado por `files.js`) e composer. Começa recolhido no desktop e aberto sob demanda; no mobile vira overlay.
 - **Dock** (`.room-toolbar`): cápsula de vidro com 4 grupos separados por linhas; botões de 80×62 px com ícone e rótulo (no mobile só ícones). **Compartilhar tela** é o botão primário.
 - **Menus** (`<details>`): *Compartilhar tela* (perfis de qualidade, personalização, diagnóstico, botão de iniciar) e *Mais* (Dispositivos e áudio). Abrem para cima, centralizados.
@@ -148,7 +148,7 @@ Tela de pré-entrada inspirada no "Pronto para participar?" do Google Meet. Não
 - **Câmera no card:** com a câmera ligada, o vídeo ocupa o cartão no lugar do avatar (o seu aparece espelhado). Ao desligar, o avatar volta.
 - **Convidado ausente:** o card fica translúcido, com borda tracejada e silhueta cinza.
 - **Avatares:** os mesmos 30 ícones de animais do lobby (seção 5.1). Para trocar, clique no avatar do seu card (aparece um lápis ao passar o mouse) ou na miniatura da barra; abre o seletor.
-- **Barra de voz:** à esquerda, miniatura sua (com anel de fala), botão de microfone (liga/desliga o mesmo microfone da dock) e medidor de nível; à direita, miniatura do convidado, botão de **mudo** (o ícone mostra 0, 1 ou 2 ondas conforme o volume e vira "X" vermelho quando mudo), **controle de volume** de 0 a 200 % com preenchimento e o valor ao lado. De 100 % a 200 % o som é **amplificado** por um ganho de Web Audio (trecho laranja da barra, com dica "pode distorcer") e passa por um limitador (`DynamicsCompressor`) para evitar estalos. O volume do YouTube não passa de 100 %, limite da API do player. O volume e o mudo ficam salvos (`tupi-voice`).
+- **Controles acima de cada card:** no **seu** card, botão de microfone (liga/desliga o mesmo microfone da dock) e medidor de nível; no card do **convidado**, botão de **mudo** (o ícone mostra som alto, baixo ou "X" vermelho), **controle de volume** de 0 a 200 % com preenchimento e o valor ao lado. De 100 % a 200 % o som é **amplificado** por um ganho de Web Audio (trecho laranja da barra, com dica "pode distorcer") e passa por um limitador (`DynamicsCompressor`) para evitar estalos. O volume do YouTube não passa de 100 %, limite da API do player. Volume e mudo ficam salvos (`tupi-voice`). O estado vazio não tem mais texto de instrução; só o ponto de espera.
 - **Áudio nos dois ouvidos:** o áudio do convidado passa por Web Audio (`voice.js`), é reduzido a mono e sai igual na esquerda e na direita. Isso corrige o caso de só tocar do lado esquerdo (visto no Firefox): se o sinal chega estéreo com um canal vazio, o ganho é compensado em 2×. Enquanto o contexto de áudio não está ativo (antes do primeiro clique), o `<audio>` normal continua tocando. O microfone também é pedido em mono (`channelCount: ideal 1`).
 - **Detecção de fala:** `voice.js` mede o nível do seu microfone e do áudio recebido com Web Audio (`AnalyserNode`), com limiar de entrada e saída e 320 ms de espera para não piscar. O mudo local só afeta o que você ouve: o indicador do convidado continua mostrando que ele está falando.
 
@@ -184,7 +184,7 @@ Dois controles de volume no painel, lado a lado com o botão de mudo:
 
 ### 6.1.4 Layout sempre dentro da janela
 
-Na sala, a página não rola: `body.in-room` ocupa `100dvh` e tudo se distribui em colunas flexíveis (cabeçalho, palco, barra de voz, dock, rodapé). O palco ocupa o espaço que sobra, e o player do YouTube e os cards dos participantes se ajustam a ele (os cards usam unidades de container, `cqh`). Em janelas baixas o aviso de criptografia some (abaixo de 640 px de altura) e, em palcos muito baixos, somem a dica e as barras de voz dos cards. Verificado em 1280×720, 1100×560 e 375×667 sem rolagem vertical nem horizontal. A Home pode rolar em telas muito baixas.
+Na sala, a página não rola: `body.in-room` ocupa `100dvh` e tudo se distribui em colunas flexíveis (cabeçalho, palco, dock, rodapé). O palco ocupa o espaço que sobra, e o player do YouTube e os cards dos participantes se ajustam a ele (os cards usam unidades de container, `cqh`). Em janelas baixas o aviso de criptografia some (abaixo de 640 px de altura) e, em palcos muito baixos, somem a dica e as barras de voz dos cards. Verificado em 1280×720, 1100×560 e 375×667 sem rolagem vertical nem horizontal. A Home pode rolar em telas muito baixas.
 
 ### 6.1.5 Tema claro, escuro ou automático
 
@@ -204,7 +204,7 @@ O tema fica na entrada **Tema** do menu **Mais** da chamada (mostra o modo atual
 
 - **Áudio da tela:** o menu **Compartilhar tela** ganhou a opção **Compartilhar áudio da tela** (ligada por padrão). No Chrome e no Edge é preciso marcar também o áudio na janela do navegador; o Firefox não captura áudio de tela. Há um 4º transceptor de áudio na conexão (separado do microfone) e um elemento `<audio id="screenAudio">` no receptor. Para evitar eco, prefira compartilhar uma aba em vez do sistema inteiro.
 - **Mudo:** dois botões redondos no canto inferior direito da tela. Quem assiste silencia o áudio da tela só para si; quem compartilha silencia o áudio que envia (a captura continua). O ícone vira "X" vermelho quando mudo.
-- **Tela cheia** (`F`): expande o palco, sem a barra de voz.
+- **Tela cheia** (`F`): expande o palco.
 - **Ajustar ou preencher:** alterna entre mostrar a tela inteira (sem cortar) e preencher o espaço (corta as bordas).
 
 ### 6.5 Alto-falante
@@ -293,7 +293,6 @@ Legenda: **CSS** = só CSS; **Motion** = `animate()`; **AA** = AutoAnimate; **VT
 | Interação | Resposta | Como |
 |---|---|---|
 | Alguém fala | cartão ganha borda e brilho que acompanham o volume, avatar pulsa, dois anéis se expandem e somem em ciclo e as cinco barras dançam | CSS com `--level` atualizado a ~30 fps por `voice.js` |
-| Falar na barra | miniatura ganha anel que cresce com o volume | CSS |
 | Parar de falar | efeitos desaparecem após 320 ms de silêncio | `voice.js` (histerese) |
 | Convidado entra | card sai do estado translúcido; o avatar dele dá um "pop" | CSS + Motion (`pop`) |
 | Hover no avatar (seu card) | sobe 4 px e aparece o botão de lápis com mola | CSS |
@@ -370,7 +369,7 @@ Atributos de dados de `.person`: `data-speaking` (fala), `data-present` (convida
 | `public/js/theme.js` | botão de tema: alterna automático, claro e escuro e salva a escolha |
 | `public/js/features/avatars.js` | lista dos 30 avatares, nomes e persistência da escolha |
 | `public/js/features/presence.js` | canal de dados `presence` (avatar e estado de mic, câmera e tela) |
-| `public/js/features/voice.js` | cards, barra de voz, seletor de avatar, detecção de fala e volume |
+| `public/js/features/voice.js` | cards, controles de voz, seletor de avatar, detecção de fala e volume |
 | `public/js/core/peer.js` | cria e roteia o canal `presence` |
 | demais `public/js/features/*` e `public/js/core/*` | lógica P2P, sem mudanças de comportamento |
 | `public/vendor/*` | bibliotecas empacotadas por `npm run vendor` |
