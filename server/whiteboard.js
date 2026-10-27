@@ -7,6 +7,7 @@ class Whiteboard {
     this.file = path.join(directory, "whiteboard.json");
     this.state = { revision: 0, elements: {}, versions: {} };
     this.sessions = new Map();
+    this.panelOpen = false;
     try {
       this.state = JSON.parse(fs.readFileSync(this.file, "utf8"));
     } catch (e) {
@@ -25,7 +26,7 @@ class Whiteboard {
     return { type: "board-session", token, user: session, host };
   }
   snapshot() {
-    return { type: "board-state", ...this.state };
+    return { type: "board-state", ...this.state, panelOpen: this.panelOpen };
   }
   commit(next) {
     fs.mkdirSync(path.dirname(this.file), { recursive: true });
@@ -42,6 +43,12 @@ class Whiteboard {
     if (!ws.inLobby || !ws.boardUser) return fail("Entre no lobby para acessar o quadro.");
     if (msg.room && msg.room !== "lobby") return fail("Sala não autorizada.");
     const user = ws.boardUser;
+    if (msg.type === "board-panel") {
+      if (typeof msg.open !== "boolean") return fail("Estado do painel inválido.");
+      this.panelOpen = msg.open;
+      broadcast({ type: "board-panel", open: this.panelOpen });
+      return;
+    }
     if (msg.type === "board-get") {
       reply(this.snapshot());
       return;

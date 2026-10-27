@@ -40,11 +40,12 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
             if (m.type === "board-state") resolve();
           };
         });
-        b.open();
+        b.requestPanel(true);
       }, i);
     }
     const [a, b] = pages;
-    await a.waitForFunction(() => window.b.members?.length === 2);
+    await a.waitForFunction(() => window.b.members?.length === 2 && window.b.isOpen());
+    await b.waitForFunction(() => window.b.isOpen());
     await a.evaluate(() => {
       b.tool = "rect";
       b.updateTools();
@@ -133,11 +134,13 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     const actualContexts = await Promise.all([browser.newContext(), browser.newContext()]);
     for (const context of actualContexts) await context.addInitScript(() => {
       // Uma faixa real gerada por canvas exercita o transporte WebRTC sem seletor do SO.
-      navigator.mediaDevices.getDisplayMedia = async () => {
+      navigator.mediaDevices.getDisplayMedia = async (options) => {
         const canvas = document.createElement('canvas');canvas.width=640;canvas.height=360;
         const ctx=canvas.getContext('2d');
         const draw=()=>{ctx.fillStyle='#243652';ctx.fillRect(0,0,640,360);ctx.fillStyle='white';ctx.font='30px Arial';ctx.fillText('Tela compartilhada em andamento',30,100);ctx.fillText(String(Date.now()),30,180);};
-        draw();const stream=canvas.captureStream(10);const timer=setInterval(draw,100);stream.getVideoTracks()[0].addEventListener('ended',()=>clearInterval(timer));return stream;
+        draw();const stream=canvas.captureStream(10);const timer=setInterval(draw,100);stream.getVideoTracks()[0].addEventListener('ended',()=>clearInterval(timer));
+        if(options.audio){const audio=new AudioContext();await audio.resume();const oscillator=audio.createOscillator();const gain=audio.createGain();gain.gain.value=.03;const destination=audio.createMediaStreamDestination();oscillator.connect(gain).connect(destination);oscillator.start();stream.addTrack(destination.stream.getAudioTracks()[0]);window.__screenTestAudio=audio;}
+        return stream;
       };
       // Player determinístico: o teste verifica continuidade sem depender da rede do YouTube.
       window.__playerDestroyed=0;
@@ -157,12 +160,19 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
       await p2.goto("http://127.0.0.1:3139");
       await p2.locator("#lobbyJoinBtn").click();
     }
+    for (const page of actualPages) await page.locator("#room").waitFor({state:"visible"});
+    await actualPages[0].locator("#whiteboardBtn").click();
     for (const p2 of actualPages) {
-      await p2.locator("#whiteboardBtn").click();
+      await p2.locator("#whiteboard").waitFor({state:"visible"});
       await p2.waitForFunction(() => document.querySelectorAll("#whiteboard .wb-world > g[data-id]").length >= 9);
       assert.ok((await p2.locator("#wbStatus").textContent()).includes("salvo"));
     }
     const p = actualPages[0];
+    // O convidado recupera o painel aberto após recarregar e entrar novamente.
+    await actualPages[1].reload();
+    await actualPages[1].locator("#lobbyJoinBtn").click();
+    await actualPages[1].locator("#room").waitFor({state:"visible"});
+    await actualPages[1].locator("#whiteboard").waitFor({state:"visible"});
     assert.equal(await p.locator("#lobbyWhiteboardBtn").count(), 0);
     assert.deepEqual(await p.locator("#mediaModeSwitch").evaluate((el) => [...el.children].map((c) => c.id)), ["screenSettings", "youtubeToggleBtn", "whiteboardBtn"]);
     assert.equal(await p.locator("#whiteboard").evaluate((el) => getComputedStyle(el).position), "static");
@@ -197,11 +207,27 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     await p.waitForFunction(()=>window.__testPlayer.getPlayerState()===1);
     await p.locator('#screenBtn').click();
     assert.notEqual(await p.locator('#screenBtn').getAttribute('aria-disabled'),'true');
-    await p.locator('#shareAudioCheck').uncheck();
+    await p.locator('#shareAudioCheck').check();
     await p.locator('#shareConfiguredBtn').click();
     await p.waitForFunction(()=>document.querySelector('#stagePanel').dataset.panelCount==='3');
     await actualPages[1].waitForFunction(()=>document.querySelector('.screen-area').classList.contains('active'));
     for(const page of actualPages){for(const selector of ['.screen-area','#youtubePanel','#whiteboard'])assert.ok(await page.locator(selector).isVisible(),'Três recursos visíveis nas duas sessões');}
+    const receiver=actualPages[1];
+    await receiver.locator('#screenVolume').waitFor({state:'visible'});
+    await receiver.locator('#screenVolume').fill('35');
+    assert.equal(await receiver.locator('#screenAudio').evaluate(el=>el.volume),.35);
+    assert.equal(await p.locator('#screenAudio').evaluate(el=>el.volume),1);
+    await receiver.locator('#screenAudioBtn').click();assert.equal(await receiver.locator('#screenAudio').evaluate(el=>el.muted),true);
+    await receiver.locator('#screenAudioBtn').click();assert.equal(await receiver.locator('#screenAudio').evaluate(el=>el.muted),false);
+    await receiver.waitForFunction(()=>document.querySelector('#screenAudio').srcObject?.getAudioTracks().some(t=>!t.muted&&t.readyState==='live'));
+    const signal=await receiver.evaluate(async()=>{
+      const context=new AudioContext();await context.resume();const source=context.createMediaStreamSource(document.querySelector('#screenAudio').srcObject);const analyser=context.createAnalyser();source.connect(analyser);const samples=new Float32Array(analyser.fftSize);
+      const signal=await new Promise(resolve=>{let attempts=0;const sample=()=>{analyser.getFloatTimeDomainData(samples);if(samples.some(n=>Math.abs(n)>.001))resolve(true);else if(++attempts>60)resolve(false);else setTimeout(sample,50);};sample();});source.disconnect();await context.close();return signal;
+    });assert.ok(signal,'Áudio real recebido no canal da tela');
+    await receiver.evaluate(()=>{const audio=document.querySelector('#screenAudio');window.__originalScreenPlay=audio.play;audio.play=()=>Promise.reject(new DOMException('Bloqueado para teste','NotAllowedError'));});
+    await receiver.locator('#screenVolume').fill('40');await receiver.locator('#screenAudioPlayBtn').waitFor({state:'visible'});
+    await receiver.evaluate(()=>{document.querySelector('#screenAudio').play=window.__originalScreenPlay;});
+    await receiver.locator('#screenAudioPlayBtn').click();await receiver.locator('#screenAudioPlayBtn').waitFor({state:'hidden'});
     const alive=()=>p.evaluate(()=>document.querySelector('#localScreenVideo').srcObject.getVideoTracks()[0].readyState==='live'&&window.__testPlayer.getPlayerState()===1&&window.__playerDestroyed===0);
     assert.ok(await alive());
     await p.waitForFunction(()=>document.querySelector('#youtubePanel').classList.contains('stage-compact'));
@@ -216,10 +242,12 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     assert.ok(await alive());
     await p.locator('[data-stage-expand="youtube"]').click();
     await p.locator('#whiteboardBtn').click();
-    assert.equal(await p.locator('#whiteboard').isVisible(),false);
+    await p.locator('#whiteboard').waitFor({state:'hidden'});
+    await actualPages[1].locator('#whiteboard').waitFor({state:'hidden'});
     assert.ok(await alive());
     await p.locator('#whiteboardBtn').click();
-    assert.equal(await p.locator('#stagePanel').getAttribute('data-panel-count'),'3');
+    await p.waitForFunction(()=>document.querySelector('#stagePanel').dataset.panelCount==='3');
+    await actualPages[1].locator('#whiteboard').waitFor({state:'visible'});
     assert.ok(await alive());
     await p.locator('[data-stage-focus="youtube"]').click();
     assert.ok(await p.locator('#youtubePanel').evaluate(el=>el.classList.contains('stage-primary')));

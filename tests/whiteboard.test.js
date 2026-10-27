@@ -52,3 +52,32 @@ test("quadro: dois participantes, persistência, versões, permissões e isolame
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('abertura do quadro é compartilhada e recuperada no snapshot, com acesso validado', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tupi-board-panel-'));
+  try {
+    const board = new Whiteboard(dir);
+    const host = { inLobby: true }, guest = { inLobby: true }, outsider = {};
+    board.join(host, null, 'Ana', true);
+    board.join(guest, null, 'Beto', false);
+    guest.boardUser.edit = false;
+    const members = new Set([host, guest]), messages = [];
+    const send = (ws, message) => messages.push({ ws, ...message });
+    assert.equal(board.snapshot().panelOpen, false);
+    board.handle(host, { type: 'board-panel', open: true }, members, send);
+    assert.equal(board.snapshot().panelOpen, true);
+    assert.equal(messages.filter(m => m.type === 'board-panel' && m.open).length, 2);
+    const reconnect = { inLobby: true };
+    board.join(reconnect, null, 'Reentrada', false);
+    board.handle(reconnect, { type: 'board-get' }, members, send);
+    assert.equal(messages.at(-1).panelOpen, true);
+    for (const [ws, message] of [[outsider, { type: 'board-panel', open: false }], [host, { type: 'board-panel', open: false, room: 'outra' }], [host, { type: 'board-panel', open: 'false' }]]) {
+      board.handle(ws, message, members, send);
+      assert.equal(messages.at(-1).type, 'board-error');
+      assert.equal(board.snapshot().panelOpen, true);
+    }
+    board.handle(guest, { type: 'board-panel', open: false }, members, send);
+    assert.equal(board.snapshot().panelOpen, false);
+    assert.equal(guest.boardUser.edit, false);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});

@@ -36,11 +36,17 @@ export function createUI() {
     $('status').closest('.status-chip').dataset.tone = tone;
   }
   const getRemoteFlags = () => remoteFlags;
+  async function playScreenAudio() {
+    const element = $('screenAudio');
+    if (!element.srcObject) return;
+    try { await element.play(); $('screenAudioPlayBtn').classList.add('hidden'); }
+    catch { $('screenAudioPlayBtn').classList.remove('hidden'); }
+  }
   function setScreenAudio(stream) {
     const element = $('screenAudio');
-    element.srcObject = stream;
-    // Se o navegador bloquear o autoplay, tenta de novo no próximo toque ou clique.
-    if (stream) element.play().catch(() => { document.addEventListener('pointerdown', () => { element.play().catch(() => {}); }, { once: true }); });
+    if (element.srcObject !== stream) element.srcObject = stream;
+    $('screenAudioPlayBtn').classList.add('hidden');
+    if (stream) void playScreenAudio();
   }
 
   const transcript = [];
@@ -296,5 +302,5 @@ export function createUI() {
     setAudioPlaybackBlocked(false);
   }
 
-  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setConnectionQuality, getTranscript, setCodecCapabilities, closeShareSettings, clearRoomView };
+  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, playScreenAudio, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setConnectionQuality, getTranscript, setCodecCapabilities, closeShareSettings, clearRoomView };
 }

@@ -180,6 +180,7 @@ function leave(ws) {
   if (!ws.inLobby) return;
   ws.inLobby = false;
   lobby.delete(ws);
+  if (!lobby.size) board.panelOpen = false;
   if (ws.boardHost) { const next = [...lobby][0]; if (next) next.boardHost = true; }
   for (const member of lobby) send(member, { type: 'board-members', members: [...lobby].map(p => ({ ...p.boardUser, host: p.boardHost })) });
   for (const other of lobby) send(other, { type: 'peer-left' });

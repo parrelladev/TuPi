@@ -71,12 +71,13 @@ export class PeerSession {
     if (this.pc !== pc) return;
     const { track, transceiver } = event;
     // No receptor o evento chega antes de os transceptores serem guardados: o 2º áudio (depois do microfone) é o da tela.
-    const isScreenAudio = track.kind === 'audio' && (this.screenAudioTransceiver
-      ? transceiver.mid === this.screenAudioTransceiver.mid
-      : this.remoteAudioStream.getTracks().length > 0 && !this.remoteAudioStream.getTracks().includes(track));
+    const audioTransceivers = pc.getTransceivers().filter(t => t.receiver.track?.kind === 'audio');
+    const isScreenAudio = track.kind === 'audio' &&
+      (transceiver === this.screenAudioTransceiver || audioTransceivers.indexOf(transceiver) === 1);
     if (isScreenAudio) {
       if (!this.remoteScreenAudioStream.getTracks().includes(track)) this.remoteScreenAudioStream.addTrack(track);
       this.ui.setScreenAudio(this.remoteScreenAudioStream);
+      track.onunmute = () => { void this.ui.playScreenAudio(); };
       return;
     }
     if (track.kind === 'audio') {

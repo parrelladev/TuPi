@@ -782,3 +782,7 @@ img.logo-dark { display: none; }
 
 /* O cabeçalho fica acima do conteúdo para o popover de conexão não ser coberto. */
 .room-header { position: relative; z-index: 30; }
+.screen-controls { max-width: calc(100% - 20px); flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 5px; }
+.screen-volume { display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; height: 38px; border-radius: 12px; color: #fff; background: #111116b8; backdrop-filter: blur(8px); font-size: 10px; }
+.screen-volume input { width: clamp(50px, 8vw, 100px); padding: 0; accent-color: var(--pink); }
+.screen-volume output { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }

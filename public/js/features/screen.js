@@ -7,16 +7,26 @@ export class ScreenControls {
     this.fit = false;
     this.remoteMuted = false;
     this.sharedMuted = false;
+    this.remoteVolume = 100;
     const $ = ui.$;
     this.fitBtn = $('screenFitBtn');
     this.fullBtn = $('screenFullBtn');
     this.audioBtn = $('screenAudioBtn');
     this.shareBtn = $('shareAudioBtn');
 
+    $('screenVolume').addEventListener('input', event => {
+      this.remoteVolume = Number(event.target.value);
+      if (this.remoteVolume > 0) this.remoteMuted = false;
+      this.render();
+      if (this.remoteVolume > 0) void ui.playScreenAudio();
+    });
+    $('screenAudioPlayBtn').addEventListener('click', () => { void ui.playScreenAudio(); });
     this.fitBtn.addEventListener('click', () => this.toggleFit());
     this.fullBtn.addEventListener('click', () => this.toggleFullscreen());
     this.audioBtn.addEventListener('click', () => {
-      this.remoteMuted = !this.remoteMuted;
+      this.remoteMuted = !(this.remoteMuted || this.remoteVolume === 0);
+      if (!this.remoteMuted && this.remoteVolume === 0) this.remoteVolume = 100;
+      if (!this.remoteMuted) void ui.playScreenAudio();
       this.render();
     });
     this.shareBtn.addEventListener('click', () => {
@@ -61,7 +71,11 @@ export class ScreenControls {
     this.shareBtn.classList.toggle('hidden', !sharing);
     this.audioBtn.classList.toggle('hidden', !watching);
     this.setLevel(this.shareBtn, this.sharedMuted, 'o áudio que você compartilha');
-    this.setLevel(this.audioBtn, this.remoteMuted, 'o áudio da tela');
+    this.ui.$('screenVolumeControl').classList.toggle('hidden', !watching);
+    this.ui.$('screenVolume').value = String(this.remoteVolume);
+    this.ui.$('screenVolumeText').textContent = `${this.remoteVolume}%`;
+    this.ui.$('screenAudio').volume = this.remoteVolume / 100;
+    this.setLevel(this.audioBtn, this.remoteMuted || this.remoteVolume === 0, 'o áudio da tela');
     this.ui.$('screenAudio').muted = this.remoteMuted;
 
     this.fitBtn.setAttribute('aria-pressed', String(this.fit));

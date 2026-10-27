@@ -160,7 +160,7 @@ O selo sobre a tela mostra **com áudio** ou **sem áudio** (nos dois lados). Se
 
 ## Quadro Branco colaborativo
 
-Na conversa, escolha **Quadro Branco** no seletor ao lado de **Compartilhar tela** e **YouTube**. O quadro ocupa um painel independente no palco. YouTube e tela compartilhada podem permanecer abertos ao mesmo tempo; cada botão destaca seu próprio estado ativo. Não há acesso pelo lobby nem janela flutuante. Cada pessoa escolhe seu modo de visualização; o conteúdo do quadro é compartilhado. O quadro funciona sem câmera, microfone ou conexão WebRTC, usando o WebSocket existente.
+Na conversa, escolha **Quadro Branco** no seletor ao lado de **Compartilhar tela** e **YouTube**. O quadro ocupa um painel independente no palco. YouTube e tela compartilhada podem permanecer abertos ao mesmo tempo; cada botão destaca seu próprio estado ativo. Não há acesso pelo lobby nem janela flutuante. Abrir ou fechar o quadro é compartilhado entre os participantes, assim como seu conteúdo. Quem entra ou reconecta recebe o estado atual do painel. O quadro funciona sem câmera, microfone ou conexão WebRTC, usando o WebSocket existente.
 
 Ferramentas: seleção, movimento e redimensionamento pela alça; texto (duplo clique para editar), lápis, linha, seta, retângulo, círculo, notas coloridas, carimbos, laser temporário, borracha, exclusão, limpeza confirmada, histórico individual, zoom e ajuste à tela. As ferramentas ficam na lateral; a barra de propriedades mostra apenas as opções relevantes para a ferramenta ou seleção. Em janelas de menor altura, a lateral usa duas colunas. Desfazer/refazer ficam no cabeçalho, navegação no canto inferior, e exportação, autoria, permissões e limpeza no menu do quadro. O botão de teclado abre **Atalhos do quadro**, usando o mesmo visual dos atalhos globais, em uma lista separada. As opções de estilo podem ser aplicadas ao selecionado. Arraste com a ferramenta Mover ou Espaço; use a roda para zoom. Com foco na área de desenho, V/P/T escolhem seleção/lápis/texto; Delete exclui; Ctrl/Cmd Z desfaz; Ctrl/Cmd Shift Z refaz. Atalhos ficam suspensos nos campos de digitação. Cursores desaparecem após inatividade; autoria pode ser exibida pelo controle Autoria.
 
@@ -177,10 +177,19 @@ Validação: `npm run check` e `npm test`. O teste adicional `npm run test:brows
 
 ### Composição de tela, YouTube e quadro
 
-Os três recursos podem funcionar simultaneamente. Abrir o quadro ou o YouTube preserva a transmissão de tela e os outros painéis; fechar um recurso afeta apenas ele. O YouTube continua com abertura e fechamento compartilhados entre os participantes. Destaque, proporções e ampliação são escolhas locais de cada pessoa.
+Os três recursos podem funcionar simultaneamente. Abrir o quadro ou o YouTube preserva a transmissão de tela e os outros painéis; fechar um recurso afeta apenas ele. YouTube e quadro branco têm abertura e fechamento compartilhados entre os participantes; quando o lobby fica vazio, o painel do quadro volta a iniciar fechado, preservando o conteúdo. Destaque, proporções e ampliação são escolhas locais de cada pessoa.
 
 Com um painel, o palco é ocupado por inteiro; com dois, o espaço é dividido; com três, o painel em destaque fica maior e os outros dois ao lado. Use **Dar destaque** no cabeçalho para escolher o principal e **Ampliar painel** para trabalhar temporariamente em um deles, preservando os demais em execução. Em desktop, o divisor entre as colunas pode ser arrastado ou ajustado com as setas do teclado (Home/End definem os limites). Em telas estreitas, a composição fica empilhada e o painel principal recebe mais altura.
 
 Quando o YouTube fica pequeno, o botão **Controles do YouTube** reúne link, reprodução, posição, volume e sincronização em um diálogo próprio; o vídeo permanece no painel. Ao ampliar, esses controles voltam ao painel. A composição é implementada em `public/js/features/stage-layout.js` e `public/css/stage-layout.css`.
 
 `npm run test:browser` também valida os três painéis em duas sessões, continuidade da faixa WebRTC gerada por canvas, player YouTube simulado (sem dependência de acesso externo), fechamento independente, controles compactos, destaque, ampliação, divisor e tamanhos desktop/tablet/celular. O teste não substitui a validação de reprodução real do YouTube e captura do sistema operacional.
+
+
+### Volume e áudio da tela
+
+Quem recebe pode ajustar o volume entre 0% e 100% ou silenciar somente a tela recebida, sem alterar o microfone, o YouTube ou o volume do outro participante. Se o navegador bloquear a reprodução automática, aparece **Ativar áudio da tela recebida** nos controles da tela.
+
+Receber áudio via WebRTC e capturar áudio da tela são capacidades diferentes. O Firefox pode receber áudio enviado pelo outro participante, mas não oferece captura de áudio por `getDisplayMedia` atualmente. Se a captura vier sem faixa de áudio, o TuPi apresenta uma orientação a quem compartilha; é necessário usar uma captura compatível com som, como uma aba no Chrome/Edge com áudio autorizado. O aplicativo não consegue reconstruir áudio que o navegador não capturou. Veja a [compatibilidade documentada pela MDN](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getDisplayMedia#browser_compatibility).
+
+O teste de navegador envia um sinal de áudio sintético por WebRTC, verifica amostras recebidas, volume individual, mudo e recuperação após falha simulada de autoplay. O teste automatizado usa Edge; captura real do sistema e reprodução em Firefox devem ser verificadas manualmente.

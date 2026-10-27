@@ -34,11 +34,19 @@ class Whiteboard {
   isOpen() {
     return !this.panel.classList.contains("hidden");
   }
-  open() {
+  requestPanel(open) {
+    if (!this.online) return;
+    this.send({ type: "board-panel", open });
+  }
+  setPanelOpen(open) {
+    if (open === this.isOpen()) return;
+    if (open) this.open(false); else this.close();
+  }
+  open(focus = true) {
     this.panel.classList.remove("hidden");
     this.onModeChange?.(true);
     this.send({ type: "board-get" });
-    this.svg.focus();
+    if (focus) this.svg.focus();
     this.render();
   }
   close() {
@@ -56,6 +64,7 @@ class Whiteboard {
     this.close();
   }
   handle(m) {
+    if (m.type === "board-panel") { this.sharedPanelOpen = m.open; this.setPanelOpen(m.open); }
     if (m.type === "board-session") {
       sessionStorage.setItem("tupi-board-token", m.token);
       this.user = m.user;
@@ -82,6 +91,7 @@ class Whiteboard {
       this.status(this.user?.edit || this.host ? "Conectado · salvo" : "Somente visualização");
     }
     if (m.type === "board-state") {
+      if (typeof m.panelOpen === "boolean") { this.sharedPanelOpen = m.panelOpen; this.setPanelOpen(m.panelOpen); }
       this.elements = m.elements;
       this.versions = m.versions;
       this.revision = m.revision;

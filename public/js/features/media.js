@@ -129,6 +129,7 @@ export class Media {
   // Explica por que a captura veio sem áudio, conforme o que foi escolhido na janela do navegador.
   noAudioReason(track, wantAudio) {
     if (!wantAudio) return 'a opção "Compartilhar áudio da tela" está desmarcada';
+    if (/Firefox\//i.test(navigator.userAgent)) return "o Firefox não oferece captura do som da tela. Para enviar esse áudio, compartilhe pelo Chrome ou Edge com a opção de áudio marcada; quem recebe pode continuar no Firefox";
     const surface = track.getSettings?.().displaySurface;
     const mac = /Mac/i.test(navigator.userAgent);
     if (surface === 'window') return 'janelas não têm áudio; compartilhe uma aba ou a tela inteira';

@@ -39,7 +39,7 @@ const rtcConfig = { iceServers: [] };
 // Estado do lobby único: fora (signaling nulo), no lobby sozinho, ou em chamada (inCall).
 let signaling = null;
 const whiteboard = new Whiteboard(message => signaling?.send(message));
-ui.$('whiteboardBtn').addEventListener('click', () => { if (!inCall) return; ui.closeShareSettings(); if (whiteboard.isOpen()) whiteboard.close(); else whiteboard.open(); });
+ui.$('whiteboardBtn').addEventListener('click', () => { if (!inCall) return; ui.closeShareSettings(); whiteboard.requestPanel(!whiteboard.isOpen()); });
 let inCall = false;
 let leaving = false;
 let lobbyCount = 0;
@@ -139,6 +139,7 @@ async function startCall() {
     chat.markRead();
     ui.setChatOpen(false);
   });
+  whiteboard.setPanelOpen(whiteboard.sharedPanelOpen === true);
   roomIn(ui.$('room'));
   ui.status('Entrando na chamada...');
   connectionStats.start();
