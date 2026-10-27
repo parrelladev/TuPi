@@ -342,6 +342,26 @@ document.addEventListener('keydown', event => {
     }
   }
 });
+const linkDialog = ui.$('linkDialog');
+let pendingLink = '';
+ui.$('messages').addEventListener('click', event => {
+  const link = event.target instanceof Element ? event.target.closest('a.chat-link') : null;
+  if (!link) return;
+  event.preventDefault();
+  const url = new URL(link.href);
+  pendingLink = url.href;
+  ui.$('linkHost').textContent = url.hostname;
+  ui.$('linkUrl').textContent = url.href;
+  linkDialog.showModal();
+  ui.$('linkCancel').focus();
+});
+ui.$('linkCancel').addEventListener('click', () => linkDialog.close());
+ui.$('linkOpen').addEventListener('click', () => {
+  linkDialog.close();
+  if (pendingLink) window.open(pendingLink, '_blank', 'noopener,noreferrer');
+  pendingLink = '';
+});
+linkDialog.addEventListener('click', event => { if (event.target === linkDialog) linkDialog.close(); });
 const shortcutsDialog = ui.$('shortcutsDialog');
 ui.$('shortcutsMenuBtn').addEventListener('click', () => {
   deviceSettings.open = false;

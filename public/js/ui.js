@@ -122,13 +122,35 @@ export function createUI() {
     button.classList.toggle('enabled', enabled);
   }
 
+  // Transforma http(s) em links (href só definido após validar com URL); o clique é confirmado em app.js.
+  function linkify(text) {
+    const nodes = [];
+    let last = 0;
+    for (const match of text.matchAll(/https?:\/\/[^\s<>"]+/gi)) {
+      const raw = match[0].replace(/[.,;:!?)\]}'"]+$/, '');
+      let url;
+      try { url = new URL(raw); } catch { continue; }
+      if (!['http:', 'https:'].includes(url.protocol)) continue;
+      if (match.index > last) nodes.push(text.slice(last, match.index));
+      const link = document.createElement('a');
+      link.className = 'chat-link';
+      link.href = url.href;
+      link.rel = 'noopener noreferrer';
+      link.append(raw, Object.assign(document.createElement('i'), { className: 'ph ph-arrow-up-right' }));
+      nodes.push(link);
+      last = match.index + raw.length;
+    }
+    if (last < text.length) nodes.push(text.slice(last));
+    return nodes;
+  }
+
   function addMessage(who, text, mine = false) {
     const element = document.createElement('div');
     element.className = 'message' + (mine ? ' mine' : '');
     const label = document.createElement('small');
     label.textContent = who;
     const body = document.createElement('div');
-    body.textContent = text;
+    body.append(...linkify(text));
     element.append(label, body);
     $('messages').append(element);
     $('messages').scrollTop = $('messages').scrollHeight;

@@ -199,6 +199,7 @@ O tema fica na entrada **Tema** do menu **Mais** da chamada (mostra o modo atual
 - **Chegada no lobby:** quando a outra pessoa chega e a chamada começa, toca um arpejo de 4 notas (o som respeita o botão **Som** do chat), o título da aba pisca "● A chamada começou" e, se o usuário permitiu, aparece uma notificação do navegador (a permissão é pedida ao clicar em **Participar agora**). Título e notificação só aparecem com a aba em segundo plano.
 - **Mensagem ou arquivo recebido:** mensagem toca 2 notas e pedido de arquivo toca 3 notas diferentes. Nos dois casos o **chat abre sozinho** (no celular, o painel sobe) e a aba em segundo plano também pisca e notifica.
 - **Atalhos de teclado:** `M` liga ou desliga o microfone, `V` a câmera, `C` abre ou fecha o chat e `F` alterna tela cheia. Ficam desativados ao digitar em campos e com Ctrl, Alt ou Cmd. As dicas aparecem nos botões; **Mais → Atalhos** abre um popup com a lista (fecha com Esc, X ou clique fora).
+- **Links no chat:** URLs http(s) viram links com seta animada; o clique abre um popup "Abrir link externo?" com domínio e endereço completo, e só abre em nova aba (`noopener`) após confirmar.
 
 ### 6.4 Tela compartilhada: áudio, tela cheia e ajuste
 

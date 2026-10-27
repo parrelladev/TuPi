@@ -708,3 +708,12 @@ kbd { display: inline-block; min-width: 18px; padding: 0 5px; border: 1px solid 
 .shortcuts-list dd { margin: 0; font-size: 13px; }
 .shortcuts-list kbd { font-size: 12px; }
 .shortcuts-note { margin: 12px 0 0; color: var(--muted); font-size: 11px; }
+.chat-link { display: inline; color: inherit; font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; cursor: pointer; }
+.chat-link .ph { display: inline-block; margin-left: 2px; font-size: 1em; vertical-align: -1px; animation: link-arrow 1.6s var(--out, ease-out) infinite; }
+.chat-link:hover .ph, .chat-link:focus-visible .ph { animation-duration: .6s; }
+@keyframes link-arrow { 0%, 100% { translate: 0 0; } 50% { translate: 2px -2px; } }
+@media (prefers-reduced-motion: reduce) { .chat-link .ph { animation: none; } }
+.link-text { margin: 0 0 10px; font-size: 13px; color: var(--ink-2); }
+.link-host { margin: 0; font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.link-url { margin: 4px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); color: var(--muted); font-size: 11px; overflow-wrap: anywhere; max-height: 84px; overflow: auto; }
+.link-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }

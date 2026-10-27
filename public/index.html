@@ -163,6 +163,13 @@
       </dl>
       <p class="shortcuts-note">Os atalhos não funcionam enquanto você digita em um campo.</p>
     </dialog>
+    <dialog id="linkDialog" class="shortcuts-dialog link-dialog" aria-labelledby="linkTitle">
+      <div class="shortcuts-head"><h2 id="linkTitle"><i class="ph ph-arrow-square-out" aria-hidden="true"></i>Abrir link externo?</h2></div>
+      <p class="link-text">Este link leva para fora do TuPi. Abra apenas se você confia em quem enviou.</p>
+      <p class="link-host" id="linkHost"></p>
+      <p class="link-url" id="linkUrl"></p>
+      <div class="link-actions"><button id="linkCancel" class="btn btn-soft" type="button">Cancelar</button><button id="linkOpen" class="btn btn-primary" type="button"><i class="ph ph-arrow-up-right" aria-hidden="true"></i>Abrir link</button></div>
+    </dialog>
     <div id="toast" class="toast fx hidden" role="alert"><span id="toastText"></span><i id="toastBar" class="toast-bar" aria-hidden="true"></i></div>
   </main>
   <footer class="site-footer">

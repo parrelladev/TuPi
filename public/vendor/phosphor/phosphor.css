@@ -19,6 +19,8 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+.ph.ph-arrow-square-out:before{content:"\e5de"}
+.ph.ph-arrow-up-right:before{content:"\e092"}
 .ph.ph-arrows-clockwise:before{content:"\e094"}
 .ph.ph-arrows-counter-clockwise:before{content:"\e096"}
 .ph.ph-bell-ringing:before{content:"\e5e8"}
@@ -79,6 +81,8 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+.ph-fill.ph-arrow-square-out:before{content:"\e5de"}
+.ph-fill.ph-arrow-up-right:before{content:"\e092"}
 .ph-fill.ph-arrows-clockwise:before{content:"\e094"}
 .ph-fill.ph-arrows-counter-clockwise:before{content:"\e096"}
 .ph-fill.ph-bell-ringing:before{content:"\e5e8"}

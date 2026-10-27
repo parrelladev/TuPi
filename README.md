@@ -126,5 +126,6 @@ A interface usa [Phosphor Icons](https://phosphoricons.com/) (licença MIT), emp
 ## Atalhos e avisos
 
 - Teclado: `M` microfone, `V` câmera, `C` chat, `F` tela cheia. A lista fica em **Mais > Atalhos**.
+- Links no chat viram links clicáveis (seta animada); antes de abrir, um popup pede confirmação e mostra o domínio.
 - Com a aba em segundo plano, o TuPi pisca o título e (se permitido) notifica quando a outra pessoa chega, chega uma mensagem ou um pedido de arquivo; o chat abre sozinho ao receber mensagem ou arquivo.
 - Ao compartilhar a tela, marque **Compartilhar áudio da tela** (Chrome e Edge) para enviar o som; quem assiste e quem compartilha têm um botão de mudo. Em **Mais > Dispositivos e áudio** dá para escolher o alto-falante.
