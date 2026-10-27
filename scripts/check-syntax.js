@@ -4,12 +4,13 @@ const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const commonJsFiles = ['server.js'];
+const commonJsFiles = ['server.js', 'public/sw.js', 'public/js/theme-boot.js'];
 const moduleFiles = [
-  'public/app.js', 'public/js/ui.js', 'public/js/core/signaling.js',
+  'public/app.js', 'public/js/ui.js', 'public/js/fx.js', 'public/js/theme.js', 'public/js/core/signaling.js',
   'public/js/core/peer.js', 'public/js/core/quality.js', 'public/js/core/stats.js',
   'public/js/features/chat.js', 'public/js/features/media.js',
-  'public/js/features/files.js', 'public/js/features/youtube.js'
+  'public/js/features/files.js', 'public/js/features/stream-save.js', 'public/js/features/youtube.js',
+  'public/js/features/avatars.js', 'public/js/features/presence.js', 'public/js/features/voice.js', 'public/js/features/speaker.js', 'public/js/features/notifier.js', 'public/js/features/screen.js'
 ];
 
 function check(file, module = false) {

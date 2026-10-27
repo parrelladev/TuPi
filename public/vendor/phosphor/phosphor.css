@@ -1,0 +1,131 @@
+/* Phosphor Icons (MIT) — gerado por scripts/build-vendor.js */
+@font-face{font-family:"Phosphor";src:url("./Phosphor.woff2") format("woff2");font-weight:normal;font-style:normal;font-display:block}
+.ph {
+  font-family: "Phosphor" !important;
+  speak: never;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  letter-spacing: 0;
+  -webkit-font-feature-settings: "liga";
+  -moz-font-feature-settings: "liga=1";
+  -moz-font-feature-settings: "liga";
+  -ms-font-feature-settings: "liga" 1;
+  font-feature-settings: "liga";
+  -webkit-font-variant-ligatures: discretionary-ligatures;
+  font-variant-ligatures: discretionary-ligatures;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.ph.ph-arrow-square-out:before{content:"\e5de"}
+.ph.ph-arrow-up-right:before{content:"\e092"}
+.ph.ph-arrows-clockwise:before{content:"\e094"}
+.ph.ph-arrows-counter-clockwise:before{content:"\e096"}
+.ph.ph-bell-ringing:before{content:"\e5e8"}
+.ph.ph-bell-slash:before{content:"\e0d4"}
+.ph.ph-caret-right:before{content:"\e13a"}
+.ph.ph-chat-circle-dots:before{content:"\e16c"}
+.ph.ph-check:before{content:"\e182"}
+.ph.ph-check-circle:before{content:"\e184"}
+.ph.ph-circle-half:before{content:"\e18c"}
+.ph.ph-copy:before{content:"\e1ca"}
+.ph.ph-corners-in:before{content:"\e1ce"}
+.ph.ph-corners-out:before{content:"\e1d0"}
+.ph.ph-crop:before{content:"\e1d4"}
+.ph.ph-dots-three-outline:before{content:"\e204"}
+.ph.ph-download-simple:before{content:"\e20c"}
+.ph.ph-keyboard:before{content:"\e2d8"}
+.ph.ph-lock-simple:before{content:"\e308"}
+.ph.ph-microphone:before{content:"\e326"}
+.ph.ph-microphone-slash:before{content:"\e328"}
+.ph.ph-monitor-arrow-up:before{content:"\e58a"}
+.ph.ph-moon:before{content:"\e330"}
+.ph.ph-paper-plane-tilt:before{content:"\e398"}
+.ph.ph-paperclip:before{content:"\e39a"}
+.ph.ph-pause:before{content:"\e39e"}
+.ph.ph-pencil-simple:before{content:"\e3b4"}
+.ph.ph-phone-disconnect:before{content:"\e3bc"}
+.ph.ph-play:before{content:"\e3d0"}
+.ph.ph-play-circle:before{content:"\e3d2"}
+.ph.ph-power:before{content:"\e3da"}
+.ph.ph-shield-check:before{content:"\e40c"}
+.ph.ph-sign-in:before{content:"\e428"}
+.ph.ph-sign-out:before{content:"\e42a"}
+.ph.ph-sliders-horizontal:before{content:"\e434"}
+.ph.ph-speaker-high:before{content:"\e44a"}
+.ph.ph-speaker-low:before{content:"\e44c"}
+.ph.ph-speaker-x:before{content:"\e45c"}
+.ph.ph-sun:before{content:"\e472"}
+.ph.ph-users:before{content:"\e4d6"}
+.ph.ph-video-camera:before{content:"\e4da"}
+.ph.ph-video-camera-slash:before{content:"\e4dc"}
+.ph.ph-x:before{content:"\e4f6"}
+.ph.ph-x-circle:before{content:"\e4f8"}
+.ph.ph-youtube-logo:before{content:"\e4fc"}
+@font-face{font-family:"Phosphor-Fill";src:url("./Phosphor-Fill.woff2") format("woff2");font-weight:normal;font-style:normal;font-display:block}
+.ph-fill {
+  font-family: "Phosphor-Fill" !important;
+  speak: never;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  letter-spacing: 0;
+  -webkit-font-feature-settings: "liga";
+  -moz-font-feature-settings: "liga=1";
+  -moz-font-feature-settings: "liga";
+  -ms-font-feature-settings: "liga" 1;
+  font-feature-settings: "liga";
+  -webkit-font-variant-ligatures: discretionary-ligatures;
+  font-variant-ligatures: discretionary-ligatures;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.ph-fill.ph-arrow-square-out:before{content:"\e5de"}
+.ph-fill.ph-arrow-up-right:before{content:"\e092"}
+.ph-fill.ph-arrows-clockwise:before{content:"\e094"}
+.ph-fill.ph-arrows-counter-clockwise:before{content:"\e096"}
+.ph-fill.ph-bell-ringing:before{content:"\e5e8"}
+.ph-fill.ph-bell-slash:before{content:"\e0d4"}
+.ph-fill.ph-caret-right:before{content:"\e13a"}
+.ph-fill.ph-chat-circle-dots:before{content:"\e16c"}
+.ph-fill.ph-check:before{content:"\e182"}
+.ph-fill.ph-check-circle:before{content:"\e184"}
+.ph-fill.ph-circle-half:before{content:"\e18c"}
+.ph-fill.ph-copy:before{content:"\e1ca"}
+.ph-fill.ph-corners-in:before{content:"\e1ce"}
+.ph-fill.ph-corners-out:before{content:"\e1d0"}
+.ph-fill.ph-crop:before{content:"\e1d4"}
+.ph-fill.ph-dots-three-outline:before{content:"\e204"}
+.ph-fill.ph-download-simple:before{content:"\e20c"}
+.ph-fill.ph-keyboard:before{content:"\e2d8"}
+.ph-fill.ph-lock-simple:before{content:"\e308"}
+.ph-fill.ph-microphone:before{content:"\e326"}
+.ph-fill.ph-microphone-slash:before{content:"\e328"}
+.ph-fill.ph-monitor-arrow-up:before{content:"\e58a"}
+.ph-fill.ph-moon:before{content:"\e330"}
+.ph-fill.ph-paper-plane-tilt:before{content:"\e398"}
+.ph-fill.ph-paperclip:before{content:"\e39a"}
+.ph-fill.ph-pause:before{content:"\e39e"}
+.ph-fill.ph-pencil-simple:before{content:"\e3b4"}
+.ph-fill.ph-phone-disconnect:before{content:"\e3bc"}
+.ph-fill.ph-play:before{content:"\e3d0"}
+.ph-fill.ph-play-circle:before{content:"\e3d2"}
+.ph-fill.ph-power:before{content:"\e3da"}
+.ph-fill.ph-shield-check:before{content:"\e40c"}
+.ph-fill.ph-sign-in:before{content:"\e428"}
+.ph-fill.ph-sign-out:before{content:"\e42a"}
+.ph-fill.ph-sliders-horizontal:before{content:"\e434"}
+.ph-fill.ph-speaker-high:before{content:"\e44a"}
+.ph-fill.ph-speaker-low:before{content:"\e44c"}
+.ph-fill.ph-speaker-x:before{content:"\e45c"}
+.ph-fill.ph-sun:before{content:"\e472"}
+.ph-fill.ph-users:before{content:"\e4d6"}
+.ph-fill.ph-video-camera:before{content:"\e4da"}
+.ph-fill.ph-video-camera-slash:before{content:"\e4dc"}
+.ph-fill.ph-x:before{content:"\e4f6"}
+.ph-fill.ph-x-circle:before{content:"\e4f8"}
+.ph-fill.ph-youtube-logo:before{content:"\e4fc"}

@@ -1,3 +1,5 @@
+const DEFAULT_VIDEO_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+
 const VIDEO_ID = /^[a-zA-Z0-9_-]{11}$/;
 
 function parseVideoId(value) {
@@ -29,13 +31,69 @@ export class YouTubeTogether {
     this.clockOffset = 0;
     this.clockTimer = null;
     this.tolerance = 1;
+    this.pendingState = null;
+    this.onModeChange = null;
+    this.sharedVolume = 100;
+    this.volumeTimer = null;
+    const saved = this.loadVolume();
+    this.myVolume = saved.volume;
+    this.myMuted = saved.muted;
     this.bindUI();
+    this.renderVolume();
   }
+
+  loadVolume() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('tupi-yt-volume') || '{}');
+      return { volume: Number.isFinite(saved.volume) ? Math.min(100, Math.max(0, saved.volume)) : 100, muted: saved.muted === true };
+    } catch { return { volume: 100, muted: false }; }
+  }
+
+  saveVolume() { try { localStorage.setItem('tupi-yt-volume', JSON.stringify({ volume: this.myVolume, muted: this.myMuted })); } catch { /* só nesta sessão */ } }
+
+  // Volume efetivo = volume compartilhado x volume pessoal. O compartilhado vai para a outra pessoa; o pessoal fica só aqui.
+  effectiveVolume() { return this.myMuted ? 0 : Math.round(this.sharedVolume * this.myVolume / 100); }
+
+  renderVolume() {
+    const shared = this.ui.$('ytSharedVolume');
+    const mine = this.ui.$('ytMyVolume');
+    shared.value = String(this.sharedVolume);
+    mine.value = String(this.myVolume);
+    shared.style.setProperty('--fill', `${this.sharedVolume}%`);
+    mine.style.setProperty('--fill', `${this.myMuted ? 0 : this.myVolume}%`);
+    this.ui.$('ytSharedText').textContent = `${this.sharedVolume}%`;
+    this.ui.$('ytMyText').textContent = this.myMuted ? 'Mudo' : `${this.myVolume}%`;
+    const button = this.ui.$('ytMuteBtn');
+    button.setAttribute('aria-pressed', String(this.myMuted));
+    button.setAttribute('aria-label', this.myMuted ? 'Reativar o som do vídeo' : 'Silenciar o vídeo só para mim');
+    button.dataset.level = this.myMuted || this.myVolume === 0 || this.sharedVolume === 0 ? 'off' : this.effectiveVolume() < 50 ? 'low' : 'high';
+  }
+
+  applyVolume() {
+    this.renderVolume();
+    const player = this.player;
+    if (!player || typeof player.setVolume !== 'function') return;
+    try {
+      // No YouTube, volume 0 conta como "sem som" e unMute() devolve o volume anterior: com 0 é preciso mutar de fato.
+      const volume = this.effectiveVolume();
+      if (volume === 0) { player.mute(); player.setVolume(0); }
+      else { player.unMute(); player.setVolume(volume); }
+    } catch { /* o player ainda não está pronto */ }
+  }
+
+  sendVolume() {
+    clearTimeout(this.volumeTimer);
+    this.volumeTimer = setTimeout(() => this.send({ type: 'volume', value: this.sharedVolume }), 60);
+  }
+
+  isOpen() { return !this.ui.$('youtubePanel').classList.contains('hidden'); }
 
   bindUI() {
     this.ui.$('youtubeToggleBtn').addEventListener('click', () => {
-      const open = this.ui.$('youtubePanel').classList.contains('hidden');
+      const open = !this.isOpen();
       this.setPanelOpen(open);
+      this.send({ type: 'panel', open });
+      if (!open) this.closeSession();
     });
     this.ui.$('youtubeForm').addEventListener('submit', event => {
       event.preventDefault();
@@ -44,6 +102,23 @@ export class YouTubeTogether {
       this.videoId = id;
       this.send({ type: 'load', videoId: id });
       this.loadVideo(id);
+    });
+    this.ui.$('ytSharedVolume').addEventListener('input', event => {
+      this.sharedVolume = Number(event.target.value);
+      this.applyVolume();
+      this.sendVolume();
+    });
+    this.ui.$('ytMyVolume').addEventListener('input', event => {
+      this.myVolume = Number(event.target.value);
+      if (this.myVolume > 0) this.myMuted = false;
+      this.saveVolume();
+      this.applyVolume();
+    });
+    this.ui.$('ytMuteBtn').addEventListener('click', () => {
+      this.myMuted = !this.myMuted;
+      if (!this.myMuted && this.myVolume === 0) this.myVolume = 60;
+      this.saveVolume();
+      this.applyVolume();
     });
     this.ui.$('youtubeTolerance').addEventListener('change', event => { this.tolerance = Number(event.target.value); });
     this.ui.$('youtubePlay').addEventListener('click', () => this.userAction('play'));
@@ -64,7 +139,11 @@ export class YouTubeTogether {
     this.isHost = isHost;
     channel.onopen = () => {
       this.setStatus('Controle P2P conectado. Cada navegador reproduz o vídeo do YouTube.');
-      if (this.videoId) this.send({ type: 'load', videoId: this.videoId });
+      if (isHost && this.isOpen()) {
+        this.send({ type: 'panel', open: true });
+        if (this.videoId) this.send({ type: 'load', videoId: this.videoId });
+        this.send({ type: 'volume', value: this.sharedVolume });
+      }
       this.syncTimer = setInterval(() => this.publishSnapshot(), 3000);
       this.pingClock(); this.clockTimer = setInterval(() => this.pingClock(), 5000);
     };
@@ -73,16 +152,35 @@ export class YouTubeTogether {
     channel.onmessage = event => this.receive(event.data);
   }
 
+  // Solta só o canal: o painel e o vídeo continuam abertos para sobreviver a reconexões e à entrada de outra pessoa.
   detach() {
-    clearInterval(this.syncTimer); clearInterval(this.playbackTimer); clearInterval(this.progressTimer); clearInterval(this.clockTimer);
-    this.syncTimer = this.playbackTimer = this.progressTimer = this.clockTimer = null;
+    clearInterval(this.syncTimer); clearInterval(this.clockTimer);
+    this.syncTimer = this.clockTimer = null;
     const channel = this.channel; this.channel = null;
     if (channel) {
       channel.onopen = channel.onclose = channel.onerror = channel.onmessage = null;
       if (channel.readyState !== 'closed') channel.close();
     }
+    this.lastCommand = { clock: 0, peerId: '' }; this.clock = 0;
+  }
+
+  closeSession() {
+    clearInterval(this.progressTimer); clearTimeout(this.playbackTimer);
+    this.progressTimer = this.playbackTimer = null;
     if (this.player) { this.player.destroy(); this.player = null; }
-    this.videoId = null; this.lastCommand = { clock: 0, peerId: '' }; this.clock = 0;
+    this.ui.$('youtubePlayer').replaceChildren();
+    this.ui.$('youtubeVideoTitle').textContent = 'YouTube Watch Together';
+    this.ui.$('youtubeUrl').value = DEFAULT_VIDEO_URL;
+    this.videoId = null; this.pendingState = null;
+    this.sharedVolume = 100;
+    this.renderVolume();
+    this.setStatus('O player ainda não está conectado.');
+  }
+
+  // Ao sair da sala: encerra a sessão e fecha o painel.
+  leave() {
+    this.detach();
+    this.closeSession();
     this.setPanelOpen(false);
   }
 
@@ -121,6 +219,7 @@ export class YouTubeTogether {
         events: {
           onReady: () => {
             this.setStatus('Player pronto. Pressione Reproduzir em cada navegador se o autoplay for bloqueado.');
+            this.applyVolume();
             if (this.pendingState) { const pending = this.pendingState; this.pendingState = null; this.applyRemoteState(pending.action, pending.seconds); }
             clearInterval(this.progressTimer);
             this.progressTimer = setInterval(() => {
@@ -147,10 +246,15 @@ export class YouTubeTogether {
   }
 
   setPanelOpen(open) {
+    const changed = open !== this.isOpen();
     this.ui.$('youtubePanel').classList.toggle('hidden', !open);
-    this.ui.$('youtubeToggleBtn').setAttribute('aria-expanded', String(open));
-    this.ui.$('youtubeToggleBtn').setAttribute('aria-label', open ? 'Fechar YouTube Watch Together' : 'Abrir YouTube Watch Together');
+    const button = this.ui.$('youtubeToggleBtn');
+    button.setAttribute('aria-expanded', String(open));
+    button.setAttribute('aria-pressed', String(open));
+    button.setAttribute('aria-label', open ? 'Fechar YouTube Watch Together' : 'Abrir YouTube Watch Together');
+    button.classList.toggle('is-on', open);
     this.ui.$('stagePanel').classList.toggle('youtube-active', open);
+    if (changed) this.onModeChange?.(open);
   }
 
   onPlayerState(event) {
@@ -194,6 +298,18 @@ export class YouTubeTogether {
     if (message.type === 'ping' && Number.isFinite(message.sentAt)) { this.send({ type: 'pong', sentAt: message.sentAt, remoteAt: Date.now() }); return; }
     if (message.type === 'pong' && Number.isSafeInteger(message.sentAt) && Number.isSafeInteger(message.remoteAt) && Math.abs(message.remoteAt - message.sentAt) < 24 * 60 * 60 * 1000) {
       const now = Date.now(); this.clockOffset = message.remoteAt - ((message.sentAt + now) / 2); return;
+    }
+    if (message.type === 'panel' && typeof message.open === 'boolean') {
+      if (message.open === this.isOpen()) return;
+      this.setPanelOpen(message.open);
+      if (!message.open) this.closeSession();
+      this.ui.notify(message.open ? 'A outra pessoa abriu o YouTube Watch Together.' : 'A outra pessoa fechou o YouTube Watch Together.');
+      return;
+    }
+    if (message.type === 'volume' && Number.isFinite(message.value) && message.value >= 0 && message.value <= 100) {
+      this.sharedVolume = Math.round(message.value);
+      this.applyVolume();
+      return;
     }
     if (message.type === 'load' && typeof message.videoId === 'string' && VIDEO_ID.test(message.videoId)) {
       if (message.videoId !== this.videoId) { this.ui.$('youtubeUrl').value = `https://youtu.be/${message.videoId}`; void this.loadVideo(message.videoId); }

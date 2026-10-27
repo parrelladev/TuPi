@@ -7,6 +7,14 @@ export class Chat {
     this.soundEnabled = this.readSoundPreference();
     this.audioContext = null;
     ui.$('chatForm').addEventListener('submit', event => this.sendFromForm(event));
+    // Enter envia; Shift+Enter quebra a linha. O campo cresce até 5 linhas.
+    const input = ui.$('chatInput');
+    input.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
+      event.preventDefault();
+      ui.$('chatForm').requestSubmit();
+    });
+    input.addEventListener('input', () => this.autosize());
     ui.$('chatSoundToggle').addEventListener('click', () => this.toggleSound());
     ui.setChatSoundEnabled(this.soundEnabled);
     this.unlockAudioOnInteraction = () => {
@@ -19,6 +27,13 @@ export class Chat {
       if (this.soundEnabled) void this.unlockAudio();
       if (this.isChatVisible()) this.markRead();
     });
+  }
+
+  autosize() {
+    const input = this.ui.$('chatInput');
+    input.style.height = 'auto';
+    // Com o chat recolhido o campo não tem layout (scrollHeight 0): deixa a altura mínima do CSS.
+    input.style.height = input.scrollHeight ? `${Math.min(input.scrollHeight + 2, 120)}px` : '';
   }
 
   readSoundPreference() {
@@ -56,28 +71,33 @@ export class Chat {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return false;
     try {
-      this.audioContext ||= new AudioContext();
+      if (!this.audioContext) { this.audioContext = new AudioContext(); this.speaker?.track(this.audioContext); }
       if (this.audioContext.state === 'suspended') await this.audioContext.resume();
       return this.audioContext.state === 'running';
     } catch { return false; }
   }
 
-  async playNotification() {
+  // kind: 'message' (duas notas), 'file' (três notas) ou 'arrival' (arpejo ascendente, a outra pessoa chegou).
+  async playNotification(kind = 'message') {
     if (!this.soundEnabled || !await this.unlockAudio()) return;
+    const notes = { message: [740, 988], file: [660, 880, 1175], arrival: [523, 659, 784, 1047] }[kind] || [740, 988];
     try {
       const context = this.audioContext;
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
+      const step = kind === 'arrival' ? 0.12 : 0.09;
       const now = context.currentTime;
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(740, now);
-      oscillator.frequency.setValueAtTime(988, now + 0.09);
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-      oscillator.connect(gain).connect(context.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.23);
+      notes.forEach((frequency, index) => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const start = now + index * step;
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.12, start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + (index === notes.length - 1 ? 0.3 : 0.16));
+        oscillator.connect(gain).connect(context.destination);
+        oscillator.start(start);
+        oscillator.stop(start + 0.32);
+      });
     } catch { /* Falha no áudio não deve interromper o recebimento da mensagem. */ }
   }
 
@@ -89,12 +109,13 @@ export class Chat {
     channel.onerror = () => this.ui.notify('O canal de mensagens apresentou um erro.');
     channel.onmessage = event => {
       if (typeof event.data === 'string' && event.data.length <= 4000) {
-        this.ui.addMessage('Convidado', event.data);
+        this.ui.addMessage(this.ui.getRemoteName(), event.data);
+        this.onIncoming?.('message', event.data);
         if (!this.isChatVisible() || document.hidden) {
           this.unread = true;
           this.ui.setChatUnread(true);
         }
-        this.playNotification();
+        this.playNotification('message');
       }
     };
   }
@@ -108,6 +129,7 @@ export class Chat {
       this.channel.send(text);
       this.ui.addMessage('Você', text, true);
       input.value = '';
+      this.autosize();
     } catch { this.ui.notify('Não foi possível enviar a mensagem.'); }
   }
 

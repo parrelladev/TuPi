@@ -7,6 +7,7 @@ export class Media {
     this.audioSender = null;
     this.cameraSender = null;
     this.screenSender = null;
+    this.screenAudioSender = null;
     this.remoteCameraStream = new MediaStream();
     this.remoteScreenStream = new MediaStream();
     this.micBusy = false;
@@ -37,22 +38,24 @@ export class Media {
 
   audioConstraints(deviceId) {
     const natural = this.audioProfile === 'natural';
-    return { deviceId: deviceId ? { exact: deviceId } : undefined, echoCancellation: !natural, noiseSuppression: !natural, autoGainControl: !natural };
+    return { deviceId: deviceId ? { exact: deviceId } : undefined, channelCount: { ideal: 1 }, echoCancellation: !natural, noiseSuppression: !natural, autoGainControl: !natural };
   }
 
-  async attachSenders(audioSender, cameraSender, screenSender) {
+  async attachSenders(audioSender, cameraSender, screenSender, screenAudioSender = null) {
     this.audioSender = audioSender;
     this.cameraSender = cameraSender;
     this.screenSender = screenSender;
+    this.screenAudioSender = screenAudioSender;
     await Promise.all([
       audioSender.replaceTrack(this.micStream?.getAudioTracks()[0] || null),
       cameraSender.replaceTrack(this.cameraStream?.getVideoTracks()[0] || null),
-      screenSender.replaceTrack(this.screenStream?.getVideoTracks()[0] || null)
+      screenSender.replaceTrack(this.screenStream?.getVideoTracks()[0] || null),
+      screenAudioSender?.replaceTrack(this.screenStream?.getAudioTracks()[0] || null)
     ]);
     await Promise.allSettled([this.quality?.applySource()]);
   }
 
-  detachSenders() { this.audioSender = this.cameraSender = this.screenSender = null; }
+  detachSenders() { this.audioSender = this.cameraSender = this.screenSender = this.screenAudioSender = null; }
 
   mediaApiError(feature) {
     if (!window.isSecureContext) return `${feature} requer uma conexão segura. Abra o TuPi em https:// ou, neste computador, em http://localhost.`;
@@ -104,16 +107,35 @@ export class Media {
       if (this.screenStream) { await this.stopSource('screen'); return; }
       const apiError = this.mediaApiError('O compartilhamento de tela'); if (apiError) throw new Error(apiError);
       if (typeof navigator.mediaDevices.getDisplayMedia !== 'function') throw new Error('Este navegador ou dispositivo não oferece compartilhamento de tela. Use um navegador de desktop recente.');
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: this.quality?.captureConstraints() || { frameRate: 20 }, audio: false });
+      const wantAudio = Boolean(this.ui.$('shareAudioCheck')?.checked);
+      // Áudio da tela sem processamento de voz (eco, ruído, ganho), que estragaria música e vídeos.
+      const audio = wantAudio ? { echoCancellation: false, noiseSuppression: false, autoGainControl: false } : false;
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: this.quality?.captureConstraints() || { frameRate: 20 }, audio, systemAudio: 'include' });
       this.screenStream = stream;
       const track = stream.getVideoTracks()[0];
       track.onended = () => { if (this.screenStream === stream) void this.stopSource('screen'); };
       await this.screenSender?.replaceTrack(track);
+      const audioTrack = stream.getAudioTracks()[0] || null;
+      await this.screenAudioSender?.replaceTrack(audioTrack);
+      const note = audioTrack ? '' : this.noAudioReason(track, wantAudio);
+      this.ui.setScreenAudioNote(note);
+      if (wantAudio && !audioTrack) this.ui.notify(`O navegador não enviou o áudio: ${note}`);
       this.ui.renderScreen(stream, this.remoteScreenStream);
       await this.quality?.applySource();
       return true;
     } catch (error) { this.reportCaptureError(error, 'tela'); return false; }
     finally { this.screenBusy = false; }
+  }
+
+  // Explica por que a captura veio sem áudio, conforme o que foi escolhido na janela do navegador.
+  noAudioReason(track, wantAudio) {
+    if (!wantAudio) return 'a opção "Compartilhar áudio da tela" está desmarcada';
+    const surface = track.getSettings?.().displaySurface;
+    const mac = /Mac/i.test(navigator.userAgent);
+    if (surface === 'window') return 'janelas não têm áudio; compartilhe uma aba ou a tela inteira';
+    if (surface === 'browser') return 'marque "Compartilhar áudio da guia" na janela de seleção antes de confirmar';
+    if (surface === 'monitor') return mac ? 'no macOS o navegador só captura áudio de abas; compartilhe uma aba' : 'marque "Compartilhar áudio do sistema" na janela de seleção antes de confirmar';
+    return 'marque a opção de compartilhar áudio na janela de seleção (Chrome ou Edge)';
   }
 
   reportCaptureError(error, feature) {
@@ -130,9 +152,10 @@ export class Media {
     this[streamKey] = null;
     stream.getTracks().forEach(track => { track.onended = null; track.stop(); });
     await this[senderKey]?.replaceTrack(null);
+    if (source === 'screen') await this.screenAudioSender?.replaceTrack(null);
     if (source === 'mic') this.ui.setMicState('off');
     if (source === 'camera') this.ui.renderCamera(null, this.remoteCameraStream);
-    if (source === 'screen') this.ui.renderScreen(null, this.remoteScreenStream);
+    if (source === 'screen') { this.ui.setScreenAudioNote(''); this.ui.renderScreen(null, this.remoteScreenStream); }
   }
 
   async changeDevice(kind, deviceId) {
@@ -163,6 +186,10 @@ export class Media {
       this.ui.setDevices(devices);
     } catch { /* Device enumeration is optional and browser-controlled. */ }
   }
+
+  // Liga ou desliga o envio do áudio da tela sem parar a captura.
+  setScreenAudioEnabled(enabled) { this.screenStream?.getAudioTracks().forEach(track => { track.enabled = enabled; }); }
+  hasScreenAudio() { return Boolean(this.screenStream?.getAudioTracks().some(track => track.readyState === 'live')); }
 
   setRemoteCameraStream(stream) { this.remoteCameraStream = stream; this.ui.renderCamera(this.cameraStream, stream); }
   setRemoteScreenStream(stream) { this.remoteScreenStream = stream; this.ui.renderScreen(this.screenStream, stream); }

@@ -1,8 +1,8 @@
 export class PeerSession {
-  constructor({ rtcConfig, media, chat, files, youtube, ui, sendSignal, onPeerLeft }) {
-    Object.assign(this, { rtcConfig, media, chat, files, youtube, ui, sendSignal, onPeerLeft });
+  constructor({ rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost }) {
+    Object.assign(this, { rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost });
     this.pc = null;
-    this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = null;
+    this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = this.screenAudioTransceiver = null;
     this.pendingCandidates = [];
     this.restartTimer = null;
     this.restartingIce = false;
@@ -10,6 +10,7 @@ export class PeerSession {
     this.remoteAudioStream = new MediaStream();
     this.remoteCameraStream = new MediaStream();
     this.remoteScreenStream = new MediaStream();
+    this.remoteScreenAudioStream = new MediaStream();
     this.ui.$('enableAudioBtn').addEventListener('click', () => { void this.playRemoteAudio(); });
   }
 
@@ -28,14 +29,19 @@ export class PeerSession {
       this.audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
       this.cameraTransceiver = pc.addTransceiver('video', { direction: 'sendrecv' });
       this.screenTransceiver = pc.addTransceiver('video', { direction: 'sendrecv' });
-      await this.media.attachSenders(this.audioTransceiver.sender, this.cameraTransceiver.sender, this.screenTransceiver.sender);
+      this.screenAudioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
+      await this.media.attachSenders(this.audioTransceiver.sender, this.cameraTransceiver.sender, this.screenTransceiver.sender, this.screenAudioTransceiver.sender);
     }
     pc.onicecandidate = event => { if (event.candidate && this.pc === pc) this.sendSignal({ type: 'ice', candidate: event.candidate }); };
     pc.ontrack = event => this.handleTrack(event, pc);
     pc.onconnectionstatechange = () => {
       if (this.pc !== pc) return;
       clearTimeout(this.restartTimer);
-      if (pc.connectionState === 'connected') this.ui.status('Conectado diretamente (ou via relay TURN)');
+      if (pc.connectionState === 'connected') { clearTimeout(this.lostTimer); this.lostTimer = null; this.ui.status('Conectado diretamente (ou via relay TURN)'); this.onConnected?.(); }
+      // Se o ICE não se recuperar sozinho em 12 s, avisa o app para tentar reconectar.
+      if (['failed', 'disconnected'].includes(pc.connectionState) && !this.lostTimer) {
+        this.lostTimer = setTimeout(() => { this.lostTimer = null; if (this.pc === pc && pc.connectionState !== 'connected') this.onConnectionLost?.(); }, 12000);
+      }
       if (pc.connectionState === 'failed') { this.ui.status('Conexão interrompida; tentando recuperar…'); this.restartTimer = setTimeout(() => { void this.restartIce(pc); }, 0); }
       if (pc.connectionState === 'disconnected') { this.ui.status('Conexão instável; tentando recuperar…'); this.restartTimer = setTimeout(() => { void this.restartIce(pc); }, 5000); }
     };
@@ -44,6 +50,7 @@ export class PeerSession {
       this.chat.attach(pc.createDataChannel('messages', { ordered: true }));
       this.files.attach(pc.createDataChannel('files', { ordered: true }));
       this.youtube.attach(pc.createDataChannel('control', { ordered: true }), true);
+      this.presence.attach(pc.createDataChannel('presence', { ordered: true }));
     }
     return pc;
   }
@@ -52,12 +59,22 @@ export class PeerSession {
     if (channel.label === 'messages') this.chat.attach(channel);
     else if (channel.label === 'files') this.files.attach(channel);
     else if (channel.label === 'control') this.youtube.attach(channel, false);
+    else if (channel.label === 'presence') this.presence.attach(channel);
     else channel.close();
   }
 
   handleTrack(event, pc) {
     if (this.pc !== pc) return;
     const { track, transceiver } = event;
+    // No receptor o evento chega antes de os transceptores serem guardados: o 2º áudio (depois do microfone) é o da tela.
+    const isScreenAudio = track.kind === 'audio' && (this.screenAudioTransceiver
+      ? transceiver.mid === this.screenAudioTransceiver.mid
+      : this.remoteAudioStream.getTracks().length > 0 && !this.remoteAudioStream.getTracks().includes(track));
+    if (isScreenAudio) {
+      if (!this.remoteScreenAudioStream.getTracks().includes(track)) this.remoteScreenAudioStream.addTrack(track);
+      this.ui.setScreenAudio(this.remoteScreenAudioStream);
+      return;
+    }
     if (track.kind === 'audio') {
       if (!this.remoteAudioStream.getTracks().includes(track)) this.remoteAudioStream.addTrack(track);
       this.ui.setRemoteAudio(this.remoteAudioStream); this.ui.setPeerMediaStatus('Áudio conectado');
@@ -90,12 +107,14 @@ export class PeerSession {
         this.ui.status('Negociando conexão...'); const pc = await this.create(false);
         await pc.setRemoteDescription(message.sdp);
         const transceivers = pc.getTransceivers();
-        this.audioTransceiver = transceivers.find(t => t.receiver.track.kind === 'audio');
+        const audios = transceivers.filter(t => t.receiver.track.kind === 'audio');
+        this.audioTransceiver = audios[0];
+        this.screenAudioTransceiver = audios[1] || null;
         const videos = transceivers.filter(t => t.receiver.track.kind === 'video');
         this.cameraTransceiver = videos[0] || null; this.screenTransceiver = videos[1] || null;
         if (!this.audioTransceiver || !this.cameraTransceiver || !this.screenTransceiver) throw new Error('A oferta não contém os transceivers de áudio, câmera e tela esperados. Atualize ambos os navegadores.');
-        for (const transceiver of [this.audioTransceiver, this.cameraTransceiver, this.screenTransceiver]) transceiver.direction = 'sendrecv';
-        await this.media.attachSenders(this.audioTransceiver.sender, this.cameraTransceiver.sender, this.screenTransceiver.sender);
+        for (const transceiver of [this.audioTransceiver, this.cameraTransceiver, this.screenTransceiver, this.screenAudioTransceiver]) if (transceiver) transceiver.direction = 'sendrecv';
+        await this.media.attachSenders(this.audioTransceiver.sender, this.cameraTransceiver.sender, this.screenTransceiver.sender, this.screenAudioTransceiver?.sender || null);
         const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
         this.checkAudioSendDirection(); this.sendSignal({ type: 'answer', sdp: pc.localDescription }); await this.flushIce(); break;
       }
@@ -125,12 +144,13 @@ export class PeerSession {
   }
 
   reset() {
-    clearTimeout(this.restartTimer); this.restartTimer = null; this.restartingIce = false; this.isInitiator = false;
-    this.chat.detach(); this.files.detach(); this.youtube.detach(); this.media.detachSenders();
+    clearTimeout(this.restartTimer); this.restartTimer = null; clearTimeout(this.lostTimer); this.lostTimer = null; this.restartingIce = false; this.isInitiator = false;
+    this.chat.detach(); this.files.detach(); this.youtube.detach(); this.presence.detach(); this.media.detachSenders();
     if (this.pc) { this.pc.ontrack = this.pc.onicecandidate = this.pc.ondatachannel = this.pc.onconnectionstatechange = null; this.pc.close(); this.pc = null; }
     this.pendingCandidates = [];
-    this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = null;
-    this.remoteAudioStream = new MediaStream(); this.remoteCameraStream = new MediaStream(); this.remoteScreenStream = new MediaStream();
+    this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = this.screenAudioTransceiver = null;
+    this.remoteAudioStream = new MediaStream(); this.remoteCameraStream = new MediaStream(); this.remoteScreenStream = new MediaStream(); this.remoteScreenAudioStream = new MediaStream();
+    this.ui.setScreenAudio(null);
     this.ui.clearRoomView(); this.media.setRemoteCameraStream(this.remoteCameraStream); this.media.setRemoteScreenStream(this.remoteScreenStream);
   }
 }

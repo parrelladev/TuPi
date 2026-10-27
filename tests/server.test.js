@@ -32,14 +32,6 @@ async function waitForServer(url) {
   throw new Error('Servidor não iniciou em até 5 segundos.');
 }
 
-async function createRoom() {
-  const response = await fetch(`${baseUrl}/api/rooms`, { method: 'POST' });
-  assert.equal(response.status, 201);
-  const body = await response.json();
-  assert.match(body.roomId, /^[a-f0-9]{32}$/);
-  return body.roomId;
-}
-
 function connect() {
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(`${baseUrl.replace('http', 'ws')}/signal`);
@@ -71,6 +63,18 @@ function close(socket) {
   return new Promise(resolve => { socket.once('close', resolve); socket.close(); });
 }
 
+async function join(socket, expectedRole) {
+  const joined = nextMessage(socket, message => message.type === 'joined');
+  send(socket, { type: 'join' });
+  assert.equal((await joined).role, expectedRole);
+}
+
+// Cada teste usa o mesmo lobby único; os sockets são fechados e aguardados antes do próximo teste.
+async function drain(...sockets) {
+  await Promise.all(sockets.map(close));
+  await new Promise(resolve => setTimeout(resolve, 50));
+}
+
 before(async () => {
   const port = await unusedPort();
   baseUrl = `http://127.0.0.1:${port}`;
@@ -90,69 +94,6 @@ after(async () => {
   await once(serverProcess, 'exit');
 });
 
-test('cria sala com ID aleatório de 128 bits', async () => {
-  const first = await createRoom();
-  const second = await createRoom();
-  assert.notEqual(first, second);
-  const lookup = await fetch(`${baseUrl}/api/rooms/${first}`);
-  assert.equal(lookup.status, 200);
-  const room = await lookup.json();
-  assert.equal(room.roomId, first);
-  const byName = await fetch(`${baseUrl}/api/rooms/${room.roomName.toUpperCase()}`);
-  assert.equal(byName.status, 404);
-  const denied = await byName.json();
-  assert.match(denied.error, /novo link completo/);
-  assert.equal(denied.roomId, undefined);
-  assert.equal((await fetch(`${baseUrl}/api/rooms/%E0%A4%A`)).status, 400);
-  assert.equal((await fetch(`${baseUrl}/api/rooms/inexistente`)).status, 404);
-});
-
-test('recusa ID inválido e sala inexistente', async () => {
-  const socket = await connect();
-  try {
-    let result = nextMessage(socket);
-    send(socket, { type: 'join', roomId: 'invalid' });
-    assert.match((await result).message, /inválido/i);
-
-    result = nextMessage(socket);
-    send(socket, { type: 'join', roomId: '0'.repeat(32) });
-    assert.match((await result).message, /não existe|expirou/i);
-  } finally { await close(socket); }
-});
-
-test('limita a dois peers e remove a sala após a saída do último', async () => {
-  const roomId = await createRoom();
-  const first = await connect();
-  const second = await connect();
-  const third = await connect();
-  try {
-    let firstResult = nextMessage(first, message => message.type === 'joined');
-    send(first, { type: 'join', roomId });
-    assert.equal((await firstResult).role, 'host');
-
-    const peerJoined = nextMessage(first, message => message.type === 'peer-joined');
-    const secondResult = nextMessage(second, message => message.type === 'joined');
-    send(second, { type: 'join', roomId });
-    assert.equal((await secondResult).role, 'guest');
-    await peerJoined;
-
-    const thirdResult = nextMessage(third, message => message.type === 'error');
-    send(third, { type: 'join', roomId });
-    assert.match((await thirdResult).message, /cheia|máximo 2/i);
-
-    const left = nextMessage(first, message => message.type === 'peer-left');
-    await close(second);
-    await left;
-
-    await close(first);
-    const retryResult = nextMessage(third, message => message.type === 'error');
-    send(third, { type: 'join', roomId });
-    assert.match((await retryResult).message, /não existe|expirou/i);
-  } finally {
-    await Promise.all([close(first), close(second), close(third)]);
-  }
-});
-
 test('publica cabeçalhos básicos e configuração ICE sem cache', async () => {
   const page = await fetch(baseUrl);
   assert.equal(page.status, 200);
@@ -164,43 +105,87 @@ test('publica cabeçalhos básicos e configuração ICE sem cache', async () => 
   assert.deepEqual(await config.json(), { iceServers: [] });
 });
 
+test('não existe mais criação nem consulta de salas', async () => {
+  assert.equal((await fetch(`${baseUrl}/api/rooms`, { method: 'POST' })).status, 405);
+  assert.equal((await fetch(`${baseUrl}/api/rooms/${'0'.repeat(32)}`)).status, 404);
+});
+
+test('o lobby único aceita dois e recusa o terceiro enquanto estiver cheio', async () => {
+  const first = await connect();
+  const second = await connect();
+  const third = await connect();
+  try {
+    await join(first, 'host');
+    const peerJoined = nextMessage(first, message => message.type === 'peer-joined');
+    await join(second, 'guest');
+    await peerJoined;
+
+    const full = nextMessage(third, message => message.type === 'error');
+    send(third, { type: 'join' });
+    const error = await full;
+    assert.equal(error.code, 'full');
+    assert.match(error.message, /cheio|máximo 2/i);
+
+    const left = nextMessage(first, message => message.type === 'peer-left');
+    await close(second);
+    await left;
+
+    await join(third, 'guest');
+  } finally { await drain(first, second, third); }
+});
+
+test('informa a quantidade de pessoas online a quem está no lobby', async () => {
+  const first = await connect();
+  const second = await connect();
+  try {
+    const alone = nextMessage(first, message => message.type === 'lobby' && message.count === 1);
+    await join(first, 'host');
+    assert.equal((await alone).max, 2);
+    const together = nextMessage(first, message => message.type === 'lobby' && message.count === 2);
+    await join(second, 'guest');
+    await together;
+    const back = nextMessage(first, message => message.type === 'lobby' && message.count === 1);
+    await close(second);
+    await back;
+  } finally { await drain(first, second); }
+});
+
+test('recusa entrar duas vezes com o mesmo socket', async () => {
+  const socket = await connect();
+  try {
+    await join(socket, 'host');
+    const again = nextMessage(socket, message => message.type === 'error');
+    send(socket, { type: 'join' });
+    assert.equal((await again).code, 'already');
+  } finally { await drain(socket); }
+});
+
 test('não encaminha oferta SDP malformada', async () => {
-  const roomId = await createRoom();
   const host = await connect();
   const guest = await connect();
   try {
-    const hostJoined = nextMessage(host, message => message.type === 'joined');
-    send(host, { type: 'join', roomId });
-    await hostJoined;
+    await join(host, 'host');
     const peerJoined = nextMessage(host, message => message.type === 'peer-joined');
-    const guestJoined = nextMessage(guest, message => message.type === 'joined');
-    send(guest, { type: 'join', roomId });
-    await Promise.all([peerJoined, guestJoined]);
+    await join(guest, 'guest');
+    await peerJoined;
 
     let forwarded = false;
-    const onMessage = () => { forwarded = true; };
+    const onMessage = raw => { if (JSON.parse(raw.toString()).type === 'offer') forwarded = true; };
     guest.on('message', onMessage);
     send(host, { type: 'offer', sdp: { type: 'offer', sdp: 'malformado' } });
     await new Promise(resolve => setTimeout(resolve, 100));
     guest.off('message', onMessage);
     assert.equal(forwarded, false);
-  } finally { await Promise.all([close(host), close(guest)]); }
+  } finally { await drain(host, guest); }
 });
 
-async function join(socket, roomId, expectedRole) {
-  const joined = nextMessage(socket, message => message.type === 'joined');
-  send(socket, { type: 'join', roomId });
-  assert.equal((await joined).role, expectedRole);
-}
-
 test('encaminha offer, answer e ICE entre dois peers nos dois sentidos', async () => {
-  const roomId = await createRoom();
   const host = await connect();
   const guest = await connect();
   try {
-    await join(host, roomId, 'host');
+    await join(host, 'host');
     const peerJoined = nextMessage(host, message => message.type === 'peer-joined');
-    await join(guest, roomId, 'guest');
+    await join(guest, 'guest');
     await peerJoined;
     // Synthetic signaling payloads: this verifies relay, not WebRTC media.
     const messages = [
@@ -216,74 +201,44 @@ test('encaminha offer, answer e ICE entre dois peers nos dois sentidos', async (
         assert.deepEqual(await received, message);
       }
     }
-  } finally { await Promise.all([close(host), close(guest)]); }
+  } finally { await drain(host, guest); }
 });
 
-test('permite reentrada enquanto há um peer e remove também o nome após a última saída', async () => {
-  const roomId = await createRoom();
-  const room = await (await fetch(`${baseUrl}/api/rooms/${roomId}`)).json();
+test('quem fica sozinho continua no lobby e o próximo a entrar vira par dele', async () => {
   const host = await connect();
   const guest = await connect();
   let replacement;
   try {
-    await join(host, roomId, 'host');
-    await join(guest, roomId, 'guest');
+    await join(host, 'host');
+    await join(guest, 'guest');
     const left = nextMessage(host, message => message.type === 'peer-left');
     await close(guest);
     await left;
-    assert.equal((await fetch(`${baseUrl}/api/rooms/${roomId}`)).status, 200);
-    assert.equal((await fetch(`${baseUrl}/api/rooms/${room.roomName}`)).status, 404);
     replacement = await connect();
     const returned = nextMessage(host, message => message.type === 'peer-joined');
-    await join(replacement, roomId, 'guest');
+    await join(replacement, 'guest');
     await returned;
     const lastLeft = nextMessage(replacement, message => message.type === 'peer-left');
     await close(host);
     await lastLeft;
-    await close(replacement);
-    // A server reply on this new socket acts as a barrier after close cleanup.
-    const observer = await connect();
-    try {
-      const rejected = nextMessage(observer, message => message.type === 'error');
-      send(observer, { type: 'join', roomId });
-      assert.match((await rejected).message, /não existe|expirou/i);
-      for (const code of [roomId, room.roomName]) {
-        assert.equal((await fetch(`${baseUrl}/api/rooms/${code}`)).status, 404);
-      }
-    } finally { await close(observer); }
-  } finally { await Promise.all([close(host), close(guest), close(replacement)]); }
+  } finally { await drain(host, guest, replacement); }
+  // Com o lobby vazio, o próximo a entrar volta a ser o anfitrião.
+  const fresh = await connect();
+  try { await join(fresh, 'host'); } finally { await drain(fresh); }
 });
 
-test('mantém a sinalização isolada entre salas', async () => {
-  const firstRoom = await createRoom();
-  const secondRoom = await createRoom();
-  const first = await connect();
-  const second = await connect();
-  const received = [];
-  const record = raw => received.push(JSON.parse(raw.toString()));
-  try {
-    await join(first, firstRoom, 'host');
-    await join(second, secondRoom, 'host');
-    second.on('message', record);
-    send(first, { type: 'offer', sdp: { type: 'offer', sdp: 'v=0\r\n' } });
-    // Ordered response proves the offer has been handled on the source socket.
-    const barrier = nextMessage(first, message => message.type === 'error');
-    send(first, { type: 'join', roomId: secondRoom });
-    assert.match((await barrier).message, /já está/i);
-    await new Promise(resolve => setTimeout(resolve, 100));
-    assert.deepEqual(received, []);
-  } finally {
-    second.off('message', record);
-    await Promise.all([close(first), close(second)]);
-  }
-});
-
-test('limita criação de salas por endereço', async () => {
-  let sawRateLimit = false;
-  for (let index = 0; index < 10; index++) {
-    const response = await fetch(`${baseUrl}/api/rooms`, { method: 'POST' });
-    if (response.status === 429) { sawRateLimit = true; break; }
-    assert.equal(response.status, 201);
-  }
-  assert.equal(sawRateLimit, true);
+test('Service Worker, manifest e todos os arquivos do precache são servidos', async () => {
+  const sw = await fetch(`${baseUrl}/sw.js`);
+  assert.equal(sw.status, 200);
+  assert.match(sw.headers.get('content-type'), /javascript/);
+  const source = await sw.text();
+  const list = source.match(/const PRECACHE = (\[[\s\S]*?\]);/);
+  assert.ok(list, 'lista PRECACHE não encontrada');
+  const urls = JSON.parse(list[1].replace(/'/g, '"'));
+  assert.ok(urls.length > 20);
+  for (const url of urls) assert.equal((await fetch(`${baseUrl}${url}`)).status, 200, url);
+  const manifest = await fetch(`${baseUrl}/manifest.webmanifest`);
+  assert.match(manifest.headers.get('content-type'), /manifest\+json/);
+  const parsed = await manifest.json();
+  for (const icon of parsed.icons) assert.equal((await fetch(`${baseUrl}${icon.src}`)).status, 200, icon.src);
 });

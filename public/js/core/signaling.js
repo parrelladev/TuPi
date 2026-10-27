@@ -4,15 +4,13 @@ export class Signaling {
     this.onClose = onClose;
     this.onError = onError;
     this.socket = null;
-    this.roomId = null;
     this.intentional = false;
     this.attempt = 0;
     this.maxAttempts = 5;
     this.retryTimer = null;
   }
 
-  connect(roomId) {
-    this.roomId = roomId;
+  connect() {
     this.intentional = false;
     this.attempt = 0;
     this.open();
@@ -24,7 +22,7 @@ export class Signaling {
     try { socket = new WebSocket(`${protocol}//${location.host}/signal`); }
     catch (error) { this.scheduleRetry(error); return; }
     this.socket = socket;
-    socket.onopen = () => this.send({ type: 'join', roomId: this.roomId });
+    socket.onopen = () => this.send({ type: 'join' });
     socket.onmessage = async event => {
       try {
         const message = JSON.parse(event.data);
@@ -49,6 +47,35 @@ export class Signaling {
     this.attempt++;
     this.retryTimer = setTimeout(() => { this.retryTimer = null; this.open(); }, delay);
   }
+
+  // Fecha o socket atual, espera o servidor liberar a vaga e entra de novo na mesma sala.
+  reconnect() {
+    clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+    this.attempt = 0;
+    this.intentional = false;
+    const socket = this.socket;
+    this.socket = null;
+    if (!socket || socket.readyState >= WebSocket.CLOSING) { this.open(); return Promise.resolve(); }
+    return new Promise(resolve => {
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        setTimeout(() => { this.open(); resolve(); }, 200);
+      };
+      const timer = setTimeout(finish, 1500);
+      socket.onmessage = null;
+      socket.onclose = finish;
+      socket.close();
+    });
+  }
+
+  // Tenta entrar de novo no mesmo socket (usado quando o lobby estava cheio).
+  rejoin() { this.send({ type: 'join' }); }
+
+  isOpen() { return this.socket?.readyState === WebSocket.OPEN; }
 
   send(message) {
     if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(message));
