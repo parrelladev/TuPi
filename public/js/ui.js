@@ -1,3 +1,7 @@
+import { pop, swap, toastProgress } from './fx.js';
+
+const TOAST_MS = 4300;
+
 export function createUI() {
   const $ = id => document.getElementById(id);
   let effectiveScreenQuality = '';
@@ -6,14 +10,25 @@ export function createUI() {
   function closeShareSettings() { $('screenSettings').open = false; }
 
   function notify(message) {
-    $('toast').textContent = message;
+    $('toastText').textContent = message;
     $('toast').classList.remove('hidden');
+    toastProgress($('toastBar'), TOAST_MS);
     clearTimeout(notify.timer);
-    notify.timer = setTimeout(() => $('toast').classList.add('hidden'), 4300);
+    notify.timer = setTimeout(() => $('toast').classList.add('hidden'), TOAST_MS);
   }
 
-  function status(message) { $('status').textContent = message; }
-  function setParticipantCount(count) { $('participantCount').textContent = String(count); }
+  function status(message) {
+    $('status').textContent = message;
+    const tone = /erro|interrompida|não foi|falha|inválid/i.test(message) ? 'bad' : /conectando|aguardando|entrando|saiu|reconectar/i.test(message) ? 'wait' : 'ok';
+    $('status').closest('.status-chip').dataset.tone = tone;
+  }
+  function setParticipantCount(count) {
+    const element = $('participantCount');
+    const text = String(count);
+    if (element.textContent === text) return;
+    element.textContent = text;
+    pop(element);
+  }
 
   function setChatConnected(ready) {
     $('chatStatus').textContent = ready ? 'Conectado' : 'Desconectado';
@@ -76,7 +91,9 @@ export function createUI() {
     $('screenPlaceholder').classList.toggle('hidden', hasLocal || hasRemote);
     let badge = hasBoth ? 'Duas telas ativas' : hasRemote ? 'Tela do convidado' : hasLocal ? 'Sua tela compartilhada' : 'Aguardando compartilhamento';
     if (hasLocal && effectiveScreenQuality) badge += ` · ${effectiveScreenQuality}`;
+    const badgeChanged = $('screenBadge').textContent.trim() !== badge;
     $('screenBadge').innerHTML = '<i></i> ' + badge;
+    if (badgeChanged) swap($('screenBadge'));
     $('screenBtn').querySelector('span:last-child').textContent = hasLocal ? 'Parar tela' : 'Compartilhar tela';
     $('screenBtn').setAttribute('aria-label', hasLocal ? 'Parar compartilhamento de tela' : 'Compartilhar tela');
   }

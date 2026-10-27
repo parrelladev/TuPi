@@ -164,7 +164,11 @@ const server = http.createServer((req, res) => {
     '/js/features/chat.js': 'js/features/chat.js',
     '/js/features/files.js': 'js/features/files.js',
     '/js/features/youtube.js': 'js/features/youtube.js',
-    '/js/features/media.js': 'js/features/media.js'
+    '/js/features/media.js': 'js/features/media.js',
+    '/js/fx.js': 'js/fx.js',
+    '/vendor/open-props.css': 'vendor/open-props.css',
+    '/vendor/motion.js': 'vendor/motion.js',
+    '/vendor/auto-animate.js': 'vendor/auto-animate.js'
   };
   const file = files[url.pathname];
   if (!file) { res.writeHead(404); res.end('Not found'); return; }

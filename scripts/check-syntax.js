@@ -6,7 +6,7 @@ const path = require('node:path');
 
 const commonJsFiles = ['server.js'];
 const moduleFiles = [
-  'public/app.js', 'public/js/ui.js', 'public/js/core/signaling.js',
+  'public/app.js', 'public/js/ui.js', 'public/js/fx.js', 'public/js/core/signaling.js',
   'public/js/core/peer.js', 'public/js/core/quality.js', 'public/js/core/stats.js',
   'public/js/features/chat.js', 'public/js/features/media.js',
   'public/js/features/files.js', 'public/js/features/youtube.js'

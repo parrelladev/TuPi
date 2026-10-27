@@ -3,71 +3,123 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#fffaf8" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#fffaf8" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#16131a" media="(prefers-color-scheme: dark)" />
   <meta name="description" content="Uma sala privada para conversar, compartilhar a tela e trocar mensagens diretamente." />
   <title>TuPi: chat de voz e tela P2P</title>
   <link rel="icon" href="/assets/favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="/vendor/open-props.css" />
   <link rel="stylesheet" href="/style.css" />
   <script src="/app.js" type="module"></script>
 </head>
 <body>
   <main class="app">
-    <section id="landing" class="landing landing-minimal" aria-labelledby="homeTitle">
-      <div class="hero-copy hero-minimal">
-        <a class="brand home-brand" href="/" aria-label="TuPi, página inicial">
+    <section id="landing" class="landing" aria-labelledby="homeTitle">
+      <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="home-card">
+        <a class="brand home-brand" href="/" aria-label="TuPi, página inicial" data-enter>
           <img src="/assets/tupi-logo.png" alt="TuPi" />
         </a>
         <h1 id="homeTitle" class="sr-only">Entrar em uma sala TuPi</h1>
-        <button id="createBtn" class="button button-primary button-large">Criar nova sala</button>
-        <form id="joinForm" class="join-room"><label class="sr-only" for="roomCode">Código completo ou link de convite; a fruta é apenas o nome da sala</label><input id="roomCode" maxlength="2000" autocomplete="off" spellcheck="false" placeholder="Código completo ou link de convite" /><button class="join-button" type="submit">Entrar <span aria-hidden="true">→</span></button></form>
-        <div class="hero-reassurance"><span class="check-icon" aria-hidden="true">✓</span> Grátis para começar <span class="reassurance-separator">·</span> Sem conta <span class="reassurance-separator">·</span> Até 2 pessoas</div>
+        <button id="createBtn" class="btn btn-primary btn-xl" data-enter>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Criar nova sala</span>
+        </button>
+        <div class="or-divider" aria-hidden="true" data-enter><span>ou entre com um convite</span></div>
+        <form id="joinForm" class="join-room" data-enter>
+          <label class="sr-only" for="roomCode">Código completo ou link de convite; a fruta é apenas o nome da sala</label>
+          <input id="roomCode" maxlength="2000" autocomplete="off" spellcheck="false" placeholder="Código completo ou link de convite" />
+          <button class="join-button" type="submit">Entrar <span aria-hidden="true">→</span></button>
+        </form>
+        <ul class="feature-chips" aria-label="Recursos" data-enter>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/></svg>Voz</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M8 20h8m-4-3.5V20"/></svg>Tela</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg>Câmera</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.3-.7L4 20l1.7-4A7.5 7.5 0 1 1 20 11.5Z"/></svg>Chat</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>Arquivos</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="4"/><path d="m10 9 5 3-5 3z"/></svg>YouTube</li>
+        </ul>
+        <div class="hero-reassurance" data-enter><span class="check-icon" aria-hidden="true">✓</span> Grátis para começar <span class="reassurance-separator">·</span> Sem conta <span class="reassurance-separator">·</span> Até 2 pessoas</div>
       </div>
     </section>
 
     <section id="room" class="room hidden" aria-label="Sala">
-      <div class="room-header panel">
+      <header class="room-header panel">
         <a class="room-brand" href="/" aria-label="TuPi, página inicial"><img src="/assets/tupi-logo.png" alt="TuPi" /></a>
-        <div class="room-code"><h2 id="roomTitle">Sala</h2><label class="sr-only" for="inviteUrl">Link de convite</label><input id="inviteUrl" class="sr-only" readonly aria-label="Link de convite" /><button id="copyBtn" class="copy-room-link" aria-label="Copiar link da sala" title="Copiar link"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button></div>
-        <div class="room-header-tools"><span id="status" class="status" role="status" aria-live="polite">Conectando...</span><span class="room-member-count" aria-label="Participantes na sala"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0m1-8a3 3 0 0 0 0-6m1 8a5 5 0 0 1 4 5"/></svg><span id="participantCount">1</span></span></div>
-      </div>
+        <div class="room-code">
+          <h2 id="roomTitle">Sala</h2>
+          <label class="sr-only" for="inviteUrl">Link de convite</label>
+          <input id="inviteUrl" class="sr-only" readonly aria-label="Link de convite" />
+          <button id="copyBtn" class="copy-room-link" aria-label="Copiar link da sala" title="Copiar link">
+            <svg class="copy-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+            <svg class="copied-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+          </button>
+        </div>
+        <div class="room-header-tools">
+          <span class="status-chip"><i class="status-dot" aria-hidden="true"></i><span id="status" class="status" role="status" aria-live="polite">Conectando...</span></span>
+          <span class="room-member-count" aria-label="Participantes na sala"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0m1-8a3 3 0 0 0 0-6m1 8a5 5 0 0 1 4 5"/></svg><span id="participantCount">1</span></span>
+        </div>
+      </header>
+
       <div class="columns">
-        <section id="stagePanel" class="stage panel" aria-label="Mídia da sala">
-          <section id="youtubePanel" class="youtube-panel hidden" aria-label="YouTube Watch Together">
-            <form id="youtubeForm" class="youtube-form"><label class="sr-only" for="youtubeUrl">Link ou ID do vídeo do YouTube</label><input id="youtubeUrl" maxlength="2048" type="text" placeholder="Cole um link do YouTube" autocomplete="off" /><button class="button button-primary" type="submit">Abrir vídeo</button></form>
+        <section id="stagePanel" class="stage" aria-label="Mídia da sala">
+          <section id="youtubePanel" class="youtube-panel panel fx hidden" aria-label="YouTube Watch Together">
+            <form id="youtubeForm" class="youtube-form"><label class="sr-only" for="youtubeUrl">Link ou ID do vídeo do YouTube</label><input id="youtubeUrl" maxlength="2048" type="text" placeholder="Cole um link do YouTube" autocomplete="off" /><button class="btn btn-primary" type="submit">Abrir vídeo</button></form>
             <div class="youtube-title-row"><strong id="youtubeVideoTitle">YouTube Watch Together</strong><label>Tolerância <select id="youtubeTolerance"><option value="0.5">0,5 s</option><option value="1" selected>1 s</option><option value="2.5">2,5 s</option></select></label></div>
             <div id="youtubePlayer" class="youtube-player" aria-label="Player incorporado do YouTube"></div>
-            <div class="youtube-controls"><button id="youtubePlay" class="button button-light" type="button">Reproduzir</button><button id="youtubePause" class="button button-light" type="button">Pausar</button><input id="youtubeSeek" type="range" min="0" max="1" value="0" aria-label="Posição do vídeo" /><span id="youtubePosition">0:00 / 0:00</span><button id="youtubeSync" class="button button-light" type="button">Sincronizar</button></div>
+            <div class="youtube-controls"><button id="youtubePlay" class="btn btn-soft" type="button">Reproduzir</button><button id="youtubePause" class="btn btn-soft" type="button">Pausar</button><input id="youtubeSeek" type="range" min="0" max="1" value="0" aria-label="Posição do vídeo" /><span id="youtubePosition">0:00 / 0:00</span><button id="youtubeSync" class="btn btn-soft" type="button">Sincronizar</button></div>
             <p id="youtubeStatus" class="youtube-status" role="status" aria-live="polite">O player ainda não está conectado.</p>
           </section>
           <div class="screen-area">
-            <div id="cameraViews" class="camera-views hidden" aria-label="Câmeras da sala">
-              <div id="localCameraTile" class="media-tile hidden"><video id="localCameraVideo" autoplay muted playsinline aria-label="Sua câmera"></video><span class="media-name">Você · Câmera</span></div>
-              <div id="remoteCameraTile" class="media-tile hidden"><video id="remoteCameraVideo" autoplay playsinline aria-label="Câmera do convidado"></video><span class="media-name">Convidado · Câmera</span></div>
+            <div id="cameraViews" class="camera-views fx hidden" aria-label="Câmeras da sala">
+              <div id="localCameraTile" class="media-tile fx hidden"><video id="localCameraVideo" autoplay muted playsinline aria-label="Sua câmera"></video><span class="media-name">Você · Câmera</span></div>
+              <div id="remoteCameraTile" class="media-tile fx hidden"><video id="remoteCameraVideo" autoplay playsinline aria-label="Câmera do convidado"></video><span class="media-name">Convidado · Câmera</span></div>
             </div>
             <div id="screenViews" class="screen-views">
-              <div id="localMediaTile" class="media-tile hidden"><video id="localScreenVideo" autoplay muted playsinline aria-label="Sua tela compartilhada"></video><span class="media-name">Você · Tela</span></div>
-              <div id="remoteMediaTile" class="media-tile hidden"><video id="screenVideo" autoplay playsinline aria-label="Tela do convidado"></video><span class="media-name">Convidado · Tela</span></div>
+              <div id="localMediaTile" class="media-tile fx hidden"><video id="localScreenVideo" autoplay muted playsinline aria-label="Sua tela compartilhada"></video><span class="media-name">Você · Tela</span></div>
+              <div id="remoteMediaTile" class="media-tile fx hidden"><video id="screenVideo" autoplay playsinline aria-label="Tela do convidado"></video><span class="media-name">Convidado · Tela</span></div>
             </div>
-            <div id="screenPlaceholder" class="screen-placeholder"><div class="empty-illustration" aria-hidden="true"><div class="empty-orbit"></div><div class="empty-monitor"><span>◫</span><i></i></div><div class="empty-person empty-person-one">V</div><div class="empty-person empty-person-two">?</div><div class="empty-star">✦</div></div><h3>A sala está pronta para vocês</h3><p>Compartilhe sua tela ou ligue o microfone para começar.</p><span class="waiting-label"><i></i> <span id="peerMediaStatus">Aguardando outra pessoa</span></span></div>
+            <div id="screenPlaceholder" class="screen-placeholder fx"><div class="empty-illustration" aria-hidden="true"><div class="empty-orbit"></div><div class="empty-monitor"><span>◫</span><i></i></div><div class="empty-person empty-person-one">V</div><div class="empty-person empty-person-two">?</div><div class="empty-star">✦</div></div><h3>A sala está pronta para vocês</h3><p>Compartilhe sua tela ou ligue o microfone para começar.</p><span class="waiting-label"><i></i> <span id="peerMediaStatus">Aguardando outra pessoa</span></span></div>
             <span id="screenBadge" class="pill stage-status"><i></i> Aguardando compartilhamento</span>
-            <button id="enableAudioBtn" class="button audio-enable hidden" type="button">Ativar áudio recebido</button>
+            <button id="enableAudioBtn" class="btn audio-enable fx hidden" type="button">Ativar áudio recebido</button>
           </div>
           <audio id="remoteAudio" autoplay playsinline></audio>
         </section>
-        <section id="chatPanel" class="chat panel" aria-label="Chat da sala"><div class="chat-header"><div><span class="chat-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.3-.7L4 20l1.7-4A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h.01m3.5 0h.01m3.5 0h.01"/></svg></span><strong>Mensagens</strong></div><div class="chat-header-actions"><button id="chatSoundToggle" class="chat-sound-toggle" type="button" aria-pressed="false" aria-label="Ativar som de novas mensagens" title="Ativar som de novas mensagens"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="M17 9a5 5 0 0 1 0 6"/><path d="m17 3 4 4m0-4-4 4" class="sound-muted-mark"/></svg><span>Som</span></button><span class="chat-connection"><i></i><span id="chatStatus">Desconectado</span></span></div></div><div id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text"><div class="notice"><span class="notice-lock" aria-hidden="true">⌑</span><span>As mensagens são trocadas diretamente entre vocês e não são salvas.</span></div></div><form id="chatForm" class="chat-compose"><label class="sr-only" for="chatInput">Escreva uma mensagem</label><input id="chatInput" maxlength="2000" placeholder="Escreva uma mensagem..." autocomplete="off" disabled aria-label="Mensagem" /><button id="sendBtn" class="button send-button" disabled aria-label="Enviar mensagem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 3-7.5 18-3.2-7.3L3 10.5 21 3Z"/><path d="M10.3 13.7 15 9"/></svg></button></form></section>
+
+        <section id="chatPanel" class="chat panel" aria-label="Chat da sala">
+          <div class="chat-header">
+            <div><span class="chat-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.3-.7L4 20l1.7-4A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h.01m3.5 0h.01m3.5 0h.01"/></svg></span><strong>Mensagens</strong></div>
+            <div class="chat-header-actions">
+              <button id="chatSoundToggle" class="chat-sound-toggle" type="button" aria-pressed="false" aria-label="Ativar som de novas mensagens" title="Ativar som de novas mensagens"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="M17 9a5 5 0 0 1 0 6"/><path d="m17 3 4 4m0-4-4 4" class="sound-muted-mark"/></svg><span>Som</span></button>
+              <span class="chat-connection"><i></i><span id="chatStatus">Desconectado</span></span>
+            </div>
+          </div>
+          <div id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text"><div class="notice"><span class="notice-lock" aria-hidden="true">⌑</span><span>As mensagens são trocadas diretamente entre vocês e não são salvas.</span></div></div>
+          <form id="chatForm" class="chat-compose"><label class="sr-only" for="chatInput">Escreva uma mensagem</label><input id="chatInput" maxlength="2000" placeholder="Escreva uma mensagem..." autocomplete="off" disabled aria-label="Mensagem" /><button id="sendBtn" class="btn send-button" disabled aria-label="Enviar mensagem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 3-7.5 18-3.2-7.3L3 10.5 21 3Z"/><path d="M10.3 13.7 15 9"/></svg></button></form>
+        </section>
       </div>
-      <div class="room-toolbar" aria-label="Controles da sala">
-        <button id="micBtn" class="button control-button toolbar-action" aria-label="Ativar microfone" aria-pressed="false"><span class="control-icon mic-icon" aria-hidden="true"><svg class="mic-on-icon" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/></svg><svg class="mic-off-icon" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8M3 3l18 18"/></svg></span><span class="sr-only">Microfone</span></button>
-        <button id="cameraBtn" class="button control-button toolbar-action" type="button" aria-label="Ativar câmera" aria-pressed="false"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg></span><span>Câmera</span></button>
-        <details id="screenSettings" class="device-settings screen-settings"><summary id="screenBtn" class="button button-primary control-button toolbar-action" aria-label="Compartilhar tela" aria-controls="qualityOptions" aria-expanded="false"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M8 20h8m-4-3.5V20"/></svg></span><span>Compartilhar</span></summary><div id="qualityOptions" class="more-menu quality-settings-fields" role="group" aria-label="Configurações da transmissão"><strong>Configurações da transmissão</strong><span class="quality-label">Perfil de tela</span><div class="quality-presets" role="group" aria-label="Perfil de tela"><button type="button" data-quality-preset="standard" aria-pressed="true">Padrão <small>720p, 30 fps</small></button><button type="button" data-quality-preset="performance" aria-pressed="false">Desempenho <small>480p, 30 fps</small></button><button type="button" data-quality-preset="high" aria-pressed="false">Alta qualidade <small>1080p, 30 fps</small></button><button type="button" data-quality-preset="maximum" aria-pressed="false">Máxima <small>1440p, 30 fps</small></button></div><span class="quality-label">Personalizar</span><label>Resolução<select id="screenResolution"><option value="480">480p</option><option value="720" selected>720p</option><option value="1080">1080p</option><option value="1440">1440p</option><option value="native">Nativa</option></select></label><label>Quadros por segundo<select id="screenFps"><option>30</option><option>60</option><option>120</option><option>144</option></select></label><label>Bitrate máximo desejado (Mbps)<input id="screenBitrate" type="number" min="1" max="50" value="8" step="1" /></label><label>Foco<select id="screenFocus"><option value="auto">Automático</option><option value="game">Jogar</option><option value="watch">Assistir</option></select></label><div id="qualityDiagnostics" class="quality-diagnostics" aria-live="polite">Aguardando conexão de mídia</div><button id="shareConfiguredBtn" class="button button-primary quality-share-button" type="button">Compartilhar tela</button></div></details>
-        <button id="youtubeToggleBtn" class="button control-button toolbar-action" type="button" aria-controls="youtubePanel" aria-expanded="false" aria-label="Abrir YouTube Watch Together"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="4"/><path d="m10 9 5 3-5 3z"/></svg></span><span>YouTube</span></button>
-        <button id="chatToggleBtn" class="button control-button toolbar-action chat-toggle" aria-controls="chatPanel" aria-expanded="true" aria-label="Ocultar chat"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.3-.7L4 20l1.7-4A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h.01m3.5 0h.01m3.5 0h.01"/></svg></span><span id="chatUnreadBadge" class="chat-unread-badge hidden" aria-hidden="true"></span></button>
-        <details id="deviceSettings" class="device-settings"><summary id="moreBtn" class="button control-button toolbar-action" aria-label="Mais opções" aria-controls="mediaSettingsMenu" aria-expanded="false"><span class="control-icon" aria-hidden="true">•••</span><span>Mais</span></summary><div id="mediaSettingsMenu" class="more-menu"><button id="devicesMenuToggle" class="more-menu-entry" type="button" aria-expanded="false" aria-controls="deviceOptions"><span>Dispositivos e áudio</span><span aria-hidden="true">›</span></button><div id="deviceOptions" class="device-settings-fields hidden" role="group" aria-label="Dispositivos e áudio"><label>Microfone<select id="microphoneSelect"><option value="">Padrão (microfone)</option></select></label><label>Câmera<select id="cameraSelect"><option value="">Padrão (câmera)</option></select></label><label>Processamento do microfone<select id="audioProfile"><option value="standard">Padrão (redução de eco e ruído)</option><option value="natural">Natural (sem processamento)</option></select></label></div></div></details>
-        <button id="leaveBtn" class="button button-leave toolbar-action" type="button" aria-label="Sair da sala" title="Sair da sala"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/></svg></span><span>Sair</span></button>
-      </div>
+
+      <nav class="room-toolbar" aria-label="Controles da sala">
+        <div class="tb-group">
+          <button id="micBtn" class="btn tb" aria-label="Ativar microfone" aria-pressed="false"><span class="control-icon mic-icon" aria-hidden="true"><svg class="mic-on-icon" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/></svg><svg class="mic-off-icon" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8M3 3l18 18"/></svg></span><span class="tb-label">Microfone</span></button>
+          <button id="cameraBtn" class="btn tb" type="button" aria-label="Ativar câmera" aria-pressed="false"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg></span><span class="tb-label">Câmera</span></button>
+        </div>
+        <div class="tb-group">
+          <details id="screenSettings" class="device-settings screen-settings"><summary id="screenBtn" class="btn btn-primary tb" aria-label="Compartilhar tela" aria-controls="qualityOptions" aria-expanded="false"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M8 20h8m-4-3.5V20"/></svg></span><span class="tb-label">Compartilhar tela</span></summary><div id="qualityOptions" class="more-menu quality-settings-fields" role="group" aria-label="Configurações da transmissão"><strong>Configurações da transmissão</strong><span class="quality-label">Perfil de tela</span><div class="quality-presets" role="group" aria-label="Perfil de tela"><button type="button" data-quality-preset="standard" aria-pressed="true">Padrão <small>720p, 30 fps</small></button><button type="button" data-quality-preset="performance" aria-pressed="false">Desempenho <small>480p, 30 fps</small></button><button type="button" data-quality-preset="high" aria-pressed="false">Alta qualidade <small>1080p, 30 fps</small></button><button type="button" data-quality-preset="maximum" aria-pressed="false">Máxima <small>1440p, 30 fps</small></button></div><span class="quality-label">Personalizar</span><label>Resolução<select id="screenResolution"><option value="480">480p</option><option value="720" selected>720p</option><option value="1080">1080p</option><option value="1440">1440p</option><option value="native">Nativa</option></select></label><label>Quadros por segundo<select id="screenFps"><option>30</option><option>60</option><option>120</option><option>144</option></select></label><label>Bitrate máximo desejado (Mbps)<input id="screenBitrate" type="number" min="1" max="50" value="8" step="1" /></label><label>Foco<select id="screenFocus"><option value="auto">Automático</option><option value="game">Jogar</option><option value="watch">Assistir</option></select></label><div id="qualityDiagnostics" class="quality-diagnostics" aria-live="polite">Aguardando conexão de mídia</div><button id="shareConfiguredBtn" class="btn btn-primary quality-share-button" type="button">Compartilhar tela</button></div></details>
+          <button id="youtubeToggleBtn" class="btn tb" type="button" aria-controls="youtubePanel" aria-expanded="false" aria-label="Abrir YouTube Watch Together"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="4"/><path d="m10 9 5 3-5 3z"/></svg></span><span class="tb-label">YouTube</span></button>
+        </div>
+        <div class="tb-group">
+          <button id="chatToggleBtn" class="btn tb chat-toggle" aria-controls="chatPanel" aria-expanded="true" aria-label="Ocultar chat"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.3-.7L4 20l1.7-4A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h.01m3.5 0h.01m3.5 0h.01"/></svg></span><span class="tb-label">Chat</span><span id="chatUnreadBadge" class="chat-unread-badge fx hidden" aria-hidden="true"></span></button>
+          <details id="deviceSettings" class="device-settings"><summary id="moreBtn" class="btn tb" aria-label="Mais opções" aria-controls="mediaSettingsMenu" aria-expanded="false"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg></span><span class="tb-label">Mais</span></summary><div id="mediaSettingsMenu" class="more-menu"><button id="devicesMenuToggle" class="more-menu-entry" type="button" aria-expanded="false" aria-controls="deviceOptions"><span>Dispositivos e áudio</span><span class="chevron" aria-hidden="true">›</span></button><div id="deviceOptions" class="device-settings-fields fx hidden" role="group" aria-label="Dispositivos e áudio"><label>Microfone<select id="microphoneSelect"><option value="">Padrão (microfone)</option></select></label><label>Câmera<select id="cameraSelect"><option value="">Padrão (câmera)</option></select></label><label>Processamento do microfone<select id="audioProfile"><option value="standard">Padrão (redução de eco e ruído)</option><option value="natural">Natural (sem processamento)</option></select></label></div></div></details>
+        </div>
+        <div class="tb-group">
+          <button id="leaveBtn" class="btn tb button-leave" type="button" aria-label="Sair da sala" title="Sair da sala"><span class="control-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/></svg></span><span class="tb-label">Sair</span></button>
+        </div>
+      </nav>
       <p class="footnote"><span aria-hidden="true">⌑</span> WebRTC usa criptografia em trânsito. Algumas redes precisam de um servidor TURN para retransmissão.</p>
     </section>
-    <div id="toast" class="toast hidden" role="alert"></div>
+    <div id="toast" class="toast fx hidden" role="alert"><span id="toastText"></span><i id="toastBar" class="toast-bar" aria-hidden="true"></i></div>
   </main>
   <footer class="site-footer">
     <div class="site-footer-inner">

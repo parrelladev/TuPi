@@ -7,7 +7,9 @@ import { QualitySettings } from './js/core/quality.js';
 import { ConnectionStats } from './js/core/stats.js';
 import { FileTransfers } from './js/features/files.js';
 import { YouTubeTogether } from './js/features/youtube.js';
+import { initFx, roomIn, enterStagger, shake, flash, transition } from './js/fx.js';
 
+initFx();
 const ui = createUI();
 const chat = new Chat(ui);
 const media = new Media(ui);
@@ -59,19 +61,22 @@ async function enterRoom(id, roomName = 'TuPi') {
   if (!window.isSecureContext) ui.notify('WebRTC requer HTTPS ou localhost para microfone e tela.');
   leaving = false;
   roomId = id;
-  document.body.classList.add('in-room');
-  ui.$('landing').classList.add('hidden');
-  ui.$('featureStrip')?.classList.add('hidden');
-  ui.$('room').classList.remove('hidden');
-  ui.$('room').classList.remove('chat-open', 'chat-collapsed');
-  const mobileLayout = window.matchMedia('(max-width: 760px)').matches;
-  if (!mobileLayout) ui.$('room').classList.add('chat-collapsed');
-  chat.markRead();
-  ui.setChatOpen(false);
-  ui.$('roomTitle').textContent = `Sala ${roomName}`;
   const invite = new URL(location.href);
   invite.searchParams.set('room', id);
-  ui.$('inviteUrl').value = invite.href;
+  await transition(() => {
+    document.body.classList.add('in-room');
+    ui.$('landing').classList.add('hidden');
+    ui.$('featureStrip')?.classList.add('hidden');
+    ui.$('room').classList.remove('hidden');
+    ui.$('room').classList.remove('chat-open', 'chat-collapsed');
+    const mobileLayout = window.matchMedia('(max-width: 760px)').matches;
+    if (!mobileLayout) ui.$('room').classList.add('chat-collapsed');
+    chat.markRead();
+    ui.setChatOpen(false);
+    ui.$('roomTitle').textContent = `Sala ${roomName}`;
+    ui.$('inviteUrl').value = invite.href;
+  });
+  roomIn(ui.$('room'));
   history.replaceState(null, '', `${invite.pathname}${invite.search}`);
   ui.status('Conectando ao servidor de sinalização...');
   try {
@@ -109,10 +114,13 @@ async function leaveRoom() {
   peer.reset();
   await media.stop();
   roomId = null;
-  ui.$('room').classList.add('hidden');
-  ui.$('landing').classList.remove('hidden');
-  document.body.classList.remove('in-room');
-  ui.$('featureStrip')?.classList.remove('hidden');
+  await transition(() => {
+    ui.$('room').classList.add('hidden');
+    ui.$('landing').classList.remove('hidden');
+    document.body.classList.remove('in-room');
+    ui.$('featureStrip')?.classList.remove('hidden');
+  });
+  enterStagger(ui.$('landing'));
   history.replaceState(null, '', location.pathname);
 }
 
@@ -127,17 +135,17 @@ async function resolveRoom(value) {
 ui.$('joinForm').addEventListener('submit', event => {
   event.preventDefault();
   const value = ui.$('roomCode').value.trim();
-  if (!value) { ui.notify('Digite o código completo ou cole o link de convite. A fruta é apenas o nome da sala.'); return; }
+  if (!value) { shake(ui.$('joinForm')); ui.notify('Digite o código completo ou cole o link de convite. A fruta é apenas o nome da sala.'); return; }
   let code = value;
   try {
     if (value.includes('://')) code = new URL(value).searchParams.get('room') || '';
   } catch { code = ''; }
   resolveRoom(code.toLowerCase())
     .then(({ roomId: id, roomName }) => enterRoom(id, roomName))
-    .catch(error => ui.notify(error.message));
+    .catch(error => { shake(ui.$('joinForm')); ui.notify(error.message); });
 });
 ui.$('copyBtn').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText(ui.$('inviteUrl').value); ui.notify('Link copiado!'); }
+  try { await navigator.clipboard.writeText(ui.$('inviteUrl').value); flash(ui.$('copyBtn')); ui.notify('Link copiado!'); }
   catch { ui.$('inviteUrl').select(); ui.notify('Selecione e copie o link do convite.'); }
 });
 ui.$('leaveBtn').addEventListener('click', leaveRoom);
