@@ -110,6 +110,13 @@ test('não existe mais criação nem consulta de salas', async () => {
   assert.equal((await fetch(`${baseUrl}/api/rooms/${'0'.repeat(32)}`)).status, 404);
 });
 
+test('diagnóstico HTTP responde sem conteúdo e sem cache', async () => {
+  const response = await fetch(`${baseUrl}/api/diagnostics/ping?n=1`);
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.equal(await response.text(), '');
+});
+
 test('o lobby único aceita dois e recusa o terceiro enquanto estiver cheio', async () => {
   const first = await connect();
   const second = await connect();

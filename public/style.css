@@ -46,6 +46,9 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+.temporary-diagnostics { position: fixed; bottom: 8px; left: 8px; z-index: 110; max-width: min(600px, calc(100vw - 16px)); max-height: 40vh; overflow: auto; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font-size: 12px; }
+.temporary-diagnostics summary { cursor: pointer; }
+.temporary-diagnostics button, .temporary-diagnostics select { margin: 4px; padding: 6px; }
 html { -webkit-tap-highlight-color: transparent; }
 body {
   margin: 0;

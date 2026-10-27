@@ -15,6 +15,8 @@ import { ScreenControls } from './js/features/screen.js';
 import { initFx, roomIn, enterStagger, transition } from './js/fx.js';
 import { initTheme } from './js/theme.js';
 
+import { diagnostics, mountDiagnostics } from './js/core/diagnostics.js';
+
 initTheme();
 initFx();
 const ui = createUI();
@@ -79,6 +81,18 @@ const peer = new PeerSession({
   }
 });
 const connectionStats = new ConnectionStats(ui, peer, quality);
+mountDiagnostics(() => {
+  const context = voice.context;
+  diagnostics.record('audio-context', { state: context?.state, baseLatencyMs: context?.baseLatency == null ? null : context.baseLatency * 1000,
+    outputLatencyMs: context?.outputLatency == null ? null : context.outputLatency * 1000, routed: voice.output.active, blocked: voice.output.blocked });
+  const settings = media.micStream?.getAudioTracks()[0]?.getSettings() || {};
+  diagnostics.record('capture', { streamPresent: Boolean(media.micStream), audioTrackCount: media.micStream?.getAudioTracks().length || 0,
+    latencyMs: settings.latency == null ? null : settings.latency * 1000,
+    sampleRate: settings.sampleRate, echoCancellation: settings.echoCancellation, noiseSuppression: settings.noiseSuppression, autoGainControl: settings.autoGainControl });
+  diagnostics.record('buffers', { chatBytes: chat.channel?.bufferedAmount, fileBytes: files.channel?.bufferedAmount,
+    controlBytes: youtube.channel?.bufferedAmount, fileActive: Boolean(files.transfer), fileProtocol: files.transfer?.version,
+    adaptiveLevel: quality.adaptiveLevel, screenActive: Boolean(media.screenStream), cameraActive: Boolean(media.cameraStream) });
+});
 
 // Abre o chat sozinho quando chega mensagem ou pedido de arquivo.
 function openChat() {

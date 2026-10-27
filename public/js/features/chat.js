@@ -1,3 +1,4 @@
+import { diagnostics } from '../core/diagnostics.js';
 export class Chat {
   constructor(ui) {
     this.ui = ui;
@@ -108,6 +109,7 @@ export class Chat {
     channel.onclose = () => this.ui.setChatConnected(false);
     channel.onerror = () => this.ui.notify('O canal de mensagens apresentou um erro.');
     channel.onmessage = event => {
+      const receivedAt = performance.now();
       if (typeof event.data === 'string' && event.data.length <= 4000) {
         this.ui.addMessage(this.ui.getRemoteName(), event.data);
         this.onIncoming?.('message', event.data);
@@ -115,6 +117,7 @@ export class Chat {
           this.unread = true;
           this.ui.setChatUnread(true);
         }
+        diagnostics.record('chat-applied', { ms: performance.now() - receivedAt });
         this.playNotification('message');
       }
     };
@@ -127,6 +130,7 @@ export class Chat {
     if (!text || this.channel?.readyState !== 'open') return;
     try {
       this.channel.send(text);
+      diagnostics.record('chat-sent', { bufferedBytes: this.channel.bufferedAmount });
       this.ui.addMessage('Você', text, true);
       input.value = '';
       this.autosize();

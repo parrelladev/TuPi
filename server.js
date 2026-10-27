@@ -97,6 +97,9 @@ function clientIp(req) {
 const server = http.createServer((req, res) => {
   setSecurityHeaders(res);
   const url = new URL(req.url, 'http://localhost');
+  if (req.method === 'GET' && url.pathname === '/api/diagnostics/ping') {
+    res.writeHead(204, { 'Cache-Control': 'no-store' }); res.end(); return;
+  }
   if (req.method === 'GET' && url.pathname === '/api/config') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify({ iceServers })); return;
@@ -122,6 +125,7 @@ const server = http.createServer((req, res) => {
     '/js/core/peer.js': 'js/core/peer.js',
     '/js/core/quality.js': 'js/core/quality.js',
     '/js/core/stats.js': 'js/core/stats.js',
+    '/js/core/diagnostics.js': 'js/core/diagnostics.js',
     '/js/features/chat.js': 'js/features/chat.js',
     '/js/features/files.js': 'js/features/files.js',
     '/js/features/stream-save.js': 'js/features/stream-save.js',

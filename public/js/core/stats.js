@@ -1,3 +1,4 @@
+import { diagnostics } from './diagnostics.js';
 export class ConnectionStats {
   constructor(ui, peer, quality, intervalMs = 2000) {
     this.ui = ui;
@@ -27,14 +28,19 @@ export class ConnectionStats {
   async sample() {
     const pc = this.peer.pc;
     if (!pc || pc.connectionState === 'closed') {
+      diagnostics.statsUnavailable('no-connection');
       this.ui.setConnectionDiagnostics('Aguardando conexão de mídia');
       this.ui.setConnectionQuality(null);
       return;
     }
     try {
-      const report = await pc.getStats();
+      let report;
+      try { report = await pc.getStats(); }
+      catch (error) { if (this.peer.pc === pc) diagnostics.statsUnavailable('get-stats-failed'); throw error; }
       const now = performance.now();
+      if (this.peer.pc !== pc) return;
       const rows = [...report.values()];
+      diagnostics.stats(rows, pc);
       const videos = rows.filter(row => row.type === 'outbound-rtp' && (row.kind || row.mediaType) === 'video' && !row.isRemote);
       const inbound = rows.filter(row => row.type === 'inbound-rtp' && (row.kind || row.mediaType) === 'video');
       const pair = rows.find(row => row.type === 'candidate-pair' && row.state === 'succeeded' && (row.selected || row.nominated)) ||

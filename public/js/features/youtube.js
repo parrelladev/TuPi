@@ -1,3 +1,4 @@
+import { diagnostics } from '../core/diagnostics.js';
 const DEFAULT_VIDEO_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 
 const VIDEO_ID = /^[a-zA-Z0-9_-]{11}$/;
@@ -220,7 +221,7 @@ export class YouTubeTogether {
           onReady: () => {
             this.setStatus('Player pronto. Pressione Reproduzir em cada navegador se o autoplay for bloqueado.');
             this.applyVolume();
-            if (this.pendingState) { const pending = this.pendingState; this.pendingState = null; this.applyRemoteState(pending.action, pending.seconds); }
+            if (this.pendingState) { const pending = this.pendingState; this.pendingState = null; this.applyRemoteState(pending.action, pending.seconds, pending.measurement); }
             clearInterval(this.progressTimer);
             this.progressTimer = setInterval(() => {
               if (!this.player) return;
@@ -259,10 +260,11 @@ export class YouTubeTogether {
   }
 
   onPlayerState(event) {
+    diagnostics.record('youtube-player-state', { state: event.data });
     const names = { '-1': 'Aguardando reprodução', 0: 'Vídeo encerrado', 1: 'Reproduzindo', 2: 'Pausado', 3: 'Carregando vídeo', 5: 'Vídeo pronto' };
     this.setStatus(names[event.data] || 'Player atualizado.');
     if (this.pendingState && [1, 2, 5].includes(event.data)) {
-      const pending = this.pendingState; this.pendingState = null; this.applyRemoteState(pending.action, pending.seconds);
+      const pending = this.pendingState; this.pendingState = null; this.applyRemoteState(pending.action, pending.seconds, pending.measurement);
     }
     if (!this.remoteAction && [1, 2].includes(event.data)) this.publishState(event.data === 1 ? 'play' : 'pause', true);
   }
@@ -284,6 +286,7 @@ export class YouTubeTogether {
     const command = { type: 'command', action, seconds, at: Date.now(), videoId: this.videoId, clock: this.clock, peerId: this.peerId };
     this.lastCommand = { clock: command.clock, peerId: command.peerId };
     this.send(command);
+    diagnostics.record('youtube-command-send-attempt', { action, open: this.channel?.readyState === 'open', bufferedBytes: this.channel?.bufferedAmount });
     if (fromPlayer) return;
   }
 
@@ -293,6 +296,7 @@ export class YouTubeTogether {
   }
 
   receive(raw) {
+    const receivedAt = performance.now();
     if (typeof raw !== 'string' || raw.length > 2000) return;
     let message; try { message = JSON.parse(raw); } catch { return; }
     if (!message || typeof message !== 'object' || Array.isArray(message) || typeof message.type !== 'string') return;
@@ -320,11 +324,12 @@ export class YouTubeTogether {
     if (message.type === 'command' && ['play', 'pause', 'seek'].includes(message.action) && Number.isFinite(message.seconds) && message.seconds >= 0 && message.seconds <= 86400 && Number.isSafeInteger(message.at) && Math.abs(Date.now() - message.at) < 24 * 60 * 60 * 1000 && VIDEO_ID.test(message.videoId || '')) {
       const incoming = { clock: Number.isSafeInteger(message.clock) && message.clock >= 0 ? message.clock : 0, peerId: typeof message.peerId === 'string' ? message.peerId.slice(0, 128) : '' };
       this.clock = Math.max(this.clock, incoming.clock);
-      if (this.compare(incoming, this.lastCommand) <= 0) return;
+      if (this.compare(incoming, this.lastCommand) <= 0) { diagnostics.record('youtube-command-stale'); return; }
       this.lastCommand = incoming;
       if (message.videoId !== this.videoId) { this.ui.$('youtubeUrl').value = `https://youtu.be/${message.videoId}`; void this.loadVideo(message.videoId); }
       const elapsed = Number.isFinite(message.at) ? Math.max(0, (Date.now() + this.clockOffset - message.at) / 1000) : 0;
-      this.applyRemoteState(message.action, message.seconds + (message.action === 'play' ? elapsed : 0));
+      diagnostics.record('youtube-command-received', { action: message.action });
+      this.applyRemoteState(message.action, message.seconds + (message.action === 'play' ? elapsed : 0), diagnostics.running ? { receivedAt, phase: diagnostics.phase } : undefined);
       return;
     }
     if (message.type === 'snapshot' && !this.isHost && message.videoId === this.videoId && Number.isFinite(message.seconds) && message.seconds >= 0 && message.seconds <= 86400 && Number.isSafeInteger(message.at) && Math.abs(Date.now() - message.at) < 24 * 60 * 60 * 1000 && ['play', 'pause'].includes(message.action)) {
@@ -336,8 +341,11 @@ export class YouTubeTogether {
   compare(a, b) { return a.clock - b.clock || a.peerId.localeCompare(b.peerId); }
   formatTime(value) { const seconds = Math.max(0, Math.floor(value || 0)); return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`; }
 
-  applyRemoteState(action, seconds) {
-    if (!this.player) { this.pendingState = { action, seconds }; return; }
+  applyRemoteState(action, seconds, measurement) {
+    if (!this.player) {
+      if (this.pendingState?.measurement) diagnostics.record('youtube-command-superseded', {}, this.pendingState.measurement.phase);
+      this.pendingState = { action, seconds, measurement }; return;
+    }
     this.remoteAction = true;
     const current = this.player.getCurrentTime() || 0;
     const drift = seconds - current;
@@ -352,6 +360,7 @@ export class YouTubeTogether {
     }
     if (action === 'seek') this.player.seekTo(Math.max(0, seconds), true);
     else this.applyAction(action);
+    if (measurement) diagnostics.record('youtube-api-applied', { action, ms: performance.now() - measurement.receivedAt }, measurement.phase);
     setTimeout(() => { this.remoteAction = false; }, 800);
   }
 

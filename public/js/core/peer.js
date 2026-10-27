@@ -1,3 +1,4 @@
+import { diagnostics } from './diagnostics.js';
 export class PeerSession {
   constructor({ rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost }) {
     Object.assign(this, { rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost });
@@ -36,6 +37,7 @@ export class PeerSession {
     pc.ontrack = event => this.handleTrack(event, pc);
     pc.onconnectionstatechange = () => {
       if (this.pc !== pc) return;
+      diagnostics.record('connection-state', { state: pc.connectionState });
       clearTimeout(this.restartTimer);
       if (pc.connectionState === 'connected') { clearTimeout(this.lostTimer); this.lostTimer = null; this.ui.status('Conectado diretamente (ou via relay TURN)'); this.onConnected?.(); }
       // Se o ICE não se recuperar sozinho em 12 s, avisa o app para tentar reconectar.
@@ -47,6 +49,7 @@ export class PeerSession {
     };
     pc.ondatachannel = event => this.attachDataChannel(event.channel);
     if (initiator) {
+      if (diagnostics.enabled) diagnostics.attach(pc.createDataChannel('diagnostics', { ordered: true }));
       this.chat.attach(pc.createDataChannel('messages', { ordered: true }));
       this.files.attach(pc.createDataChannel('files', { ordered: true }));
       this.youtube.attach(pc.createDataChannel('control', { ordered: true }), true);
@@ -60,6 +63,7 @@ export class PeerSession {
     else if (channel.label === 'files') this.files.attach(channel);
     else if (channel.label === 'control') this.youtube.attach(channel, false);
     else if (channel.label === 'presence') this.presence.attach(channel);
+    else if (channel.label === 'diagnostics' && diagnostics.enabled) diagnostics.attach(channel);
     else channel.close();
   }
 
@@ -145,6 +149,7 @@ export class PeerSession {
 
   reset() {
     clearTimeout(this.restartTimer); this.restartTimer = null; clearTimeout(this.lostTimer); this.lostTimer = null; this.restartingIce = false; this.isInitiator = false;
+    diagnostics.detach();
     this.chat.detach(); this.files.detach(); this.youtube.detach(); this.presence.detach(); this.media.detachSenders();
     if (this.pc) { this.pc.ontrack = this.pc.onicecandidate = this.pc.ondatachannel = this.pc.onconnectionstatechange = null; this.pc.close(); this.pc = null; }
     this.pendingCandidates = [];
