@@ -177,8 +177,6 @@ input[type=range] { padding: 0; accent-color: var(--pink); box-shadow: none; bor
 .room-brand { display: flex; flex: none; padding: 2px 6px; border-radius: 12px; transition: transform .4s var(--spring); }
 .room-brand:hover { transform: scale(1.06); }
 .room-brand img { width: 108px; }
-.room-code { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 8px 0 16px; border-radius: 99px; background: var(--surface-2); }
-.room-code h2 { font-size: 14px; font-weight: 650; letter-spacing: -.2px; }
 .room-header-tools { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .status-chip { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); color: var(--warn); animation: pulse-dot 1.8s ease-out infinite; transition: background-color .3s; }
@@ -596,8 +594,6 @@ body.in-room { height: 100dvh; overflow: hidden; }
   .hero-reassurance { font-size: 10px; gap: 6px; white-space: nowrap; }
   .room-header { gap: 8px; padding: 9px 10px; }
   .room-brand img { width: 84px; }
-  .room-code { flex: 1; min-width: 0; min-height: 40px; padding: 0 6px 0 12px; gap: 5px; }
-  .room-code h2 { overflow: hidden; text-overflow: ellipsis; font-size: 12px; white-space: nowrap; }
   .copy-room-link { flex: none; width: 28px; height: 28px; }
   .room-header-tools { gap: 6px; }
   .status { display: none; }
@@ -661,7 +657,6 @@ body.in-room { height: 100dvh; overflow: hidden; }
 @media (max-width: 380px) {
   .room-brand img { width: 70px; }
   .room-header { gap: 6px; }
-  .room-code h2 { font-size: 11px; }
   .hero-reassurance { font-size: 9px; gap: 5px; }
   .tb .control-icon svg { width: 20px; height: 20px; }
 }

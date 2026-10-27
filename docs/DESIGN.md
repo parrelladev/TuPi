@@ -106,7 +106,7 @@ Tela de pré-entrada inspirada no "Pronto para participar?" do Google Meet. Não
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│ header: [logo] [Chamada]  [☀] ● status ⟳ [👥 2]            │
+│ header: [logo]                  ● status ⟳ [👥 2]            │
 ├───────────────────────────────────────────┬────────────────┤
 │ stage                                     │ chat (340 px)  │
 │  youtube-panel (opcional)                 │  cabeçalho     │
@@ -119,7 +119,7 @@ Tela de pré-entrada inspirada no "Pronto para participar?" do Google Meet. Não
 └────────────────────────────────────────────────────────────┘
 ```
 
-- **Cabeçalho:** logo, pílula "Chamada", chip de status com ponto colorido (âmbar = aguardando, verde = conectado, vermelho = erro, via `data-tone`), botão circular **Reconectar** (`#reconnectBtn`) dentro do chip e contador de participantes. O botão continua visível no mobile, onde o texto do status é escondido.
+- **Cabeçalho:** logo, chip de status com ponto colorido (âmbar = aguardando, verde = conectado, vermelho = erro, via `data-tone`), botão circular **Reconectar** (`#reconnectBtn`) dentro do chip e contador de participantes. O botão continua visível no mobile, onde o texto do status é escondido.
 - **Palco:** `.screen-area` (raio 22 px) com badge de estado, botão "Ativar áudio recebido", grade de telas (1 ou 2 colunas) e, sem tela compartilhada, a **tela de participantes** (seção 6.1). As miniaturas de câmera no canto superior direito só aparecem enquanto há uma tela compartilhada; sem tela, a câmera aparece dentro do card de cada pessoa.
 - **Barra de voz** (`#voiceBar`): logo abaixo do palco, sempre visível, inclusive durante o compartilhamento de tela (seção 6.1).
 - **Chat:** cabeçalho (título, botão Som, status), mensagens, painel de transferência de arquivo (criado por `files.js`) e composer. Começa recolhido no desktop e aberto sob demanda; no mobile vira overlay.
