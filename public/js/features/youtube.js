@@ -1,3 +1,5 @@
+const DEFAULT_VIDEO_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+
 const VIDEO_ID = /^[a-zA-Z0-9_-]{11}$/;
 
 function parseVideoId(value) {
@@ -166,7 +168,7 @@ export class YouTubeTogether {
     if (this.player) { this.player.destroy(); this.player = null; }
     this.ui.$('youtubePlayer').replaceChildren();
     this.ui.$('youtubeVideoTitle').textContent = 'YouTube Watch Together';
-    this.ui.$('youtubeUrl').value = '';
+    this.ui.$('youtubeUrl').value = DEFAULT_VIDEO_URL;
     this.videoId = null; this.pendingState = null;
     this.sharedVolume = 100;
     this.renderVolume();
