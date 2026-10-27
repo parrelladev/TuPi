@@ -117,12 +117,25 @@ export class Media {
       await this.screenSender?.replaceTrack(track);
       const audioTrack = stream.getAudioTracks()[0] || null;
       await this.screenAudioSender?.replaceTrack(audioTrack);
-      if (wantAudio && !audioTrack) this.ui.notify('O navegador não compartilhou o áudio. Na janela de seleção, marque a opção de compartilhar áudio (Chrome ou Edge).');
+      const note = audioTrack ? '' : this.noAudioReason(track, wantAudio);
+      this.ui.setScreenAudioNote(note);
+      if (wantAudio && !audioTrack) this.ui.notify(`O navegador não enviou o áudio: ${note}`);
       this.ui.renderScreen(stream, this.remoteScreenStream);
       await this.quality?.applySource();
       return true;
     } catch (error) { this.reportCaptureError(error, 'tela'); return false; }
     finally { this.screenBusy = false; }
+  }
+
+  // Explica por que a captura veio sem áudio, conforme o que foi escolhido na janela do navegador.
+  noAudioReason(track, wantAudio) {
+    if (!wantAudio) return 'a opção "Compartilhar áudio da tela" está desmarcada';
+    const surface = track.getSettings?.().displaySurface;
+    const mac = /Mac/i.test(navigator.userAgent);
+    if (surface === 'window') return 'janelas não têm áudio; compartilhe uma aba ou a tela inteira';
+    if (surface === 'browser') return 'marque "Compartilhar áudio da guia" na janela de seleção antes de confirmar';
+    if (surface === 'monitor') return mac ? 'no macOS o navegador só captura áudio de abas; compartilhe uma aba' : 'marque "Compartilhar áudio do sistema" na janela de seleção antes de confirmar';
+    return 'marque a opção de compartilhar áudio na janela de seleção (Chrome ou Edge)';
   }
 
   reportCaptureError(error, feature) {
@@ -142,7 +155,7 @@ export class Media {
     if (source === 'screen') await this.screenAudioSender?.replaceTrack(null);
     if (source === 'mic') this.ui.setMicState('off');
     if (source === 'camera') this.ui.renderCamera(null, this.remoteCameraStream);
-    if (source === 'screen') this.ui.renderScreen(null, this.remoteScreenStream);
+    if (source === 'screen') { this.ui.setScreenAudioNote(''); this.ui.renderScreen(null, this.remoteScreenStream); }
   }
 
   async changeDevice(kind, deviceId) {

@@ -6,6 +6,8 @@ export function createUI() {
   const $ = id => document.getElementById(id);
   let effectiveScreenQuality = '';
   let localScreenAudio = false;
+  let screenAudioNote = '';
+  const noAudioLabel = () => ' · sem áudio';
   let unreadChatCount = 0;
   let remoteFlags = { camera: true, screen: true, screenAudio: false };
   let lastCamera = [null, null];
@@ -38,6 +40,7 @@ export function createUI() {
     $('status').closest('.status-chip').dataset.tone = tone;
   }
   const getRemoteFlags = () => remoteFlags;
+  function setScreenAudioNote(note) { screenAudioNote = note; $('screenBadge').title = note; }
   function setScreenAudio(stream) {
     const element = $('screenAudio');
     element.srcObject = stream;
@@ -181,7 +184,7 @@ export function createUI() {
     let badge = hasBoth ? 'Duas telas ativas' : hasRemote ? 'Tela do convidado' : hasLocal ? 'Sua tela compartilhada' : 'Aguardando compartilhamento';
     localScreenAudio = Boolean(localTrack && localStream.getAudioTracks().some(track => track.readyState === 'live'));
     if (hasLocal && effectiveScreenQuality) badge += ` · ${effectiveScreenQuality}`;
-    if (hasLocal && !hasBoth) badge += localScreenAudio ? ' · com áudio' : ' · sem áudio';
+    if (hasLocal && !hasBoth) badge += localScreenAudio ? ' · com áudio' : noAudioLabel();
     if (hasRemote && !hasBoth) badge += remoteFlags.screenAudio ? ' · com áudio' : ' · sem áudio';
     const badgeChanged = $('screenBadge').textContent.trim() !== badge;
     $('screenBadge').innerHTML = '<i></i> ' + badge;
@@ -276,7 +279,7 @@ export function createUI() {
     if (!$('localMediaTile').classList.contains('hidden')) {
       const badge = $('screenBadge');
       const indicator = document.createElement('i');
-      badge.replaceChildren(indicator, document.createTextNode(` Sua tela compartilhada · ${effectiveScreenQuality}${localScreenAudio ? ' · com áudio' : ' · sem áudio'}`));
+      badge.replaceChildren(indicator, document.createTextNode(` Sua tela compartilhada · ${effectiveScreenQuality}${localScreenAudio ? ' · com áudio' : noAudioLabel()}`));
     }
   }
   function setConnectionDiagnostics(message) {
@@ -329,5 +332,5 @@ export function createUI() {
     setAudioPlaybackBlocked(false);
   }
 
-  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, setScreenLocked, isScreenLocked, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setConnectionQuality, getTranscript, setCodecCapabilities, closeShareSettings, clearRoomView };
+  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, setScreenAudioNote, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, setScreenLocked, isScreenLocked, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setConnectionQuality, getTranscript, setCodecCapabilities, closeShareSettings, clearRoomView };
 }
