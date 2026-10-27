@@ -108,7 +108,9 @@ export class Media {
       const apiError = this.mediaApiError('O compartilhamento de tela'); if (apiError) throw new Error(apiError);
       if (typeof navigator.mediaDevices.getDisplayMedia !== 'function') throw new Error('Este navegador ou dispositivo não oferece compartilhamento de tela. Use um navegador de desktop recente.');
       const wantAudio = Boolean(this.ui.$('shareAudioCheck')?.checked);
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: this.quality?.captureConstraints() || { frameRate: 20 }, audio: wantAudio });
+      // Áudio da tela sem processamento de voz (eco, ruído, ganho), que estragaria música e vídeos.
+      const audio = wantAudio ? { echoCancellation: false, noiseSuppression: false, autoGainControl: false } : false;
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: this.quality?.captureConstraints() || { frameRate: 20 }, audio, systemAudio: 'include' });
       this.screenStream = stream;
       const track = stream.getVideoTracks()[0];
       track.onended = () => { if (this.screenStream === stream) void this.stopSource('screen'); };

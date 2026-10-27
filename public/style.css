@@ -772,3 +772,6 @@ img.logo-dark { display: none; }
 .end-stats dd { margin: 2px 0 0; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .end-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; }
 .end-actions .btn { gap: 6px; }
+
+/* O cabeçalho fica acima do conteúdo para o popover de conexão não ser coberto. */
+.room-header { position: relative; z-index: 30; }

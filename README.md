@@ -143,3 +143,10 @@ A interface usa [Phosphor Icons](https://phosphoricons.com/) (licença MIT), emp
 - **Chat:** `Enter` envia e `Shift+Enter` quebra a linha; o campo cresce até 5 linhas.
 - **Chamada encerrada:** ao sair (ou quando a outra pessoa sai) aparece uma tela com a duração, o número de mensagens e o botão **Copiar conversa**; **Voltar ao lobby** volta para a tela inicial.
 - **Cloudflare Tunnel:** ele só carrega a página e a sinalização (WebSocket). O áudio, o vídeo e os arquivos vão direto entre os navegadores (ou pelo TURN, se configurado), então o túnel não limita a velocidade; o indicador acima mostra se a rota é direta ou por relé.
+
+### Sem som ao compartilhar a tela?
+
+O selo sobre a tela mostra **com áudio** ou **sem áudio** (nos dois lados). Se mostrar "sem áudio" em quem compartilha, o navegador não entregou o som:
+- Só **Chrome e Edge** capturam áudio da tela; Firefox e Safari não.
+- Na janela de seleção do navegador, escolha **uma aba** (marque "Compartilhar áudio da guia") ou **a tela inteira** (marque "Compartilhar áudio do sistema"). Compartilhar uma **janela** não inclui áudio.
+- Se mostrar "com áudio" em quem compartilha e quem assiste não ouve, veja o botão de som no canto da tela compartilhada (pode estar mudo) e o alto-falante escolhido em **Mais > Dispositivos e áudio**.

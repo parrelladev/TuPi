@@ -5,6 +5,7 @@ const TOAST_MS = 4300;
 export function createUI() {
   const $ = id => document.getElementById(id);
   let effectiveScreenQuality = '';
+  let localScreenAudio = false;
   let unreadChatCount = 0;
   let remoteFlags = { camera: true, screen: true, screenAudio: false };
   let lastCamera = [null, null];
@@ -40,7 +41,8 @@ export function createUI() {
   function setScreenAudio(stream) {
     const element = $('screenAudio');
     element.srcObject = stream;
-    if (stream) element.play().catch(() => {});
+    // Se o navegador bloquear o autoplay, tenta de novo no próximo toque ou clique.
+    if (stream) element.play().catch(() => { document.addEventListener('pointerdown', () => { element.play().catch(() => {}); }, { once: true }); });
   }
 
   const transcript = [];
@@ -177,7 +179,10 @@ export function createUI() {
     $('screenViews').parentElement.classList.toggle('active', hasLocal || hasRemote);
     $('screenPlaceholder').classList.toggle('hidden', hasLocal || hasRemote);
     let badge = hasBoth ? 'Duas telas ativas' : hasRemote ? 'Tela do convidado' : hasLocal ? 'Sua tela compartilhada' : 'Aguardando compartilhamento';
+    localScreenAudio = Boolean(localTrack && localStream.getAudioTracks().some(track => track.readyState === 'live'));
     if (hasLocal && effectiveScreenQuality) badge += ` · ${effectiveScreenQuality}`;
+    if (hasLocal && !hasBoth) badge += localScreenAudio ? ' · com áudio' : ' · sem áudio';
+    if (hasRemote && !hasBoth) badge += remoteFlags.screenAudio ? ' · com áudio' : ' · sem áudio';
     const badgeChanged = $('screenBadge').textContent.trim() !== badge;
     $('screenBadge').innerHTML = '<i></i> ' + badge;
     if (badgeChanged) swap($('screenBadge'));
@@ -271,7 +276,7 @@ export function createUI() {
     if (!$('localMediaTile').classList.contains('hidden')) {
       const badge = $('screenBadge');
       const indicator = document.createElement('i');
-      badge.replaceChildren(indicator, document.createTextNode(` Sua tela compartilhada · ${effectiveScreenQuality}`));
+      badge.replaceChildren(indicator, document.createTextNode(` Sua tela compartilhada · ${effectiveScreenQuality}${localScreenAudio ? ' · com áudio' : ' · sem áudio'}`));
     }
   }
   function setConnectionDiagnostics(message) {
