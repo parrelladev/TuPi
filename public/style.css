@@ -682,7 +682,6 @@ body.in-room { height: 100dvh; overflow: hidden; }
 .speaker-row { display: flex; align-items: center; gap: 8px; }
 .speaker-row select { flex: 1; min-width: 0; }
 .speaker-row .btn { padding: 8px 10px; font-size: 11px; }
-.menu-hint { margin: 4px 0 2px; padding: 8px 12px 6px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; line-height: 1.9; }
 kbd { display: inline-block; min-width: 18px; padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; background: var(--surface-2); color: var(--ink-2); font: 600 10px/1.6 inherit; text-align: center; }
 @media (max-width: 760px) { .screen-controls { right: 10px; bottom: 10px; } .sc-btn { width: 36px; height: 36px; } }
 
@@ -698,3 +697,14 @@ kbd { display: inline-block; min-width: 18px; padding: 0 5px; border: 1px solid 
   .person-controls .volume-text { display: none; }
   .person .avatar-picker { left: 0; translate: none; width: min(340px, calc(100vw - 28px)); }
 }
+.shortcuts-dialog { width: min(380px, calc(100vw - 32px)); padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow-lift); }
+.shortcuts-dialog::backdrop { background: rgb(0 0 0 / .45); backdrop-filter: blur(3px); }
+.shortcuts-dialog[open] { animation: menu-in .38s var(--spring); }
+.shortcuts-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.shortcuts-head h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; }
+.shortcuts-list { display: grid; gap: 4px; margin: 0; }
+.shortcuts-list > div { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
+.shortcuts-list dt { min-width: 38px; }
+.shortcuts-list dd { margin: 0; font-size: 13px; }
+.shortcuts-list kbd { font-size: 12px; }
+.shortcuts-note { margin: 12px 0 0; color: var(--muted); font-size: 11px; }

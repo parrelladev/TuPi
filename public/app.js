@@ -342,6 +342,13 @@ document.addEventListener('keydown', event => {
     }
   }
 });
+const shortcutsDialog = ui.$('shortcutsDialog');
+ui.$('shortcutsMenuBtn').addEventListener('click', () => {
+  deviceSettings.open = false;
+  if (!shortcutsDialog.open) shortcutsDialog.showModal();
+});
+ui.$('shortcutsClose').addEventListener('click', () => shortcutsDialog.close());
+shortcutsDialog.addEventListener('click', event => { if (event.target === shortcutsDialog) shortcutsDialog.close(); });
 // Atalhos: M microfone, V câmera, C chat, F tela cheia (ignorados ao digitar).
 document.addEventListener('keydown', event => {
   if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;

@@ -32,6 +32,7 @@
 .ph.ph-crop:before{content:"\e1d4"}
 .ph.ph-dots-three-outline:before{content:"\e204"}
 .ph.ph-download-simple:before{content:"\e20c"}
+.ph.ph-keyboard:before{content:"\e2d8"}
 .ph.ph-lock-simple:before{content:"\e308"}
 .ph.ph-microphone:before{content:"\e326"}
 .ph.ph-microphone-slash:before{content:"\e328"}
@@ -91,6 +92,7 @@
 .ph-fill.ph-crop:before{content:"\e1d4"}
 .ph-fill.ph-dots-three-outline:before{content:"\e204"}
 .ph-fill.ph-download-simple:before{content:"\e20c"}
+.ph-fill.ph-keyboard:before{content:"\e2d8"}
 .ph-fill.ph-lock-simple:before{content:"\e308"}
 .ph-fill.ph-microphone:before{content:"\e326"}
 .ph-fill.ph-microphone-slash:before{content:"\e328"}
