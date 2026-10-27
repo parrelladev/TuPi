@@ -1,5 +1,6 @@
 const CHUNK_SIZE = 64 * 1024;
-const MEMORY_LIMIT = 64 * 1024 * 1024;
+const MEMORY_LIMIT = 1024 * 1024 * 1024;
+const COMPACT_BYTES = 32 * 1024 * 1024;
 const HIGH_WATER = 512 * 1024;
 const LOW_WATER = 128 * 1024;
 
@@ -88,7 +89,7 @@ export class FileTransfers {
     const transfer = this.transfer; if (!transfer || transfer.role !== 'receiver') return;
     if (!window.showSaveFilePicker && transfer.size > MEMORY_LIMIT) {
       this.sendControl({ type: 'reject', id: transfer.id, reason: 'este navegador não salva arquivos grandes diretamente em disco' });
-      this.finish('Arquivo grande recusado: este navegador exige buffer em memória acima de 64 MiB'); return;
+      this.finish('Arquivo grande recusado: este navegador exige buffer em memória acima de 1 GiB'); return;
     }
     this.incoming.classList.add('hidden');
     try {
@@ -150,7 +151,13 @@ export class FileTransfers {
       const chunkNumber = transfer.nextChunk + 1;
       this.cancel(); this.setStatus(`Integridade não confirmada no bloco ${chunkNumber}; arquivo descartado`); return;
     }
-    if (transfer.writable) await transfer.writable.write(buffer); else transfer.parts.push(buffer);
+    if (transfer.writable) await transfer.writable.write(buffer);
+    else {
+      transfer.parts.push(buffer);
+      transfer.partBytes = (transfer.partBytes || 0) + buffer.byteLength;
+      // Agrupa em Blob a cada 32 MiB: o navegador pode manter o Blob em disco em vez de RAM.
+      if (transfer.partBytes >= COMPACT_BYTES) { transfer.parts = [new Blob(transfer.parts)]; transfer.partBytes = 0; }
+    }
     transfer.received += buffer.byteLength;
     const index = transfer.nextChunk++;
     transfer.expectedChunkHash = null;
