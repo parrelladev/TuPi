@@ -398,3 +398,8 @@ Atributos de dados de `.person`: `data-speaking` (fala), `data-present` (convida
 - **Seleção:** seletor Automático / Rápido / Compatível (guardado em `tupi-file-mode`). Automático escolhe o rápido a partir de 4 MiB; o painel indica a recomendação por arquivo. Escolhas fora da recomendação são permitidas e avisadas no status.
 - **Compatibilidade:** o receptor entende v2 e v3; se o receptor só conhecer v2 e rejeitar por protocolo, o remetente refaz a oferta em v2.
 - **Inalterado:** hash SHA-256 por bloco, ordem estrita, consentimento, limites e download em stream.
+
+### 6.6 Marca
+
+- Logos vetoriais em `public/assets`: `tupi-claro.svg` (letras escuras) e `tupi-escuro.svg` (letras claras), trocados por CSS conforme o tema (`.logo-light` / `.logo-dark`, respeitando o botão de tema e o sistema); `tupi-simbolo.svg` é o símbolo isolado. As versões PNG ficam como reserva.
+- `icon-192.png`, `icon-512.png` (PWA, notificações) e `favicon.ico` são gerados a partir do símbolo sobre fundo `#16131a`.

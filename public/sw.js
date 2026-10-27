@@ -5,7 +5,7 @@
 const CACHE = 'tupi-shell-v1';
 const PRECACHE = [
   '/', '/app.js', '/style.css', '/manifest.webmanifest',
-  '/assets/tupi-logo.png', '/assets/favicon.ico', '/assets/icon-192.png', '/assets/icon-512.png',
+  '/assets/tupi-claro.svg', '/assets/tupi-escuro.svg', '/assets/favicon.ico', '/assets/icon-192.png', '/assets/icon-512.png',
   '/js/ui.js', '/js/fx.js', '/js/theme.js', '/js/theme-boot.js',
   '/js/core/signaling.js', '/js/core/peer.js', '/js/core/quality.js', '/js/core/stats.js',
   '/js/features/chat.js', '/js/features/files.js', '/js/features/stream-save.js', '/js/features/youtube.js', '/js/features/media.js',

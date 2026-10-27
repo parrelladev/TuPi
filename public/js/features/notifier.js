@@ -20,7 +20,7 @@ export class Notifier {
     this.flash(title);
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     try {
-      const notification = new Notification(title, { body, tag: 'tupi', icon: '/assets/tupi-logo.png' });
+      const notification = new Notification(title, { body, tag: 'tupi', icon: '/assets/icon-192.png' });
       notification.onclick = () => { window.focus(); notification.close(); };
     } catch { /* alguns navegadores móveis exigem service worker */ }
   }
