@@ -48,7 +48,7 @@ HOST=127.0.0.1 PORT=3000 npm start
 - `RTCDataChannel` transporta texto diretamente entre os navegadores.
 - O aviso sonoro de novas mensagens vem ativado e toca para cada mensagem recebida; o botão **Som** permite silenciá-lo, e a preferência fica salva neste navegador. O áudio só começa após uma interação do usuário, conforme as regras do navegador. Mensagens recebidas com o chat fechado ou a aba em segundo plano acendem uma bolinha no botão **Chat** até o painel ser aberto.
 - Um canal `RTCDataChannel` separado transporta arquivos diretamente entre os navegadores. O recebimento pede consentimento, valida os blocos com SHA-256 encadeado e permite cancelar a transferência.
-- YouTube Watch Together usa um terceiro canal P2P para sincronizar o vídeo incorporado em cada navegador; o servidor TuPi não recebe nem retransmite vídeo.
+- YouTube Watch Together usa um terceiro canal P2P para sincronizar o vídeo incorporado em cada navegador; o servidor TuPi não recebe nem retransmite vídeo. Abrir ou fechar o YouTube é um evento compartilhado: o botão acende nos dois lados, o painel abre e fecha para as duas pessoas e o botão de compartilhar tela fica apagado enquanto o YouTube estiver aberto.
 - As salas e mensagens ficam somente em memória; as salas são removidas quando o último usuário desconecta.
 - Salas criadas sem ninguém entrar expiram após cinco minutos; quando a última pessoa sai, a sala é removida imediatamente. O servidor limita criação, consultas, conexões por endereço e mensagens de sinalização; os limites em processo único reduzem abuso básico, mas não substituem proteção distribuída.
 - Cabeçalhos CSP e de segurança restringem scripts e embeds ao TuPi e ao player do YouTube. O serviço não registra conteúdo de chat, arquivos, SDP ou mídia.
@@ -77,6 +77,7 @@ Na sala, abra **YouTube**, cole um link ou ID de vídeo e selecione **Abrir víd
 - O endereço da sala é um token de acesso: quem o conhece pode entrar, caso exista uma vaga.
 - Trate link e código como segredo de portador; eles não verificam a identidade da pessoa. Não publique convites nem registre URLs completas em logs de proxy, analytics ou anexos. A aplicação não registra convites e envia `Referrer-Policy: no-referrer`, mas o código permanece na URL/histórico do navegador e é enviado no caminho de consulta da API. Use HTTPS/WSS fora de localhost; quem opera o servidor/proxy pode conhecer o convite.
 - Salas e limites de requisição ficam em memória do processo. Rate limiting reduz abuso básico, mas não substitui proxy/WAF ou proteção distribuída em implantação pública.
+- O botão **Reconectar** (ícone de setas circulares, ao lado do status no cabeçalho da sala) refaz a sinalização e a conexão P2P sem sair da sala; fica vermelho quando a conexão está ruim.
 - A sinalização tenta reconectar com backoff limitado; o peer iniciador pode tentar ICE restart. Isso não garante recuperação em todas as redes; TURN pode ser necessário.
 - O TuPi não transmite áudio da aba/sistema durante compartilhamento de tela; apenas áudio do microfone. Áudio da captura de tela ainda não está implementado.
 - O navegador controla quais telas podem ser capturadas e pode bloquear autoplay até interação do usuário.

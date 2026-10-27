@@ -9,7 +9,8 @@ const moduleFiles = [
   'public/app.js', 'public/js/ui.js', 'public/js/fx.js', 'public/js/core/signaling.js',
   'public/js/core/peer.js', 'public/js/core/quality.js', 'public/js/core/stats.js',
   'public/js/features/chat.js', 'public/js/features/media.js',
-  'public/js/features/files.js', 'public/js/features/youtube.js'
+  'public/js/features/files.js', 'public/js/features/youtube.js',
+  'public/js/features/avatars.js', 'public/js/features/presence.js', 'public/js/features/voice.js'
 ];
 
 function check(file, module = false) {

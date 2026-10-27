@@ -57,7 +57,7 @@
           </button>
         </div>
         <div class="room-header-tools">
-          <span class="status-chip"><i class="status-dot" aria-hidden="true"></i><span id="status" class="status" role="status" aria-live="polite">Conectando...</span></span>
+          <span class="status-chip"><i class="status-dot" aria-hidden="true"></i><span id="status" class="status" role="status" aria-live="polite">Conectando...</span><button id="reconnectBtn" class="reconnect-btn" type="button" data-busy="false" aria-label="Tentar reconectar" title="Tentar reconectar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg></button></span>
           <span class="room-member-count" aria-label="Participantes na sala"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0m1-8a3 3 0 0 0 0-6m1 8a5 5 0 0 1 4 5"/></svg><span id="participantCount">1</span></span>
         </div>
       </header>
@@ -80,9 +80,46 @@
               <div id="localMediaTile" class="media-tile fx hidden"><video id="localScreenVideo" autoplay muted playsinline aria-label="Sua tela compartilhada"></video><span class="media-name">Você · Tela</span></div>
               <div id="remoteMediaTile" class="media-tile fx hidden"><video id="screenVideo" autoplay playsinline aria-label="Tela do convidado"></video><span class="media-name">Convidado · Tela</span></div>
             </div>
-            <div id="screenPlaceholder" class="screen-placeholder fx"><div class="empty-illustration" aria-hidden="true"><div class="empty-orbit"></div><div class="empty-monitor"><span>◫</span><i></i></div><div class="empty-person empty-person-one">V</div><div class="empty-person empty-person-two">?</div><div class="empty-star">✦</div></div><h3>A sala está pronta para vocês</h3><p>Compartilhe sua tela ou ligue o microfone para começar.</p><span class="waiting-label"><i></i> <span id="peerMediaStatus">Aguardando outra pessoa</span></span></div>
+            <div id="screenPlaceholder" class="screen-placeholder voice-stage fx">
+              <div class="voice-grid">
+                <article id="personLocal" class="person person-local" data-speaking="false" data-mic="off" aria-label="Você">
+                  <div class="person-media">
+                    <span class="speak-ring" aria-hidden="true"></span>
+                    <button id="avatarLocalBtn" class="avatar-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Trocar meu avatar"><span id="avatarLocal" class="avatar"></span><span class="avatar-edit" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20h4l11-11-4-4L4 16z"/></svg></span></button>
+                    <video id="cardLocalVideo" class="person-video fx hidden" autoplay muted playsinline aria-label="Sua câmera"></video>
+                  </div>
+                  <div class="person-info"><strong class="person-name">Você</strong><span id="stateLocal" class="person-state" role="status">Microfone desligado</span><span class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>
+                </article>
+                <article id="personRemote" class="person person-remote" data-speaking="false" data-present="false" data-mic="off" data-muted="false" aria-label="Convidado">
+                  <div class="person-media">
+                    <span class="speak-ring" aria-hidden="true"></span>
+                    <span class="avatar-btn static"><span id="avatarRemote" class="avatar"></span></span>
+                    <video id="cardRemoteVideo" class="person-video fx hidden" autoplay muted playsinline aria-label="Câmera do convidado"></video>
+                  </div>
+                  <div class="person-info"><strong class="person-name">Convidado</strong><span id="stateRemote" class="person-state" role="status">Aguardando outra pessoa</span><span class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>
+                </article>
+              </div>
+              <p class="voice-hint">Compartilhe sua tela ou ligue o microfone para começar.</p>
+              <span class="waiting-label"><i></i> <span id="peerMediaStatus">Aguardando outra pessoa</span></span>
+            </div>
             <span id="screenBadge" class="pill stage-status"><i></i> Aguardando compartilhamento</span>
             <button id="enableAudioBtn" class="btn audio-enable fx hidden" type="button">Ativar áudio recebido</button>
+          </div>
+          <div id="voiceBar" class="voice-bar panel" role="group" aria-label="Controles de voz">
+            <div class="vb-group vb-me">
+              <button id="avatarMini" class="avatar-mini" data-speaking="false" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Trocar meu avatar"><span id="miniLocalAvatar" class="avatar"></span></button>
+              <span class="vb-label">Você</span>
+              <button id="voiceMicBtn" class="vb-btn" type="button" aria-pressed="false" aria-label="Ativar microfone"><svg class="mic-on-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/></svg><svg class="mic-off-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8M3 3l18 18"/></svg></button>
+              <div class="meter" role="img" aria-label="Nível do seu microfone"><i id="micMeter"></i></div>
+            </div>
+            <div class="vb-group vb-peer">
+              <span id="miniRemote" class="avatar-mini static" data-speaking="false"><span id="miniRemoteAvatar" class="avatar"></span></span>
+              <span class="vb-label">Convidado</span>
+              <button id="remoteMuteBtn" class="vb-btn" type="button" aria-pressed="false" data-level="high" aria-label="Silenciar o convidado"><svg class="spk-base" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/></svg><svg class="spk-wave spk-wave-1" viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 9.5a3.5 3.5 0 0 1 0 5"/></svg><svg class="spk-wave spk-wave-2" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7a7 7 0 0 1 0 10"/></svg><svg class="spk-off" viewBox="0 0 24 24" aria-hidden="true"><path d="m17 9 4 4m0-4-4 4"/></svg></button>
+              <input id="remoteVolume" class="volume-slider" type="range" min="0" max="100" step="1" value="100" aria-label="Volume do convidado" />
+              <output id="remoteVolumeText" class="volume-text" for="remoteVolume">100%</output>
+            </div>
+            <div id="avatarPicker" class="avatar-picker panel fx hidden" role="listbox" aria-label="Escolher avatar"></div>
           </div>
           <audio id="remoteAudio" autoplay playsinline></audio>
         </section>

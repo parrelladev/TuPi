@@ -48,12 +48,17 @@ export function toastProgress(bar, ms) {
 }
 
 export function transition(update) {
-  if (still() || typeof document.startViewTransition !== 'function') { update(); return Promise.resolve(); }
-  return document.startViewTransition(update).finished.catch(() => {});
+  if (still() || document.hidden || typeof document.startViewTransition !== 'function') { update(); return Promise.resolve(); }
+  return new Promise(resolve => {
+    let done = false;
+    const once = () => { if (!done) { done = true; update(); resolve(); } };
+    setTimeout(once, 350);
+    try { document.startViewTransition(once); } catch { once(); }
+  });
 }
 
 function ripple(event) {
-  const target = event.target.closest?.('.btn, .join-button, .more-menu-entry, .quality-presets button, .chat-sound-toggle, .copy-room-link, .file-pick, .file-cancel, .incoming-file button');
+  const target = event.target.closest?.('.btn, .vb-btn, .reconnect-btn, .picker-option, .join-button, .more-menu-entry, .quality-presets button, .chat-sound-toggle, .copy-room-link, .file-pick, .file-cancel, .incoming-file button');
   if (!target || target.disabled || still()) return;
   const rect = target.getBoundingClientRect();
   const size = Math.max(rect.width, rect.height) * 2;

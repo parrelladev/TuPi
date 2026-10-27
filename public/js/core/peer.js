@@ -1,6 +1,6 @@
 export class PeerSession {
-  constructor({ rtcConfig, media, chat, files, youtube, ui, sendSignal, onPeerLeft }) {
-    Object.assign(this, { rtcConfig, media, chat, files, youtube, ui, sendSignal, onPeerLeft });
+  constructor({ rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft }) {
+    Object.assign(this, { rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft });
     this.pc = null;
     this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = null;
     this.pendingCandidates = [];
@@ -44,6 +44,7 @@ export class PeerSession {
       this.chat.attach(pc.createDataChannel('messages', { ordered: true }));
       this.files.attach(pc.createDataChannel('files', { ordered: true }));
       this.youtube.attach(pc.createDataChannel('control', { ordered: true }), true);
+      this.presence.attach(pc.createDataChannel('presence', { ordered: true }));
     }
     return pc;
   }
@@ -52,6 +53,7 @@ export class PeerSession {
     if (channel.label === 'messages') this.chat.attach(channel);
     else if (channel.label === 'files') this.files.attach(channel);
     else if (channel.label === 'control') this.youtube.attach(channel, false);
+    else if (channel.label === 'presence') this.presence.attach(channel);
     else channel.close();
   }
 
@@ -126,7 +128,7 @@ export class PeerSession {
 
   reset() {
     clearTimeout(this.restartTimer); this.restartTimer = null; this.restartingIce = false; this.isInitiator = false;
-    this.chat.detach(); this.files.detach(); this.youtube.detach(); this.media.detachSenders();
+    this.chat.detach(); this.files.detach(); this.youtube.detach(); this.presence.detach(); this.media.detachSenders();
     if (this.pc) { this.pc.ontrack = this.pc.onicecandidate = this.pc.ondatachannel = this.pc.onconnectionstatechange = null; this.pc.close(); this.pc = null; }
     this.pendingCandidates = [];
     this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = null;

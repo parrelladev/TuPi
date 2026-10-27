@@ -7,12 +7,16 @@ import { QualitySettings } from './js/core/quality.js';
 import { ConnectionStats } from './js/core/stats.js';
 import { FileTransfers } from './js/features/files.js';
 import { YouTubeTogether } from './js/features/youtube.js';
+import { Voice } from './js/features/voice.js';
+import { Presence } from './js/features/presence.js';
 import { initFx, roomIn, enterStagger, shake, flash, transition } from './js/fx.js';
 
 initFx();
 const ui = createUI();
 const chat = new Chat(ui);
 const media = new Media(ui);
+const voice = new Voice(ui, media);
+const presence = new Presence(ui, media, voice);
 const quality = new QualitySettings(ui, media);
 media.quality = quality;
 const files = new FileTransfers(ui, { shouldPause: () => quality.adaptiveLevel > 0 });
@@ -23,12 +27,26 @@ let roomId = null;
 let signaling = null;
 let leaving = false;
 
+youtube.onModeChange = open => {
+  ui.setScreenLocked(open);
+  if (open && media.screenStream) {
+    void media.stopSource('screen');
+    ui.notify('Compartilhamento de tela encerrado para abrir o YouTube.');
+  }
+};
+ui.$('screenBtn').addEventListener('click', event => {
+  if (!ui.isScreenLocked()) return;
+  event.preventDefault();
+  ui.notify('Feche o YouTube para compartilhar a tela.');
+});
+
 const peer = new PeerSession({
   rtcConfig,
   media,
   chat,
   files,
   youtube,
+  presence,
   ui,
   sendSignal: message => signaling?.send(message),
   onPeerLeft: () => {
@@ -112,6 +130,7 @@ async function leaveRoom() {
   signaling?.close();
   signaling = null;
   peer.reset();
+  youtube.leave();
   await media.stop();
   roomId = null;
   await transition(() => {
@@ -124,7 +143,47 @@ async function leaveRoom() {
   history.replaceState(null, '', location.pathname);
 }
 
+let reconnecting = false;
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function waitForReconnect(timeout) {
+  const end = Date.now() + timeout;
+  while (Date.now() < end) {
+    if (!roomId || leaving) return 'left';
+    if (ui.$('chatStatus').textContent === 'Conectado') return 'connected';
+    if (ui.$('participantCount').textContent === '1' && signaling?.isOpen() && /Aguardando outra pessoa/.test(ui.$('status').textContent)) return 'waiting';
+    await sleep(300);
+  }
+  return 'timeout';
+}
+
+async function reconnectRoom() {
+  if (!roomId || !signaling || reconnecting) return;
+  reconnecting = true;
+  ui.setReconnectBusy(true);
+  try {
+    if (ui.$('participantCount').textContent === '1' && signaling.isOpen()) {
+      peer.reset();
+      ui.status('Aguardando outra pessoa entrar...');
+      ui.notify('A conexão com o servidor está ativa. Aguardando outra pessoa entrar.');
+      return;
+    }
+    ui.status('Reconectando…');
+    ui.notify('Tentando reconectar…');
+    peer.reset();
+    await signaling.reconnect();
+    const result = await waitForReconnect(20000);
+    if (result === 'connected') ui.notify('Reconectado!');
+    else if (result === 'waiting') ui.notify('Reconectado ao servidor. Aguardando a outra pessoa.');
+    else if (result === 'timeout') { ui.status('Não foi possível reconectar.'); ui.notify('Não foi possível reconectar. Tente de novo ou entre novamente pelo link.'); }
+  } finally {
+    reconnecting = false;
+    ui.setReconnectBusy(false);
+  }
+}
+
 ui.$('createBtn').addEventListener('click', createRoom);
+ui.$('reconnectBtn').addEventListener('click', reconnectRoom);
 async function resolveRoom(value) {
   const response = await fetch(`/api/rooms/${encodeURIComponent(value)}`, { cache: 'no-store' });
   const result = await response.json();

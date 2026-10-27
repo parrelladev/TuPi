@@ -166,6 +166,9 @@ const server = http.createServer((req, res) => {
     '/js/features/youtube.js': 'js/features/youtube.js',
     '/js/features/media.js': 'js/features/media.js',
     '/js/fx.js': 'js/fx.js',
+    '/js/features/avatars.js': 'js/features/avatars.js',
+    '/js/features/presence.js': 'js/features/presence.js',
+    '/js/features/voice.js': 'js/features/voice.js',
     '/vendor/open-props.css': 'vendor/open-props.css',
     '/vendor/motion.js': 'vendor/motion.js',
     '/vendor/auto-animate.js': 'vendor/auto-animate.js'

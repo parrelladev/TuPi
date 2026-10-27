@@ -97,13 +97,60 @@ body (flex coluna, min-height 100dvh)
 └────────────────────────────────────────────────────────────┘
 ```
 
-- **Cabeçalho:** logo, pílula com nome da sala e botão de copiar, chip de status com ponto colorido (âmbar = aguardando, verde = conectado, vermelho = erro, via `data-tone`) e contador de participantes.
-- **Palco:** `.screen-area` (raio 22 px) com badge de estado, botão "Ativar áudio recebido", miniaturas de câmera no canto superior direito, grade de telas (1 ou 2 colunas) e placeholder ilustrado.
+- **Cabeçalho:** logo, pílula com nome da sala e botão de copiar, chip de status com ponto colorido (âmbar = aguardando, verde = conectado, vermelho = erro, via `data-tone`), botão circular **Reconectar** (`#reconnectBtn`) dentro do chip e contador de participantes. O botão continua visível no mobile, onde o texto do status é escondido.
+- **Palco:** `.screen-area` (raio 22 px) com badge de estado, botão "Ativar áudio recebido", grade de telas (1 ou 2 colunas) e, sem tela compartilhada, a **tela de participantes** (seção 6.1). As miniaturas de câmera no canto superior direito só aparecem enquanto há uma tela compartilhada; sem tela, a câmera aparece dentro do card de cada pessoa.
+- **Barra de voz** (`#voiceBar`): logo abaixo do palco, sempre visível, inclusive durante o compartilhamento de tela (seção 6.1).
 - **Chat:** cabeçalho (título, botão Som, status), mensagens, painel de transferência de arquivo (criado por `files.js`) e composer. Começa recolhido no desktop e aberto sob demanda; no mobile vira overlay.
 - **Dock** (`.room-toolbar`): cápsula de vidro com 4 grupos separados por linhas; botões de 80×62 px com ícone e rótulo (no mobile só ícones). **Compartilhar tela** é o botão primário.
 - **Menus** (`<details>`): *Compartilhar tela* (perfis de qualidade, personalização, diagnóstico, botão de iniciar) e *Mais* (Dispositivos e áudio). Abrem para cima, centralizados.
-- **YouTube Watch Together:** painel acima do palco; ao abrir, esconde a `.screen-area`.
+- **YouTube Watch Together:** painel acima do palco; ao abrir, esconde a `.screen-area`. Abrir e fechar é um evento compartilhado (seção 6.1.2).
 - **Toast** no canto inferior direito, com barra de tempo.
+
+### 6.1 Tela de participantes e controles de voz
+
+```
+┌──────────────────────────────────────────────────────┐
+│  ┌───────────────┐          ┌───────────────┐        │
+│  │   (avatar)    │          │   (avatar)    │        │
+│  │  ou câmera    │          │  ou câmera    │        │
+│  └───────────────┘          └───────────────┘        │
+│       Você                     Convidado             │
+│   Falando ▂▅▇▅▂            Microfone desligado        │
+├──────────────────────────────────────────────────────┤
+│ (●) Você  [🎤] ▬▬▬        (●) Convidado [🔊] ━━●━ 35% │
+└──────────────────────────────────────────────────────┘
+```
+
+- **Cards lado a lado** (`#personLocal`, `#personRemote`): avatar circular grande em um cartão com cor própria (rosa para você, roxo para o convidado), nome, estado em texto ("Falando", "Ouvindo", "Microfone desligado", "Silenciado por você", "Aguardando outra pessoa") e cinco barras de voz. Ficam lado a lado também no mobile.
+- **Câmera no card:** com a câmera ligada, o vídeo ocupa o cartão no lugar do avatar (o seu aparece espelhado). Ao desligar, o avatar volta.
+- **Convidado ausente:** o card fica translúcido, com borda tracejada e silhueta cinza.
+- **Avatares:** seis ilustrações próprias, geométricas e simples, inspiradas na fauna e na cultura dos povos originários do Brasil: Arara, Onça, Tucano, Boto, Jabuti e Cocar (`public/js/features/avatars.js`). A escolha fica salva no navegador (`tupi-avatar`) e é sincronizada com a outra pessoa pelo canal de presença. Para trocar, clique no avatar do seu card (aparece um lápis ao passar o mouse) ou na miniatura da barra; abre um seletor com os seis.
+- **Barra de voz:** à esquerda, miniatura sua (com anel de fala), botão de microfone (liga/desliga o mesmo microfone da dock) e medidor de nível; à direita, miniatura do convidado, botão de **mudo** (o ícone mostra 0, 1 ou 2 ondas conforme o volume e vira "X" vermelho quando mudo), **controle de volume** de 0 a 100 % com preenchimento e o valor ao lado. O volume e o mudo ficam salvos (`tupi-voice`).
+- **Detecção de fala:** `voice.js` mede o nível do seu microfone e do áudio recebido com Web Audio (`AnalyserNode`), com limiar de entrada e saída e 320 ms de espera para não piscar. O mudo local só afeta o que você ouve: o indicador do convidado continua mostrando que ele está falando.
+
+### 6.1.1 Reconexão manual
+
+O botão **Reconectar** do cabeçalho refaz a conexão sem sair da sala:
+
+- **Com duas pessoas:** descarta a conexão P2P atual, fecha a sinalização, espera o servidor liberar a vaga (a outra pessoa reinicia a negociação ao ver você entrar de novo) e entra de novo na mesma sala. Câmera, tela e microfone locais continuam ligados e são reenviados na nova conexão. Espera até 20 s e avisa o resultado por toast.
+- **Sozinho na sala:** não fecha a sinalização (a sala seria removida). Só informa que a conexão com o servidor está ativa e que continua aguardando a outra pessoa. Se o socket estiver morto, refaz a entrada.
+- **Quando falha:** mostra "Não foi possível reconectar" e o botão volta a ficar disponível para nova tentativa.
+- A outra pessoa vê brevemente o aviso de que você saiu e volta a ver você ao reconectar.
+
+### 6.1.2 YouTube compartilhado
+
+O botão **YouTube** da dock é um modo compartilhado entre as duas pessoas, enviado pelo canal `control` (`{ type: "panel", open }`).
+
+- **Abrir:** o painel abre nos dois lados, e quem recebe vê o aviso "A outra pessoa abriu o YouTube Watch Together." Qualquer um pode colar o link; o vídeo carrega nos dois navegadores, como antes.
+- **Fechar:** fecha nos dois lados e **encerra o vídeo** (o player é destruído, em vez de continuar tocando escondido).
+- **Botão aceso:** com o modo aberto, o botão YouTube fica vermelho-claro com anel pulsante (`.is-on`, `aria-pressed="true"`).
+- **Compartilhar tela apagado:** com o YouTube aberto, o botão **Compartilhar tela** fica cinza, sem brilho e com `aria-disabled`; ao clicar, mostra "Feche o YouTube para compartilhar a tela." e não abre o menu. Se havia uma tela sendo compartilhada, ela é encerrada ao abrir o YouTube (e o outro lado, ao receber o evento, encerra a dele).
+- **Quem entra depois:** o participante que já estava na sala (anfitrião) envia o estado ao novo canal: painel aberto e vídeo atual. Quem chega encontra o painel e o vídeo já abertos.
+- **Reconexão:** o painel e o vídeo sobrevivem ao botão **Reconectar** e à entrada ou saída da outra pessoa; só **Sair da sala** encerra a sessão.
+
+### 6.2 Canal de presença
+
+Um quarto canal de dados (`presence`) avisa explicitamente a outra pessoa o que você está enviando: `{ t: "state", avatar, mic, camera, screen }`, reenviado a cada mudança. Quem recebe usa esse estado para mostrar ou esconder a câmera e a tela do outro. Isso corrige o defeito em que, ao parar a câmera ou a tela, o outro lado ficava com o último quadro congelado: o navegador nem sempre avisa o fim do envio (o evento `mute` não chegava), então a interface agora não depende dele. Mensagens maiores que 512 bytes, inválidas ou com avatar desconhecido são ignoradas.
 
 ## 7. Catálogo de interações e animações
 
@@ -145,6 +192,9 @@ Legenda: **CSS** = só CSS; **Motion** = `animate()`; **AA** = AutoAnimate; **VT
 | Copiar link (aviso) | toast com barra de tempo | CSS + Motion |
 | Participante entra ou sai | contador dá um "pop" | Motion (`pop`) |
 | Mudança de status | ponto muda de cor e pulsa | CSS (`data-tone`) |
+| Hover em Reconectar | fundo tinge e o ícone gira 180° com mola | CSS |
+| Conexão ruim (status vermelho) | botão Reconectar fica vermelho e pulsa um anel para chamar a atenção | CSS (`data-tone="bad"`) |
+| Reconectando | botão fica roxo, desabilitado, com o ícone girando; toast "Tentando reconectar…" e, no fim, "Reconectado!" | CSS + toast |
 
 ### Dock de controles
 | Interação | Resposta | Como |
@@ -153,6 +203,8 @@ Legenda: **CSS** = só CSS; **Motion** = `animate()`; **AA** = AutoAnimate; **VT
 | Microfone/câmera ligados | fundo verde e anel que pulsa | CSS (`ring`) |
 | Microfone | troca entre ícone cortado e ativo | CSS |
 | Compartilhar tela | brilho atravessa o botão ao passar o mouse | CSS |
+| Abrir o YouTube | botão YouTube acende (vermelho-claro com anel pulsante), Compartilhar tela apaga (cinza, sem brilho) e o outro lado vê o painel abrir com aviso | CSS (`.is-on`, `.is-off`) + canal `control` |
+| Clicar em Compartilhar tela com o YouTube aberto | toast "Feche o YouTube para compartilhar a tela." e o menu não abre | JS |
 | Chat com mensagem nova | bolinha vermelha surge com mola e pulsa | CSS (`.fx`) |
 | Sair (hover) | fundo vira vermelho cheio | CSS |
 | Abrir menu | surge de baixo com mola (escala + deslocamento) | CSS (`menu-in`) |
@@ -163,14 +215,30 @@ Legenda: **CSS** = só CSS; **Motion** = `animate()`; **AA** = AutoAnimate; **VT
 ### Palco e mídia
 | Interação | Resposta | Como |
 |---|---|---|
-| Sala vazia | ilustração flutua, órbita gira, estrelas piscam, ponto de espera pulsa | CSS |
-| Tela compartilhada começa/termina | placeholder some com fade e escala; tile da tela entra com escala | CSS (`.fx`) |
+| Sala sem tela compartilhada | cards dos participantes "respiram" levemente; ponto de espera pulsa | CSS |
+| Tela compartilhada começa/termina | cards somem com fade e escala; tile da tela entra com escala; ao parar, a tela some na hora nos dois lados | CSS (`.fx`) + presença |
 | Badge de estado muda | texto reaparece com pequeno deslocamento | Motion (`swap`) |
 | Câmera liga/desliga | miniatura entra/sai com escala e deslocamento | CSS (`.fx`) |
 | Hover em tile | etiqueta sobe 3 px | CSS |
 | Botão "Ativar áudio recebido" | desce com mola ao aparecer | CSS (`.fx`) |
 | Alternar duas telas | grade muda de 1 para 2 colunas com fundo escurecendo | CSS |
 | YouTube abre/fecha | painel desliza para baixo e a `.screen-area` alterna | CSS (`.fx`) |
+
+### Participantes e voz
+| Interação | Resposta | Como |
+|---|---|---|
+| Alguém fala | cartão ganha borda e brilho que acompanham o volume, avatar pulsa, dois anéis se expandem e somem em ciclo e as cinco barras dançam | CSS com `--level` atualizado a ~30 fps por `voice.js` |
+| Falar na barra | miniatura ganha anel que cresce com o volume | CSS |
+| Parar de falar | efeitos desaparecem após 320 ms de silêncio | `voice.js` (histerese) |
+| Convidado entra | card sai do estado translúcido; o avatar dele dá um "pop" | CSS + Motion (`pop`) |
+| Hover no avatar (seu card) | sobe 4 px e aparece o botão de lápis com mola | CSS |
+| Abrir o seletor de avatar | painel surge de baixo com mola; as opções sobem no hover e encolhem ao pressionar | CSS (`.fx`) |
+| Escolher avatar | seletor fecha, avatar troca com "pop" e o outro lado vê a mudança | Motion + presença |
+| Ligar o microfone | botão fica verde com anel pulsante e o medidor passa a reagir | CSS |
+| Medidor de microfone | barra verde, amarela e vermelha acompanha o nível | CSS (`--level`) |
+| Mudar o volume | preenchimento da barra acompanha o polegar; o polegar cresce no hover e ao arrastar; o ícone mostra mais ou menos ondas | CSS |
+| Mudo | ícone vira "X" vermelho, texto muda para "Mudo" e o card mostra "Silenciado por você" | CSS |
+| Câmera liga/desliga | vídeo cresce dentro do card e, ao desligar, some e o avatar volta | CSS (`.fx`) + presença |
 
 ### Chat
 | Interação | Resposta | Como |
@@ -211,11 +279,16 @@ Com `prefers-reduced-motion: reduce`: o CSS zera durações e repetições; `fx.
 | `has-media`, `dual` | `#screenViews` | mostra a grade; duas telas |
 | `active` | `.screen-area` | fundo escuro |
 | `mic-enabled` | `#micBtn`, `#cameraBtn` | verde com anel pulsante |
+| `is-on` | `#youtubeToggleBtn` | botão aceso (YouTube aberto) |
+| `is-off` | `#screenBtn` | botão apagado (YouTube aberto) |
 | `enabled` | `#chatSoundToggle` | som ativado |
 | `connected` | `.chat-connection` | ponto verde |
 | `copied` | `#copyBtn` | ícone de check |
 | `shake` | `#joinForm` | tremor temporário |
 | `mine` | `.message` | balão próprio |
+| `has-video` | `.person` | câmera ocupa o card; avatar some |
+
+Atributos de dados de `.person`: `data-speaking` (fala), `data-present` (convidado conectado), `data-mic` (microfone ligado), `data-muted` (silenciado por você). `--level` (0 a 1) é definido por `voice.js` em `.person`, `.avatar-mini` e `#micMeter`.
 
 `data-tone` (`ok`, `wait`, `bad`) em `.status-chip` define a cor do ponto de status. `data-enter` marca elementos animados na entrada.
 
@@ -226,9 +299,13 @@ Com `prefers-reduced-motion: reduce`: o CSS zera durações e repetições; `fx.
 | `public/index.html` | marcação das duas telas (mesmos ids da v2) |
 | `public/style.css` | tokens, componentes, animações CSS e responsivo (arquivo único, legível) |
 | `public/js/fx.js` | camada de animação: `enterStagger`, `roomIn`, `pop`, `swap`, `shake`, `flash`, `toastProgress`, `transition`, ripple, ímã, AutoAnimate |
-| `public/js/ui.js` | helpers de DOM; chama `pop`, `swap` e `toastProgress` |
-| `public/app.js` | orquestra; usa `transition`, `roomIn`, `enterStagger`, `shake`, `flash` |
-| `public/js/features/*`, `public/js/core/*` | lógica P2P, sem mudanças de comportamento |
+| `public/js/ui.js` | helpers de DOM; chama `pop`, `swap` e `toastProgress`; guarda os flags de câmera/tela do outro lado (`setRemoteFlags`) e avisa mudanças locais (`onLocalMedia`) |
+| `public/app.js` | orquestra; usa `transition`, `roomIn`, `enterStagger`, `shake`, `flash`; cria `Voice` e `Presence` |
+| `public/js/features/avatars.js` | seis avatares SVG e persistência da escolha |
+| `public/js/features/presence.js` | canal de dados `presence` (avatar e estado de mic, câmera e tela) |
+| `public/js/features/voice.js` | cards, barra de voz, seletor de avatar, detecção de fala e volume |
+| `public/js/core/peer.js` | cria e roteia o canal `presence` |
+| demais `public/js/features/*` e `public/js/core/*` | lógica P2P, sem mudanças de comportamento |
 | `public/vendor/*` | bibliotecas empacotadas por `npm run vendor` |
 | `scripts/build-vendor.js` | gera `public/vendor` com esbuild |
 
@@ -237,4 +314,6 @@ Com `prefers-reduced-motion: reduce`: o CSS zera durações e repetições; `fx.
 - `npm run check` e `npm test` (11 testes) passam.
 - Todos os ids lidos pelo JS existem no HTML (os únicos ausentes são criados dinamicamente ou opcionais).
 - No navegador: Home em tema claro e escuro, criar sala, abrir chat e menu de compartilhamento, duas abas conectadas por P2P com troca de mensagens nos dois sentidos, toast, layout mobile (375 px).
-- Não testado: captura real de microfone, câmera e tela, transferência de arquivo, YouTube Watch Together e Firefox/Safari.
+- Com câmera, tela e microfone simulados por canvas e oscilador em duas abas: sincronização do avatar nos dois sentidos; câmera e tela somem na hora do outro lado ao parar (antes ficavam congeladas); indicador de fala local e remoto (após uma interação com a página); volume, mudo e persistência; seletor de avatar; layout desktop e mobile.
+- Não testado: captura real de microfone, câmera e tela, microfone com voz humana, transferência de arquivo, YouTube Watch Together e Firefox/Safari.
+- Limitação conhecida: o navegador só inicia o `AudioContext` depois de um clique ou tecla; quem entra por link e ainda não interagiu não vê a animação de fala até o primeiro clique.

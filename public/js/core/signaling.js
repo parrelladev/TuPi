@@ -50,6 +50,32 @@ export class Signaling {
     this.retryTimer = setTimeout(() => { this.retryTimer = null; this.open(); }, delay);
   }
 
+  // Fecha o socket atual, espera o servidor liberar a vaga e entra de novo na mesma sala.
+  reconnect() {
+    clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+    this.attempt = 0;
+    this.intentional = false;
+    const socket = this.socket;
+    this.socket = null;
+    if (!socket || socket.readyState >= WebSocket.CLOSING) { this.open(); return Promise.resolve(); }
+    return new Promise(resolve => {
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        setTimeout(() => { this.open(); resolve(); }, 200);
+      };
+      const timer = setTimeout(finish, 1500);
+      socket.onmessage = null;
+      socket.onclose = finish;
+      socket.close();
+    });
+  }
+
+  isOpen() { return this.socket?.readyState === WebSocket.OPEN; }
+
   send(message) {
     if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(message));
   }

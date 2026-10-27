@@ -29,13 +29,19 @@ export class YouTubeTogether {
     this.clockOffset = 0;
     this.clockTimer = null;
     this.tolerance = 1;
+    this.pendingState = null;
+    this.onModeChange = null;
     this.bindUI();
   }
 
+  isOpen() { return !this.ui.$('youtubePanel').classList.contains('hidden'); }
+
   bindUI() {
     this.ui.$('youtubeToggleBtn').addEventListener('click', () => {
-      const open = this.ui.$('youtubePanel').classList.contains('hidden');
+      const open = !this.isOpen();
       this.setPanelOpen(open);
+      this.send({ type: 'panel', open });
+      if (!open) this.closeSession();
     });
     this.ui.$('youtubeForm').addEventListener('submit', event => {
       event.preventDefault();
@@ -64,7 +70,10 @@ export class YouTubeTogether {
     this.isHost = isHost;
     channel.onopen = () => {
       this.setStatus('Controle P2P conectado. Cada navegador reproduz o vídeo do YouTube.');
-      if (this.videoId) this.send({ type: 'load', videoId: this.videoId });
+      if (isHost) {
+        this.send({ type: 'panel', open: this.isOpen() });
+        if (this.videoId) this.send({ type: 'load', videoId: this.videoId });
+      }
       this.syncTimer = setInterval(() => this.publishSnapshot(), 3000);
       this.pingClock(); this.clockTimer = setInterval(() => this.pingClock(), 5000);
     };
@@ -73,16 +82,33 @@ export class YouTubeTogether {
     channel.onmessage = event => this.receive(event.data);
   }
 
+  // Solta só o canal: o painel e o vídeo continuam abertos para sobreviver a reconexões e à entrada de outra pessoa.
   detach() {
-    clearInterval(this.syncTimer); clearInterval(this.playbackTimer); clearInterval(this.progressTimer); clearInterval(this.clockTimer);
-    this.syncTimer = this.playbackTimer = this.progressTimer = this.clockTimer = null;
+    clearInterval(this.syncTimer); clearInterval(this.clockTimer);
+    this.syncTimer = this.clockTimer = null;
     const channel = this.channel; this.channel = null;
     if (channel) {
       channel.onopen = channel.onclose = channel.onerror = channel.onmessage = null;
       if (channel.readyState !== 'closed') channel.close();
     }
+    this.lastCommand = { clock: 0, peerId: '' }; this.clock = 0;
+  }
+
+  closeSession() {
+    clearInterval(this.progressTimer); clearTimeout(this.playbackTimer);
+    this.progressTimer = this.playbackTimer = null;
     if (this.player) { this.player.destroy(); this.player = null; }
-    this.videoId = null; this.lastCommand = { clock: 0, peerId: '' }; this.clock = 0;
+    this.ui.$('youtubePlayer').replaceChildren();
+    this.ui.$('youtubeVideoTitle').textContent = 'YouTube Watch Together';
+    this.ui.$('youtubeUrl').value = '';
+    this.videoId = null; this.pendingState = null;
+    this.setStatus('O player ainda não está conectado.');
+  }
+
+  // Ao sair da sala: encerra a sessão e fecha o painel.
+  leave() {
+    this.detach();
+    this.closeSession();
     this.setPanelOpen(false);
   }
 
@@ -147,10 +173,15 @@ export class YouTubeTogether {
   }
 
   setPanelOpen(open) {
+    const changed = open !== this.isOpen();
     this.ui.$('youtubePanel').classList.toggle('hidden', !open);
-    this.ui.$('youtubeToggleBtn').setAttribute('aria-expanded', String(open));
-    this.ui.$('youtubeToggleBtn').setAttribute('aria-label', open ? 'Fechar YouTube Watch Together' : 'Abrir YouTube Watch Together');
+    const button = this.ui.$('youtubeToggleBtn');
+    button.setAttribute('aria-expanded', String(open));
+    button.setAttribute('aria-pressed', String(open));
+    button.setAttribute('aria-label', open ? 'Fechar YouTube Watch Together' : 'Abrir YouTube Watch Together');
+    button.classList.toggle('is-on', open);
     this.ui.$('stagePanel').classList.toggle('youtube-active', open);
+    if (changed) this.onModeChange?.(open);
   }
 
   onPlayerState(event) {
@@ -194,6 +225,13 @@ export class YouTubeTogether {
     if (message.type === 'ping' && Number.isFinite(message.sentAt)) { this.send({ type: 'pong', sentAt: message.sentAt, remoteAt: Date.now() }); return; }
     if (message.type === 'pong' && Number.isSafeInteger(message.sentAt) && Number.isSafeInteger(message.remoteAt) && Math.abs(message.remoteAt - message.sentAt) < 24 * 60 * 60 * 1000) {
       const now = Date.now(); this.clockOffset = message.remoteAt - ((message.sentAt + now) / 2); return;
+    }
+    if (message.type === 'panel' && typeof message.open === 'boolean') {
+      if (message.open === this.isOpen()) return;
+      this.setPanelOpen(message.open);
+      if (!message.open) this.closeSession();
+      this.ui.notify(message.open ? 'A outra pessoa abriu o YouTube Watch Together.' : 'A outra pessoa fechou o YouTube Watch Together.');
+      return;
     }
     if (message.type === 'load' && typeof message.videoId === 'string' && VIDEO_ID.test(message.videoId)) {
       if (message.videoId !== this.videoId) { this.ui.$('youtubeUrl').value = `https://youtu.be/${message.videoId}`; void this.loadVideo(message.videoId); }

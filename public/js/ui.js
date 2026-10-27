@@ -6,6 +6,19 @@ export function createUI() {
   const $ = id => document.getElementById(id);
   let effectiveScreenQuality = '';
   let unreadChatCount = 0;
+  let remoteFlags = { camera: true, screen: true };
+  let lastCamera = [null, null];
+  let lastScreen = [null, null];
+  const localMediaListeners = [];
+  const emitLocalMedia = () => localMediaListeners.forEach(listener => listener());
+  const onLocalMedia = listener => { localMediaListeners.push(listener); };
+
+  function setRemoteFlags(flags) {
+    if (flags.camera === remoteFlags.camera && flags.screen === remoteFlags.screen) return;
+    remoteFlags = { ...flags };
+    renderCamera(...lastCamera);
+    renderScreen(...lastScreen);
+  }
 
   function closeShareSettings() { $('screenSettings').open = false; }
 
@@ -19,8 +32,25 @@ export function createUI() {
 
   function status(message) {
     $('status').textContent = message;
-    const tone = /erro|interrompida|não foi|falha|inválid/i.test(message) ? 'bad' : /conectando|aguardando|entrando|saiu|reconectar/i.test(message) ? 'wait' : 'ok';
+    const tone = /erro|interrompida|instável|não foi|falha|inválid/i.test(message) ? 'bad' : /conectando|aguardando|entrando|saiu|reconectar/i.test(message) ? 'wait' : 'ok';
     $('status').closest('.status-chip').dataset.tone = tone;
+  }
+  let screenLocked = false;
+  function setScreenLocked(locked) {
+    screenLocked = locked;
+    const button = $('screenBtn');
+    button.classList.toggle('is-off', locked);
+    button.setAttribute('aria-disabled', String(locked));
+    button.title = locked ? 'Feche o YouTube para compartilhar a tela' : '';
+    if (locked) closeShareSettings();
+  }
+  const isScreenLocked = () => screenLocked;
+
+  function setReconnectBusy(busy) {
+    const button = $('reconnectBtn');
+    button.dataset.busy = String(busy);
+    button.disabled = busy;
+    button.setAttribute('aria-label', busy ? 'Reconectando…' : 'Tentar reconectar');
   }
   function setParticipantCount(count) {
     const element = $('participantCount');
@@ -74,7 +104,8 @@ export function createUI() {
   }
 
   function renderScreen(localStream, remoteStream) {
-    const remoteTrack = remoteStream?.getVideoTracks().find(track => track.readyState === 'live' && !track.muted);
+    lastScreen = [localStream, remoteStream];
+    const remoteTrack = remoteFlags.screen ? remoteStream?.getVideoTracks().find(track => track.readyState === 'live' && !track.muted) : null;
     const localTrack = localStream?.getVideoTracks().find(track => track.readyState === 'live');
     const hasLocal = !!localTrack;
     const hasRemote = !!remoteTrack;
@@ -96,18 +127,27 @@ export function createUI() {
     if (badgeChanged) swap($('screenBadge'));
     $('screenBtn').querySelector('span:last-child').textContent = hasLocal ? 'Parar tela' : 'Compartilhar tela';
     $('screenBtn').setAttribute('aria-label', hasLocal ? 'Parar compartilhamento de tela' : 'Compartilhar tela');
+    emitLocalMedia();
   }
 
   function renderCamera(localStream, remoteStream) {
+    lastCamera = [localStream, remoteStream];
     const localTrack = localStream?.getVideoTracks().find(track => track.readyState === 'live');
-    const remoteTrack = remoteStream?.getVideoTracks().find(track => track.readyState === 'live' && !track.muted);
+    const remoteTrack = remoteFlags.camera ? remoteStream?.getVideoTracks().find(track => track.readyState === 'live' && !track.muted) : null;
     const local = localTrack ? localStream : null;
     const remote = remoteTrack ? remoteStream : null;
     $('localCameraVideo').srcObject = local;
     $('remoteCameraVideo').srcObject = remote;
+    $('cardLocalVideo').srcObject = local;
+    $('cardRemoteVideo').srcObject = remote;
+    $('cardLocalVideo').classList.toggle('hidden', !local);
+    $('cardRemoteVideo').classList.toggle('hidden', !remote);
+    $('personLocal').classList.toggle('has-video', Boolean(local));
+    $('personRemote').classList.toggle('has-video', Boolean(remote));
     $('localCameraTile').classList.toggle('hidden', !local);
     $('remoteCameraTile').classList.toggle('hidden', !remote);
     $('cameraViews').classList.toggle('hidden', !local && !remote);
+    emitLocalMedia();
     const enabled = !!local;
     $('cameraBtn').classList.toggle('mic-enabled', enabled);
     $('cameraBtn').setAttribute('aria-pressed', String(enabled));
@@ -135,6 +175,7 @@ export function createUI() {
     const message = state === 'on' ? 'Microfone ligado' : state === 'denied' ? 'Microfone sem permissão' : state === 'error' ? 'Falha ao ativar microfone' : 'Microfone desligado';
     if (state === 'denied') notify('Permita o acesso ao microfone nas configurações do navegador.');
     else if (state === 'error') notify('Não foi possível ativar o microfone.');
+    emitLocalMedia();
   }
 
   function setScreenState(state) {
@@ -185,6 +226,7 @@ export function createUI() {
     element.textContent = `Codecs disponíveis: ${message}`;
   }
   function clearRoomView() {
+    remoteFlags = { camera: true, screen: true };
     setChatConnected(false);
     setPeerMediaStatus('Aguardando...');
     setRemoteAudio(null);
@@ -192,5 +234,5 @@ export function createUI() {
     setAudioPlaybackBlocked(false);
   }
 
-  return { $, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setCodecCapabilities, closeShareSettings, clearRoomView };
+  return { $, onLocalMedia, setRemoteFlags, setReconnectBusy, setScreenLocked, isScreenLocked, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setCodecCapabilities, closeShareSettings, clearRoomView };
 }
