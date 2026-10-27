@@ -3,7 +3,10 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { summarize } = require('../scripts/summarize-diagnostics.js');
-const modulePromise = import(`data:text/javascript;base64,${fs.readFileSync('public/js/core/diagnostics.js').toString('base64')}`);
+const automaticUrl = `data:text/javascript;base64,${fs.readFileSync('public/js/core/diagnostics-runner.js').toString('base64')}`;
+const diagnosticSource = fs.readFileSync('public/js/core/diagnostics.js', 'utf8').replace("'./diagnostics-runner.js'", JSON.stringify(automaticUrl));
+const diagnosticUrl = `data:text/javascript;base64,${Buffer.from(diagnosticSource).toString('base64')}`;
+const modulePromise = import(diagnosticUrl);
 
 test('disabled diagnostics collect nothing; stop clears pending work', async () => {
   const { Diagnostics } = await modulePromise;
@@ -63,7 +66,6 @@ test('summary excludes nulls and groups scenarios and audio streams', () => {
 });
 
 test('YouTube pending command retains local receive time until API invocation', async () => {
-  const diagnosticUrl = `data:text/javascript;base64,${fs.readFileSync('public/js/core/diagnostics.js').toString('base64')}`;
   const source = fs.readFileSync('public/js/features/youtube.js', 'utf8').replace("'../core/diagnostics.js'", JSON.stringify(diagnosticUrl));
   const { YouTubeTogether } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
   const { diagnostics } = await modulePromise;

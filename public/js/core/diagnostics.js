@@ -1,8 +1,10 @@
-// Temporary, opt-in, metadata-only diagnostics. Never record payloads or device/IP identifiers.
+import { AutomaticTest } from './diagnostics-runner.js';
+// Metadata-only diagnostics. Never record payloads or device/IP identifiers.
 export class Diagnostics {
   constructor(enabled = false) {
     this.enabled = enabled;
     this.running = false;
+    this.generation = 0;
     this.rows = [];
     this.pending = new Map();
     this.previous = new Map();
@@ -12,6 +14,7 @@ export class Diagnostics {
     this.fileWindows = new Map();
     this.peerStatus = 'stopped';
     this.audioStatus = 'Aguardando amostra de áudio.';
+    this.automatic = new AutomaticTest(this);
   }
 
   setPeerStatus(state) {
@@ -40,6 +43,7 @@ export class Diagnostics {
   start() {
     if (!this.enabled || this.running) return;
     this.running = true;
+    this.generation++;
     this.lastReply = null;
     this.probeStartedAt = performance.now();
     this.audioStatus = 'Aguardando amostra de áudio.';
@@ -51,9 +55,9 @@ export class Diagnostics {
       const now = performance.now();
       this.record('scheduler', { lateMs: Math.max(0, now - this.lastTick - 2000), hidden: document.hidden });
       this.lastTick = now;
+      this.sampleLocal?.();
       this.ping();
       this.flushFiles();
-      this.sampleLocal?.();
     }, 2000);
     this.httpTimer = setInterval(() => { void this.httpProbe(); }, 10000);
     void this.httpProbe();
@@ -64,6 +68,7 @@ export class Diagnostics {
     for (const sent of this.pending.values()) this.record('probe-interrupted', {}, sent.phase);
     this.record('stop');
     this.running = false;
+    this.generation++;
     clearInterval(this.timer); clearInterval(this.httpTimer);
     this.abort?.abort();
     this.pending.clear();
@@ -89,9 +94,11 @@ export class Diagnostics {
     this.detach();
     this.channel = channel;
     channel.onmessage = event => {
-      if (!this.enabled || typeof event.data !== 'string' || event.data.length > 160) return;
+      if (!this.enabled || typeof event.data !== 'string' || event.data.length > 25000) return;
       let message; try { message = JSON.parse(event.data); } catch { return; }
       if (!message || !Number.isSafeInteger(message.id) || message.id < 0) return;
+      if (this.automatic.receive(message)) return;
+      if (event.data.length > 160) return;
       if (message.type === 'ping') {
         // Bound echo traffic too; application data never travels on this channel.
         const now = performance.now();
@@ -109,10 +116,11 @@ export class Diagnostics {
     this.probeStartedAt = performance.now(); this.lastReply = null;
     this.lastEcho = null;
     channel.onopen = () => { this.probeStartedAt = performance.now(); if (this.running) this.setPeerStatus('waiting'); };
-    channel.onclose = () => { this.record('probe-channel-closed'); if (this.running) this.setPeerStatus('unavailable'); };
+    channel.onclose = () => { this.record('probe-channel-closed'); this.automatic.disconnected(); if (this.running) this.setPeerStatus('unavailable'); };
   }
 
   detach() {
+    this.automatic.disconnected();
     for (const sent of this.pending.values()) this.record('probe-interrupted', {}, sent.phase);
     this.pending.clear();
     if (this.channel) {
@@ -148,6 +156,7 @@ export class Diagnostics {
     if (!this.running || this.httpBusy) return;
     this.httpBusy = true;
     const phase = this.phase;
+    const generation = this.generation;
     const start = performance.now();
     const abort = new AbortController(); this.abort = abort;
     const timer = setTimeout(() => abort.abort(), 8000);
@@ -155,9 +164,9 @@ export class Diagnostics {
       const response = await fetch(`/api/diagnostics/ping?n=${++this.sequence}`, { cache: 'no-store', signal: abort.signal });
       const headersMs = performance.now() - start;
       await response.arrayBuffer();
-      this.record('http', { headersMs, totalMs: performance.now() - start, status: response.status,
+      if (this.generation === generation) this.record('http', { headersMs, totalMs: performance.now() - start, status: response.status,
         cloudflare: response.headers.has('cf-ray'), cacheStatus: response.headers.get('cf-cache-status') }, phase);
-    } catch { this.record('http-error', { ms: performance.now() - start }, phase); }
+    } catch { if (this.generation === generation) this.record('http-error', { ms: performance.now() - start }, phase); }
     finally { clearTimeout(timer); this.httpBusy = false; }
   }
 
@@ -211,24 +220,47 @@ export class Diagnostics {
 
   export() {
     this.flushFiles();
-    return { schema: 1, build: 'latency-baseline-2', dropped: this.dropped,
+    return { schema: 1, build: 'latency-baseline-3', dropped: this.dropped,
       pendingProbes: this.pending.size, rows: this.rows };
   }
 }
 
-export const diagnostics = new Diagnostics(typeof location !== 'undefined' && new URLSearchParams(location.search).get('diagnostics') === '1');
+export const diagnostics = new Diagnostics(typeof location !== 'undefined');
 
 export function mountDiagnostics(sampleLocal) {
   if (!diagnostics.enabled) return;
   diagnostics.sampleLocal = sampleLocal;
   const panel = document.createElement('details'); panel.className = 'temporary-diagnostics';
   const heading = document.createElement('summary'); heading.textContent = 'Diagnóstico temporário (sem conteúdo da conversa)'; panel.append(heading);
+  const autoStatus = document.createElement('p'); autoStatus.setAttribute('role', 'status');
+  autoStatus.textContent = diagnostics.automatic.status;
+  const download = data => {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    const link = document.createElement('a'); link.href = url; link.download = `tupi-diagnostics-${Date.now()}.json`; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const test = document.createElement('button'); test.type = 'button'; test.textContent = 'Testar conexão (3 min)';
+  test.onclick = () => diagnostics.automatic.start();
+  const finish = document.createElement('button'); finish.type = 'button'; finish.textContent = 'Encerrar teste agora';
+  finish.onclick = () => diagnostics.automatic.finish();
+  const report = document.createElement('button'); report.type = 'button'; report.textContent = 'Baixar relatório único'; report.disabled = true;
+  report.onclick = () => { if (diagnostics.automatic.report) download(diagnostics.automatic.report); };
+  diagnostics.automatic.onChange = () => {
+    autoStatus.textContent = diagnostics.automatic.status;
+    test.disabled = diagnostics.automatic.active;
+    finish.disabled = !diagnostics.automatic.measuring;
+    report.disabled = !diagnostics.automatic.report;
+    panel.open = true;
+  };
+  finish.disabled = true;
+  panel.append(test, finish, report, autoStatus);
+  const manual = document.createElement('details'); const manualHeading = document.createElement('summary'); manualHeading.textContent = 'Coleta manual (avançado)'; manual.append(manualHeading); panel.append(manual);
   const select = document.createElement('select'); select.setAttribute('aria-label', 'Cenário do diagnóstico');
   for (const [value, label] of [['voice', 'Só voz'], ['screen', 'Voz + tela'], ['file', 'Voz + arquivo'], ['youtube', 'YouTube']]) {
     const option = document.createElement('option'); option.value = value; option.textContent = label; select.append(option);
   }
-  select.onchange = () => { diagnostics.phase = select.value; diagnostics.previous.clear(); diagnostics.record('phase'); };
-  panel.append(select);
+  select.onchange = () => { if (diagnostics.automatic.active) return; diagnostics.phase = select.value; diagnostics.previous.clear(); diagnostics.record('phase'); };
+  manual.append(select);
   const status = document.createElement('span'); status.textContent = ' Parado ';
   status.setAttribute('role', 'status');
   diagnostics.onStatus = () => {
@@ -246,6 +278,6 @@ export function mountDiagnostics(sampleLocal) {
       const link = document.createElement('a'); link.href = url; link.download = `tupi-diagnostics-${Date.now()}.json`; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }]
-  ]) { const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.onclick = action; panel.append(button); }
+  ]) { const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.onclick = () => { if (!diagnostics.automatic.active) action(); }; manual.append(button); }
   panel.append(status); document.body.prepend(panel);
 }

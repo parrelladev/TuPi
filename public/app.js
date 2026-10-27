@@ -82,6 +82,11 @@ const peer = new PeerSession({
 });
 const connectionStats = new ConnectionStats(ui, peer, quality);
 mountDiagnostics(() => {
+  if (diagnostics.automatic.measuring) {
+    const receivingScreen = media.remoteScreenStream?.getVideoTracks().some(track => track.readyState === 'live' && !track.muted);
+    const phase = youtube.isOpen() ? 'youtube' : files.transfer ? 'file' : media.screenStream || receivingScreen ? 'screen' : 'voice';
+    if (phase !== diagnostics.phase) { diagnostics.flushFiles(); diagnostics.phase = phase; diagnostics.previous.clear(); diagnostics.record('phase'); }
+  }
   const context = voice.context;
   diagnostics.record('audio-context', { state: context?.state, baseLatencyMs: context?.baseLatency == null ? null : context.baseLatency * 1000,
     outputLatencyMs: context?.outputLatency == null ? null : context.outputLatency * 1000, routed: voice.output.active, blocked: voice.output.blocked });

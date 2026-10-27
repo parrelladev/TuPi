@@ -126,6 +126,7 @@ const server = http.createServer((req, res) => {
     '/js/core/quality.js': 'js/core/quality.js',
     '/js/core/stats.js': 'js/core/stats.js',
     '/js/core/diagnostics.js': 'js/core/diagnostics.js',
+    '/js/core/diagnostics-runner.js': 'js/core/diagnostics-runner.js',
     '/js/features/chat.js': 'js/features/chat.js',
     '/js/features/files.js': 'js/features/files.js',
     '/js/features/stream-save.js': 'js/features/stream-save.js',

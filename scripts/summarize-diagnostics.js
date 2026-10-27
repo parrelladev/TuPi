@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 
 function summarize(data) {
+  if (data.schema === 2 && data.local) return { complete: data.complete, local: summarize(data.local), remote: data.remote ? summarize(data.remote) : null };
   const groups = new Map();
   // Only duration/gauge fields: cumulative/window counters are kept in event totals below.
   const fields = {

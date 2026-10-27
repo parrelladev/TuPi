@@ -1,5 +1,22 @@
 # Inspeção e referência de latência — 27/10/2026
 
+## Teste automático (versão atual)
+
+O fluxo recomendado agora substitui a preparação manual abaixo:
+
+1. Atualizar e recarregar o TuPi nas duas máquinas e entrar na chamada. Não é mais necessário acrescentar `?diagnostics=1`.
+2. Em uma única máquina, abrir **Diagnóstico temporário** e clicar **Testar conexão (3 min)**.
+3. Conversar normalmente. A outra ponta inicia sozinha e mostra um aviso. Após três minutos, ambas encerram a coleta e reúnem os registros.
+4. Na máquina que iniciou, clicar **Baixar relatório único** e enviar esse único JSON para análise. Também é possível encerrar antes pelo botão **Encerrar teste agora**, em qualquer ponta.
+
+O relatório combinado usa schema 2, com `local`, `remote`, resumos de mediana/p95/máximo e indicadores de dados ausentes. `complete: false` indica resultado parcial; uma desconexão preserva o que já foi coletado. O script `summarize-diagnostics.js` aceita tanto o formato antigo como o combinado. As duas pontas mantêm relógios locais independentes.
+
+O teste observa o uso real: classifica automaticamente voz, tela enviada/recebida, transferência ativa ou painel YouTube aberto (nessa ordem de prioridade: YouTube, arquivo, tela, voz). O nome do cenário não comprova reprodução de vídeo nem tráfego constante. Microfone ausente, aba oculta e métricas de áudio ausentes ficam registrados. Não abre microfone/tela, não transfere arquivos de teste e não dispara comandos do YouTube: cenários que não ocorreram não podem ser comparados. Não é um teste acústico boca → ouvido. Se houver várias atividades simultâneas, os registros de condições complementam a classificação principal.
+
+O canal de diagnóstico agora é preparado em toda chamada, sem coleta ou sondas periódicas até iniciar. Um pedido de teste inicia coleta de metadados nas duas pontas, visível e interrompível. Após encerrar, o relatório remoto é enviado pelo canal P2P para a máquina que iniciou, em blocos de até 12 mil caracteres com controle de buffer e limite de 8 MiB. Nenhum conteúdo de conversa, arquivo ou mídia é gravado. O relatório não é enviado ao servidor. O download final exige um clique para evitar bloqueios de download automático do navegador.
+
+O modo manual continua em **Coleta manual (avançado)** e fica indisponível durante o teste automático. As instruções históricas abaixo descrevem a coleta manual anterior; a ausência de `diagnostics=1` já não desativa o painel/canal nesta versão.
+
 Estado: instrumentação preparada; chamada entre duas máquinas e ganho antes/depois **ainda não medidos**. Os temporizadores, buffers, processamento de voz e protocolos existentes foram mantidos. Não houve publicação em produção.
 
 ## Caminhos e esperas encontrados
