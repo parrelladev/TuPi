@@ -31,7 +31,55 @@ export class YouTubeTogether {
     this.tolerance = 1;
     this.pendingState = null;
     this.onModeChange = null;
+    this.sharedVolume = 100;
+    this.volumeTimer = null;
+    const saved = this.loadVolume();
+    this.myVolume = saved.volume;
+    this.myMuted = saved.muted;
     this.bindUI();
+    this.renderVolume();
+  }
+
+  loadVolume() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('tupi-yt-volume') || '{}');
+      return { volume: Number.isFinite(saved.volume) ? Math.min(100, Math.max(0, saved.volume)) : 100, muted: saved.muted === true };
+    } catch { return { volume: 100, muted: false }; }
+  }
+
+  saveVolume() { try { localStorage.setItem('tupi-yt-volume', JSON.stringify({ volume: this.myVolume, muted: this.myMuted })); } catch { /* só nesta sessão */ } }
+
+  // Volume efetivo = volume compartilhado x volume pessoal. O compartilhado vai para a outra pessoa; o pessoal fica só aqui.
+  effectiveVolume() { return this.myMuted ? 0 : Math.round(this.sharedVolume * this.myVolume / 100); }
+
+  renderVolume() {
+    const shared = this.ui.$('ytSharedVolume');
+    const mine = this.ui.$('ytMyVolume');
+    shared.value = String(this.sharedVolume);
+    mine.value = String(this.myVolume);
+    shared.style.setProperty('--fill', `${this.sharedVolume}%`);
+    mine.style.setProperty('--fill', `${this.myMuted ? 0 : this.myVolume}%`);
+    this.ui.$('ytSharedText').textContent = `${this.sharedVolume}%`;
+    this.ui.$('ytMyText').textContent = this.myMuted ? 'Mudo' : `${this.myVolume}%`;
+    const button = this.ui.$('ytMuteBtn');
+    button.setAttribute('aria-pressed', String(this.myMuted));
+    button.setAttribute('aria-label', this.myMuted ? 'Reativar o som do vídeo' : 'Silenciar o vídeo só para mim');
+    button.dataset.level = this.myMuted || this.myVolume === 0 || this.sharedVolume === 0 ? 'off' : this.effectiveVolume() < 50 ? 'low' : 'high';
+  }
+
+  applyVolume() {
+    this.renderVolume();
+    const player = this.player;
+    if (!player || typeof player.setVolume !== 'function') return;
+    try {
+      player.setVolume(this.effectiveVolume());
+      if (this.myMuted) player.mute(); else player.unMute();
+    } catch { /* o player ainda não está pronto */ }
+  }
+
+  sendVolume() {
+    clearTimeout(this.volumeTimer);
+    this.volumeTimer = setTimeout(() => this.send({ type: 'volume', value: this.sharedVolume }), 60);
   }
 
   isOpen() { return !this.ui.$('youtubePanel').classList.contains('hidden'); }
@@ -50,6 +98,23 @@ export class YouTubeTogether {
       this.videoId = id;
       this.send({ type: 'load', videoId: id });
       this.loadVideo(id);
+    });
+    this.ui.$('ytSharedVolume').addEventListener('input', event => {
+      this.sharedVolume = Number(event.target.value);
+      this.applyVolume();
+      this.sendVolume();
+    });
+    this.ui.$('ytMyVolume').addEventListener('input', event => {
+      this.myVolume = Number(event.target.value);
+      if (this.myVolume > 0) this.myMuted = false;
+      this.saveVolume();
+      this.applyVolume();
+    });
+    this.ui.$('ytMuteBtn').addEventListener('click', () => {
+      this.myMuted = !this.myMuted;
+      if (!this.myMuted && this.myVolume === 0) this.myVolume = 60;
+      this.saveVolume();
+      this.applyVolume();
     });
     this.ui.$('youtubeTolerance').addEventListener('change', event => { this.tolerance = Number(event.target.value); });
     this.ui.$('youtubePlay').addEventListener('click', () => this.userAction('play'));
@@ -70,9 +135,10 @@ export class YouTubeTogether {
     this.isHost = isHost;
     channel.onopen = () => {
       this.setStatus('Controle P2P conectado. Cada navegador reproduz o vídeo do YouTube.');
-      if (isHost) {
-        this.send({ type: 'panel', open: this.isOpen() });
+      if (isHost && this.isOpen()) {
+        this.send({ type: 'panel', open: true });
         if (this.videoId) this.send({ type: 'load', videoId: this.videoId });
+        this.send({ type: 'volume', value: this.sharedVolume });
       }
       this.syncTimer = setInterval(() => this.publishSnapshot(), 3000);
       this.pingClock(); this.clockTimer = setInterval(() => this.pingClock(), 5000);
@@ -102,6 +168,8 @@ export class YouTubeTogether {
     this.ui.$('youtubeVideoTitle').textContent = 'YouTube Watch Together';
     this.ui.$('youtubeUrl').value = '';
     this.videoId = null; this.pendingState = null;
+    this.sharedVolume = 100;
+    this.renderVolume();
     this.setStatus('O player ainda não está conectado.');
   }
 
@@ -147,6 +215,7 @@ export class YouTubeTogether {
         events: {
           onReady: () => {
             this.setStatus('Player pronto. Pressione Reproduzir em cada navegador se o autoplay for bloqueado.');
+            this.applyVolume();
             if (this.pendingState) { const pending = this.pendingState; this.pendingState = null; this.applyRemoteState(pending.action, pending.seconds); }
             clearInterval(this.progressTimer);
             this.progressTimer = setInterval(() => {
@@ -231,6 +300,11 @@ export class YouTubeTogether {
       this.setPanelOpen(message.open);
       if (!message.open) this.closeSession();
       this.ui.notify(message.open ? 'A outra pessoa abriu o YouTube Watch Together.' : 'A outra pessoa fechou o YouTube Watch Together.');
+      return;
+    }
+    if (message.type === 'volume' && Number.isFinite(message.value) && message.value >= 0 && message.value <= 100) {
+      this.sharedVolume = Math.round(message.value);
+      this.applyVolume();
       return;
     }
     if (message.type === 'load' && typeof message.videoId === 'string' && VIDEO_ID.test(message.videoId)) {

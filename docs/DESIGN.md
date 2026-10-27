@@ -147,7 +147,29 @@ O botão **YouTube** da dock é um modo compartilhado entre as duas pessoas, env
 - **Botão aceso:** com o modo aberto, o botão YouTube fica vermelho-claro com anel pulsante (`.is-on`, `aria-pressed="true"`).
 - **Compartilhar tela apagado:** com o YouTube aberto, o botão **Compartilhar tela** fica cinza, sem brilho e com `aria-disabled`; ao clicar, mostra "Feche o YouTube para compartilhar a tela." e não abre o menu. Se havia uma tela sendo compartilhada, ela é encerrada ao abrir o YouTube (e o outro lado, ao receber o evento, encerra a dele).
 - **Quem entra depois:** o participante que já estava na sala (anfitrião) envia o estado ao novo canal: painel aberto e vídeo atual. Quem chega encontra o painel e o vídeo já abertos.
+- **Volume:** compartilhado e individual (seção 6.1.3).
 - **Reconexão:** o painel e o vídeo sobrevivem ao botão **Reconectar** e à entrada ou saída da outra pessoa; só **Sair da sala** encerra a sessão.
+
+### 6.1.3 Volume do YouTube
+
+Dois controles de volume no painel, lado a lado com o botão de mudo:
+
+- **Volume compartilhado** (rosa): vale para as duas pessoas. Mexer em um lado move o controle do outro (`{ type: "volume", value }` no canal `control`, com limite de uma mensagem a cada 60 ms). Quem entra depois recebe o valor atual do anfitrião.
+- **Só para mim** (roxo): ajuste individual, salvo no navegador (`tupi-yt-volume`); não é enviado.
+- **Mudo pessoal:** o botão com ícone de alto-falante silencia o vídeo só para quem clicou; o ícone mostra 0, 1 ou 2 ondas conforme o volume efetivo.
+- **Volume efetivo** = compartilhado × pessoal. Exemplo: compartilhado 40 % e pessoal 50 % tocam a 20 %. Fechar o YouTube volta o compartilhado a 100 %.
+
+### 6.1.4 Layout sempre dentro da janela
+
+Na sala, a página não rola: `body.in-room` ocupa `100dvh` e tudo se distribui em colunas flexíveis (cabeçalho, palco, barra de voz, dock, rodapé). O palco ocupa o espaço que sobra, e o player do YouTube e os cards dos participantes se ajustam a ele (os cards usam unidades de container, `cqh`). Em janelas baixas o aviso de criptografia some (abaixo de 640 px de altura) e, em palcos muito baixos, somem a dica e as barras de voz dos cards. Verificado em 1280×720, 1100×560 e 375×667 sem rolagem vertical nem horizontal. A Home pode rolar em telas muito baixas.
+
+### 6.1.5 Tema claro, escuro ou automático
+
+O botão de tema (sol, lua ou meio círculo) fica no canto superior direito da Home e no cabeçalho da sala. Cada clique alterna **Automático** (segue o sistema) → **Claro** → **Escuro**.
+
+- A escolha fica salva (`tupi-theme`; o modo automático não grava nada) e é aplicada antes da primeira pintura por `theme-boot.js`, sem piscar.
+- Aplica-se com `data-theme` em `<html>`, que troca `color-scheme` e, com ele, todos os `light-dark()` dos tokens. Também ajusta as `theme-color` do navegador, a placa clara do logo e a intensidade da aurora.
+- A troca tem transição suave (View Transitions) e o ícone gira ao mudar de modo.
 
 ### 6.2 Canal de presença
 
@@ -302,6 +324,8 @@ Atributos de dados de `.person`: `data-speaking` (fala), `data-present` (convida
 | `public/js/fx.js` | camada de animação: `enterStagger`, `roomIn`, `pop`, `swap`, `shake`, `flash`, `toastProgress`, `transition`, ripple, ímã, AutoAnimate |
 | `public/js/ui.js` | helpers de DOM; chama `pop`, `swap` e `toastProgress`; guarda os flags de câmera/tela do outro lado (`setRemoteFlags`) e avisa mudanças locais (`onLocalMedia`) |
 | `public/app.js` | orquestra; usa `transition`, `roomIn`, `enterStagger`, `shake`, `flash`; cria `Voice` e `Presence` |
+| `public/js/theme-boot.js` | aplica o tema salvo antes da primeira pintura (script clássico, sem módulo) |
+| `public/js/theme.js` | botão de tema: alterna automático, claro e escuro e salva a escolha |
 | `public/js/features/avatars.js` | seis avatares SVG e persistência da escolha |
 | `public/js/features/presence.js` | canal de dados `presence` (avatar e estado de mic, câmera e tela) |
 | `public/js/features/voice.js` | cards, barra de voz, seletor de avatar, detecção de fala e volume |

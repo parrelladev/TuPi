@@ -10,7 +10,9 @@ import { YouTubeTogether } from './js/features/youtube.js';
 import { Voice } from './js/features/voice.js';
 import { Presence } from './js/features/presence.js';
 import { initFx, roomIn, enterStagger, shake, flash, transition } from './js/fx.js';
+import { initTheme } from './js/theme.js';
 
+initTheme();
 initFx();
 const ui = createUI();
 const chat = new Chat(ui);
