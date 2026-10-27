@@ -31,13 +31,19 @@ const MAX_CONNECTIONS_PER_IP = 12;
 const MAX_CONNECTIONS = 200;
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const CSP = "default-src 'self'; script-src 'self' https://www.youtube.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' ws: wss: https://www.youtube.com stun: stuns: turn: turns:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
-const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
+const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
 
 // Avatares (SVG): lista fixa montada na inicialização, sem aceitar caminhos arbitrários.
 const avatarFiles = new Map();
 try {
   for (const name of fs.readdirSync(path.join(PUBLIC, 'assets', 'avatars'))) {
     if (/^[a-z0-9-]+\.svg$/.test(name)) avatarFiles.set(`/assets/avatars/${name}`, `assets/avatars/${name}`);
+  }
+} catch (err) { if (err.code !== 'ENOENT') throw err; }
+// Ícones Phosphor (CSS e fontes woff2 gerados por scripts/build-vendor.js).
+try {
+  for (const name of fs.readdirSync(path.join(PUBLIC, 'vendor', 'phosphor'))) {
+    if (/^[A-Za-z0-9-]+\.(css|woff2)$/.test(name)) avatarFiles.set(`/vendor/phosphor/${name}`, `vendor/phosphor/${name}`);
   }
 } catch (err) { if (err.code !== 'ENOENT') throw err; }
 
@@ -127,7 +133,7 @@ const server = http.createServer((req, res) => {
   if (!file) { res.writeHead(404); res.end('Not found'); return; }
   fs.readFile(path.join(PUBLIC, file), (err, body) => {
     if (err) { res.writeHead(500); res.end('Server error'); return; }
-    res.writeHead(200, { 'Content-Type': types[path.extname(file)], 'Cache-Control': 'no-store' });
+    res.writeHead(200, { 'Content-Type': types[path.extname(file)], 'Cache-Control': path.extname(file) === '.woff2' ? 'public, max-age=86400' : 'no-store' });
     res.end(body);
   });
 });

@@ -11,10 +11,11 @@ Arquivos de UI: `public/index.html`, `public/style.css`, `public/js/fx.js`, `pub
 | Tokens | [Open Props](https://open-props.style/) (easings, durações, animações, tamanhos, sombras, z-index) | variáveis CSS (`--ease-spring-3`, `--ease-out-4`, `--animation-shake-x`…) | ~4 kB |
 | Animação em JS | [Motion](https://motion.dev/) (`motion/mini`, só `animate`) | entradas escalonadas, pops, barra do toast, ímã do botão | ~3,4 kB |
 | Listas | [AutoAnimate](https://auto-animate.formkit.com/) | entrada, saída e reordenação das mensagens e do diagnóstico | ~3,3 kB |
+| Ícones | [Phosphor Icons](https://phosphoricons.com/) (fonte `woff2`, pesos regular e fill) | todos os ícones da interface: `<i class="ph ph-microphone">` (regular) e `<i class="ph-fill ph-microphone">` (preenchido nos estados ligados) | ~5 kB de CSS + ~280 kB de fontes (cache de 1 dia) |
 | Transições de tela | View Transitions API (nativa) | Lobby ↔ Chamada com fade | 0 |
 | Mostrar/ocultar | CSS `@starting-style` + `transition-behavior: allow-discrete` (nativo) | entrada e saída de qualquer elemento `.fx` | 0 |
 
-Os pacotes ficam em `devDependencies`. `npm run vendor` (`scripts/build-vendor.js`) gera `public/vendor/` (`open-props.css`, `motion.js`, `auto-animate.js`), que é versionado e servido pelo `server.js`. A CSP não mudou (`script-src 'self'`), porque nada vem de CDN. O Alpine.js não foi adotado: a lógica de UI continua em JS puro, sem avaliar expressões em tempo de execução.
+Os ícones do Phosphor ficam em `public/vendor/phosphor` (sem CDN, por causa da CSP `default-src 'self'`); o CSS gerado contém só os ícones que aparecem em `public/`, então use `npm run vendor` depois de adicionar um ícone novo. Os pacotes ficam em `devDependencies`. `npm run vendor` (`scripts/build-vendor.js`) gera `public/vendor/` (`open-props.css`, `motion.js`, `auto-animate.js`), que é versionado e servido pelo `server.js`. A CSP não mudou (`script-src 'self'`), porque nada vem de CDN. O Alpine.js não foi adotado: a lógica de UI continua em JS puro, sem avaliar expressões em tempo de execução.
 
 Navegadores: Chrome/Edge 123+, Safari 17.5+, Firefox 129+ (por `light-dark()` e `allow-discrete`). Sem esses recursos o app funciona, só sem as animações de saída.
 

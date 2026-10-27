@@ -118,3 +118,7 @@ TuPi/
 │   └── app.js         # inicialização e ciclo de vida
 └── README.md
 ```
+
+## Ícones
+
+A interface usa [Phosphor Icons](https://phosphoricons.com/) (licença MIT), empacotados em `public/vendor/phosphor` sem CDN, porque a CSP só permite recursos do próprio site. Para usar um ícone novo, escreva `<i class="ph ph-nome"></i>` (ou `ph-fill` para a versão preenchida) e rode `npm run vendor` para regenerar o CSS com os ícones usados.
