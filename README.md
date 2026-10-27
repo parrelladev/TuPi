@@ -60,7 +60,7 @@ A lista de codecs usa as capacidades anunciadas pelo navegador. A Web API não o
 
 ## Transferência de arquivos
 
-Na chamada, escolha um arquivo em **Transferir arquivo**. A outra pessoa precisa aceitar o recebimento; a transferência começa somente depois do consentimento. Os navegadores compatíveis com `showSaveFilePicker` gravam os blocos diretamente no destino escolhido, sem manter o arquivo inteiro na memória. Nos demais navegadores, o arquivo é montado em memória até o limite de 1 GiB, agrupando os blocos em Blobs de 32 MiB para o navegador poder mantê-los em disco. Acima disso o recebimento é recusado; para arquivos maiores, use Chrome ou Edge no lado que recebe (gravação direta em disco).
+Na chamada, escolha um arquivo em **Transferir arquivo**. A outra pessoa precisa aceitar o recebimento; a transferência começa somente depois do consentimento. Chrome e Edge (`showSaveFilePicker`) gravam os blocos direto no destino escolhido. Firefox e Safari usam o **Service Worker** (`public/sw.js`): ele entrega os blocos ao gerenciador de downloads do navegador, também sem manter o arquivo na memória. Só se o Service Worker não estiver disponível (ex.: janela privada do Firefox, HTTP fora de localhost) o arquivo é montado em memória até 1 GiB, em Blobs de 32 MiB; acima disso o recebimento é recusado.
 
 O canal usa blocos de 64 KiB, controle de fluxo pelo buffer do DataChannel e pausa quando o ajuste adaptativo de qualidade detecta congestionamento. Cada bloco tem hash SHA-256 conferido antes de ser gravado; a transferência também valida a ordem, a quantidade de blocos e o tamanho total antes de concluir. O limite máximo de oferta é 20 GiB; limites reais podem ser menores por navegador ou espaço em disco. A transferência usa WebRTC P2P (ou TURN quando necessário), não passa pelo servidor TuPi. Só há uma transferência ativa por chamada; sair do lobby ou desconectar cancela e limpa o estado.
 
@@ -129,3 +129,9 @@ A interface usa [Phosphor Icons](https://phosphoricons.com/) (licença MIT), emp
 - Links no chat viram links clicáveis (seta animada); antes de abrir, um popup pede confirmação e mostra o domínio.
 - Com a aba em segundo plano, o TuPi pisca o título e (se permitido) notifica quando a outra pessoa chega, chega uma mensagem ou um pedido de arquivo; o chat abre sozinho ao receber mensagem ou arquivo.
 - Ao compartilhar a tela, marque **Compartilhar áudio da tela** (Chrome e Edge) para enviar o som; quem assiste e quem compartilha têm um botão de mudo. Em **Mais > Dispositivos e áudio** dá para escolher o alto-falante.
+
+## App instalável e offline (PWA)
+
+- `public/sw.js` guarda o app em cache (rede primeiro, cache como reserva): a tela do lobby abre mesmo sem internet, mas a chamada continua exigindo rede.
+- `manifest.webmanifest` permite instalar o TuPi (**Mais > Instalar o TuPi**, quando o navegador oferecer) com ícone próprio.
+- Service Workers exigem HTTPS ou `localhost`. Ao incluir um arquivo novo no app, acrescente-o a `PRECACHE` em `sw.js` (o teste do servidor confere que todos existem) e, em mudanças grandes, troque `CACHE`.

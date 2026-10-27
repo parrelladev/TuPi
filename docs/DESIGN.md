@@ -384,3 +384,9 @@ Atributos de dados de `.person`: `data-speaking` (fala), `data-present` (convida
 - Com câmera, tela e microfone simulados por canvas e oscilador em duas abas: sincronização do avatar nos dois sentidos; câmera e tela somem na hora do outro lado ao parar (antes ficavam congeladas); indicador de fala local e remoto (após uma interação com a página); volume, mudo e persistência; seletor de avatar; layout desktop e mobile.
 - Não testado: captura real de microfone, câmera e tela, microfone com voz humana, transferência de arquivo, YouTube Watch Together e Firefox/Safari.
 - Limitação conhecida: o navegador só inicia o `AudioContext` depois de um clique ou tecla; quem entra por link e ainda não interagiu não vê a animação de fala até o primeiro clique.
+
+### 6.4 Service Worker e PWA
+
+- **Cache:** rede primeiro, cache como reserva; assim o app nunca fica preso a uma versão antiga, e o lobby abre offline. `/signal` e `/api/*` nunca passam pelo cache.
+- **Download em stream:** sem `showSaveFilePicker` (Firefox, Safari), o recebimento abre um `MessagePort` com o SW, que devolve os blocos como resposta de `/sw-download/<id>` com `Content-Disposition: attachment`. O navegador grava em disco; cada bloco só é confirmado quando o SW tem espaço (contrapressão). Cancelar o download no navegador cancela a transferência.
+- **Instalação:** `manifest.webmanifest` + ícones 192/512; o item **Mais > Instalar o TuPi** aparece apenas quando o navegador dispara `beforeinstallprompt`.

@@ -342,6 +342,17 @@ document.addEventListener('keydown', event => {
     }
   }
 });
+// PWA: cache para abrir offline, download de arquivos em stream e botão de instalar (Mais > Instalar o TuPi).
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event; ui.$('installMenuBtn').classList.remove('hidden'); });
+window.addEventListener('appinstalled', () => { installPrompt = null; ui.$('installMenuBtn').classList.add('hidden'); });
+ui.$('installMenuBtn').addEventListener('click', async () => {
+  deviceSettings.open = false;
+  const prompt = installPrompt; installPrompt = null;
+  ui.$('installMenuBtn').classList.add('hidden');
+  if (prompt) { await prompt.prompt(); }
+});
 const linkDialog = ui.$('linkDialog');
 let pendingLink = '';
 ui.$('messages').addEventListener('click', event => {

@@ -31,7 +31,7 @@ const MAX_CONNECTIONS_PER_IP = 12;
 const MAX_CONNECTIONS = 200;
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const CSP = "default-src 'self'; script-src 'self' https://www.youtube.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' ws: wss: https://www.youtube.com stun: stuns: turn: turns:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
-const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
+const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
 
 // Avatares (SVG): lista fixa montada na inicialização, sem aceitar caminhos arbitrários.
 const avatarFiles = new Map();
@@ -106,6 +106,10 @@ const server = http.createServer((req, res) => {
     '/': 'index.html',
     '/index.html': 'index.html',
     '/app.js': 'app.js',
+    '/sw.js': 'sw.js',
+    '/manifest.webmanifest': 'manifest.webmanifest',
+    '/assets/icon-192.png': 'assets/icon-192.png',
+    '/assets/icon-512.png': 'assets/icon-512.png',
     '/style.css': 'style.css',
     '/assets/tupi-logo.svg': 'assets/tupi-logo.svg',
     '/assets/tupi-logo.png': 'assets/tupi-logo.png',
@@ -117,6 +121,7 @@ const server = http.createServer((req, res) => {
     '/js/core/stats.js': 'js/core/stats.js',
     '/js/features/chat.js': 'js/features/chat.js',
     '/js/features/files.js': 'js/features/files.js',
+    '/js/features/stream-save.js': 'js/features/stream-save.js',
     '/js/features/youtube.js': 'js/features/youtube.js',
     '/js/features/media.js': 'js/features/media.js',
     '/js/fx.js': 'js/fx.js',

@@ -226,3 +226,19 @@ test('quem fica sozinho continua no lobby e o próximo a entrar vira par dele', 
   const fresh = await connect();
   try { await join(fresh, 'host'); } finally { await drain(fresh); }
 });
+
+test('Service Worker, manifest e todos os arquivos do precache são servidos', async () => {
+  const sw = await fetch(`${baseUrl}/sw.js`);
+  assert.equal(sw.status, 200);
+  assert.match(sw.headers.get('content-type'), /javascript/);
+  const source = await sw.text();
+  const list = source.match(/const PRECACHE = (\[[\s\S]*?\]);/);
+  assert.ok(list, 'lista PRECACHE não encontrada');
+  const urls = JSON.parse(list[1].replace(/'/g, '"'));
+  assert.ok(urls.length > 20);
+  for (const url of urls) assert.equal((await fetch(`${baseUrl}${url}`)).status, 200, url);
+  const manifest = await fetch(`${baseUrl}/manifest.webmanifest`);
+  assert.match(manifest.headers.get('content-type'), /manifest\+json/);
+  const parsed = await manifest.json();
+  for (const icon of parsed.icons) assert.equal((await fetch(`${baseUrl}${icon.src}`)).status, 200, icon.src);
+});

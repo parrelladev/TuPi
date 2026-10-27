@@ -1,3 +1,5 @@
+import { canStreamSave, openStreamSave } from './stream-save.js';
+
 const CHUNK_SIZE = 64 * 1024;
 const MEMORY_LIMIT = 1024 * 1024 * 1024;
 const COMPACT_BYTES = 32 * 1024 * 1024;
@@ -87,15 +89,21 @@ export class FileTransfers {
 
   async accept() {
     const transfer = this.transfer; if (!transfer || transfer.role !== 'receiver') return;
-    if (!window.showSaveFilePicker && transfer.size > MEMORY_LIMIT) {
+    const direct = Boolean(window.showSaveFilePicker);
+    if (!direct && !canStreamSave() && transfer.size > MEMORY_LIMIT) {
       this.sendControl({ type: 'reject', id: transfer.id, reason: 'este navegador não salva arquivos grandes diretamente em disco' });
       this.finish('Arquivo grande recusado: este navegador exige buffer em memória acima de 1 GiB'); return;
     }
     this.incoming.classList.add('hidden');
     try {
-      if (window.showSaveFilePicker) {
+      if (direct) {
         const handle = await window.showSaveFilePicker({ suggestedName: transfer.name });
         transfer.writable = await handle.createWritable();
+      } else if (canStreamSave()) {
+        // Sem showSaveFilePicker (Firefox, Safari): o Service Worker entrega os blocos ao gerenciador de downloads.
+        this.setStatus('Aguardando o navegador iniciar o download...');
+        try { transfer.writable = await openStreamSave(transfer, () => this.cancel()); }
+        catch { if (transfer.size > MEMORY_LIMIT) throw new Error('stream'); transfer.parts = []; }
       } else transfer.parts = [];
     } catch (error) {
       if (error.name === 'AbortError') { this.reject(); return; }
@@ -151,14 +159,15 @@ export class FileTransfers {
       const chunkNumber = transfer.nextChunk + 1;
       this.cancel(); this.setStatus(`Integridade não confirmada no bloco ${chunkNumber}; arquivo descartado`); return;
     }
+    const length = buffer.byteLength;
     if (transfer.writable) await transfer.writable.write(buffer);
     else {
       transfer.parts.push(buffer);
-      transfer.partBytes = (transfer.partBytes || 0) + buffer.byteLength;
+      transfer.partBytes = (transfer.partBytes || 0) + length;
       // Agrupa em Blob a cada 32 MiB: o navegador pode manter o Blob em disco em vez de RAM.
       if (transfer.partBytes >= COMPACT_BYTES) { transfer.parts = [new Blob(transfer.parts)]; transfer.partBytes = 0; }
     }
-    transfer.received += buffer.byteLength;
+    transfer.received += length;
     const index = transfer.nextChunk++;
     transfer.expectedChunkHash = null;
     this.sendControl({ type: 'ack', id: transfer.id, index });
