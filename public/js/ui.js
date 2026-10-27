@@ -43,7 +43,9 @@ export function createUI() {
     if (stream) element.play().catch(() => {});
   }
 
-  function clearMessages() { $('messages').querySelectorAll('.message').forEach(message => message.remove()); }
+  const transcript = [];
+  const getTranscript = () => transcript.slice();
+  function clearMessages() { transcript.length = 0; $('messages').querySelectorAll('.message').forEach(message => message.remove()); }
 
   let remoteName = 'Convidado';
   const setRemoteName = name => { remoteName = name; };
@@ -145,6 +147,7 @@ export function createUI() {
   }
 
   function addMessage(who, text, mine = false) {
+    transcript.push({ who, text, mine, time: Date.now() });
     const element = document.createElement('div');
     element.className = 'message' + (mine ? ' mine' : '');
     const label = document.createElement('small');
@@ -280,6 +283,29 @@ export function createUI() {
     }
     element.textContent = message;
   }
+  // Indicador de qualidade no cabeçalho: nível 0 (sem dados) a 4 (ótima) e detalhes no popover.
+  const QUALITY_LABELS = ['Sem dados', 'Ruim', 'Razoável', 'Boa', 'Ótima'];
+  function setConnectionQuality(info) {
+    const level = info ? info.level : 0;
+    const button = $('signalBtn');
+    button.dataset.level = String(level);
+    const summary = `Conexão: ${QUALITY_LABELS[level].toLowerCase()}${info && Number.isFinite(info.rtt) ? ` (${Math.round(info.rtt)} ms)` : ''}`;
+    button.setAttribute('aria-label', summary);
+    button.title = summary;
+    $('signalTitle').textContent = `Conexão: ${QUALITY_LABELS[level]}`;
+    const list = $('signalList');
+    list.replaceChildren();
+    for (const [key, value] of info?.rows || []) {
+      const row = document.createElement('div');
+      const term = document.createElement('dt');
+      const detail = document.createElement('dd');
+      term.textContent = key;
+      detail.textContent = value;
+      row.append(term, detail);
+      list.append(row);
+    }
+    $('signalTip').textContent = info?.tip || '';
+  }
   function setCodecCapabilities(message) {
     let element = $('codecCapabilities');
     if (!element) {
@@ -298,5 +324,5 @@ export function createUI() {
     setAudioPlaybackBlocked(false);
   }
 
-  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, setScreenLocked, isScreenLocked, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setCodecCapabilities, closeShareSettings, clearRoomView };
+  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, setScreenLocked, isScreenLocked, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setConnectionQuality, getTranscript, setCodecCapabilities, closeShareSettings, clearRoomView };
 }

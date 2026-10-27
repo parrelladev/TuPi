@@ -7,6 +7,14 @@ export class Chat {
     this.soundEnabled = this.readSoundPreference();
     this.audioContext = null;
     ui.$('chatForm').addEventListener('submit', event => this.sendFromForm(event));
+    // Enter envia; Shift+Enter quebra a linha. O campo cresce até 5 linhas.
+    const input = ui.$('chatInput');
+    input.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
+      event.preventDefault();
+      ui.$('chatForm').requestSubmit();
+    });
+    input.addEventListener('input', () => this.autosize());
     ui.$('chatSoundToggle').addEventListener('click', () => this.toggleSound());
     ui.setChatSoundEnabled(this.soundEnabled);
     this.unlockAudioOnInteraction = () => {
@@ -19,6 +27,13 @@ export class Chat {
       if (this.soundEnabled) void this.unlockAudio();
       if (this.isChatVisible()) this.markRead();
     });
+  }
+
+  autosize() {
+    const input = this.ui.$('chatInput');
+    input.style.height = 'auto';
+    // Com o chat recolhido o campo não tem layout (scrollHeight 0): deixa a altura mínima do CSS.
+    input.style.height = input.scrollHeight ? `${Math.min(input.scrollHeight + 2, 120)}px` : '';
   }
 
   readSoundPreference() {
@@ -114,6 +129,7 @@ export class Chat {
       this.channel.send(text);
       this.ui.addMessage('Você', text, true);
       input.value = '';
+      this.autosize();
     } catch { this.ui.notify('Não foi possível enviar a mensagem.'); }
   }
 

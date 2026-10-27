@@ -74,8 +74,10 @@ export class YouTubeTogether {
     const player = this.player;
     if (!player || typeof player.setVolume !== 'function') return;
     try {
-      player.setVolume(this.effectiveVolume());
-      if (this.myMuted) player.mute(); else player.unMute();
+      // No YouTube, volume 0 conta como "sem som" e unMute() devolve o volume anterior: com 0 é preciso mutar de fato.
+      const volume = this.effectiveVolume();
+      if (volume === 0) { player.mute(); player.setVolume(0); }
+      else { player.unMute(); player.setVolume(volume); }
     } catch { /* o player ainda não está pronto */ }
   }
 

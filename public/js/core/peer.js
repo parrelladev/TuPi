@@ -1,6 +1,6 @@
 export class PeerSession {
-  constructor({ rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft }) {
-    Object.assign(this, { rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft });
+  constructor({ rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost }) {
+    Object.assign(this, { rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost });
     this.pc = null;
     this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = this.screenAudioTransceiver = null;
     this.pendingCandidates = [];
@@ -37,7 +37,11 @@ export class PeerSession {
     pc.onconnectionstatechange = () => {
       if (this.pc !== pc) return;
       clearTimeout(this.restartTimer);
-      if (pc.connectionState === 'connected') this.ui.status('Conectado diretamente (ou via relay TURN)');
+      if (pc.connectionState === 'connected') { clearTimeout(this.lostTimer); this.lostTimer = null; this.ui.status('Conectado diretamente (ou via relay TURN)'); this.onConnected?.(); }
+      // Se o ICE não se recuperar sozinho em 12 s, avisa o app para tentar reconectar.
+      if (['failed', 'disconnected'].includes(pc.connectionState) && !this.lostTimer) {
+        this.lostTimer = setTimeout(() => { this.lostTimer = null; if (this.pc === pc && pc.connectionState !== 'connected') this.onConnectionLost?.(); }, 12000);
+      }
       if (pc.connectionState === 'failed') { this.ui.status('Conexão interrompida; tentando recuperar…'); this.restartTimer = setTimeout(() => { void this.restartIce(pc); }, 0); }
       if (pc.connectionState === 'disconnected') { this.ui.status('Conexão instável; tentando recuperar…'); this.restartTimer = setTimeout(() => { void this.restartIce(pc); }, 5000); }
     };
@@ -140,7 +144,7 @@ export class PeerSession {
   }
 
   reset() {
-    clearTimeout(this.restartTimer); this.restartTimer = null; this.restartingIce = false; this.isInitiator = false;
+    clearTimeout(this.restartTimer); this.restartTimer = null; clearTimeout(this.lostTimer); this.lostTimer = null; this.restartingIce = false; this.isInitiator = false;
     this.chat.detach(); this.files.detach(); this.youtube.detach(); this.presence.detach(); this.media.detachSenders();
     if (this.pc) { this.pc.ontrack = this.pc.onicecandidate = this.pc.ondatachannel = this.pc.onconnectionstatechange = null; this.pc.close(); this.pc = null; }
     this.pendingCandidates = [];

@@ -27,8 +27,10 @@
 .ph.ph-bell-slash:before{content:"\e0d4"}
 .ph.ph-caret-right:before{content:"\e13a"}
 .ph.ph-chat-circle-dots:before{content:"\e16c"}
+.ph.ph-check:before{content:"\e182"}
 .ph.ph-check-circle:before{content:"\e184"}
 .ph.ph-circle-half:before{content:"\e18c"}
+.ph.ph-copy:before{content:"\e1ca"}
 .ph.ph-corners-in:before{content:"\e1ce"}
 .ph.ph-corners-out:before{content:"\e1d0"}
 .ph.ph-crop:before{content:"\e1d4"}
@@ -44,6 +46,7 @@
 .ph.ph-paperclip:before{content:"\e39a"}
 .ph.ph-pause:before{content:"\e39e"}
 .ph.ph-pencil-simple:before{content:"\e3b4"}
+.ph.ph-phone-disconnect:before{content:"\e3bc"}
 .ph.ph-play:before{content:"\e3d0"}
 .ph.ph-play-circle:before{content:"\e3d2"}
 .ph.ph-power:before{content:"\e3da"}
@@ -89,8 +92,10 @@
 .ph-fill.ph-bell-slash:before{content:"\e0d4"}
 .ph-fill.ph-caret-right:before{content:"\e13a"}
 .ph-fill.ph-chat-circle-dots:before{content:"\e16c"}
+.ph-fill.ph-check:before{content:"\e182"}
 .ph-fill.ph-check-circle:before{content:"\e184"}
 .ph-fill.ph-circle-half:before{content:"\e18c"}
+.ph-fill.ph-copy:before{content:"\e1ca"}
 .ph-fill.ph-corners-in:before{content:"\e1ce"}
 .ph-fill.ph-corners-out:before{content:"\e1d0"}
 .ph-fill.ph-crop:before{content:"\e1d4"}
@@ -106,6 +111,7 @@
 .ph-fill.ph-paperclip:before{content:"\e39a"}
 .ph-fill.ph-pause:before{content:"\e39e"}
 .ph-fill.ph-pencil-simple:before{content:"\e3b4"}
+.ph-fill.ph-phone-disconnect:before{content:"\e3bc"}
 .ph-fill.ph-play:before{content:"\e3d0"}
 .ph-fill.ph-play-circle:before{content:"\e3d2"}
 .ph-fill.ph-power:before{content:"\e3da"}

@@ -262,7 +262,6 @@ input[type=range] { padding: 0; accent-color: var(--pink); box-shadow: none; bor
 .message.mine { align-self: flex-end; border-radius: 14px 14px 4px 14px; background: var(--tint); color: var(--ink); transform-origin: 100% 100%; }
 .message small { display: block; margin-bottom: 4px; color: var(--muted); font-size: 9px; }
 .chat-compose { display: flex; gap: 8px; padding: 11px; border-top: 1px solid var(--line); }
-.chat-compose input { flex: 1; font-size: 12px; background: var(--surface-3); }
 .send-button { width: 41px; height: 41px; padding: 0; border-radius: 12px; background: var(--brand); color: #fff; }
 .send-button i { transition: transform .4s var(--spring); }
 .send-button:hover:not(:disabled) i { transform: translate(2px, -2px) rotate(8deg); }
@@ -302,9 +301,11 @@ input[type=range] { padding: 0; accent-color: var(--pink); box-shadow: none; bor
 .mic-icon .mic-on-icon { display: none; }
 #micBtn.mic-enabled .mic-off-icon { display: none; }
 #micBtn.mic-enabled .mic-on-icon { display: block; }
-#micBtn.mic-enabled, #cameraBtn.mic-enabled { background: var(--ok-bg); color: var(--ok-ink); animation: ring 1.8s ease-out infinite; }
+#micBtn.mic-enabled, #cameraBtn.mic-enabled { background: var(--ok-bg); color: var(--ok-ink); }
+#micBtn.mic-enabled:hover, #cameraBtn.mic-enabled:hover { animation: ring 1.2s ease-out infinite; }
 @keyframes ring-yt { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, #ff2d55 42%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
-.tb.is-on, .tb.is-on:hover:not(:disabled) { background: color-mix(in srgb, #ff2d55 15%, var(--surface)); color: light-dark(#e8213f, #ff7a8e); animation: ring-yt 1.8s ease-out infinite; }
+.tb.is-on, .tb.is-on:hover:not(:disabled) { background: color-mix(in srgb, #ff2d55 15%, var(--surface)); color: light-dark(#e8213f, #ff7a8e); }
+.tb.is-on:hover:not(:disabled) { animation: ring-yt 1.2s ease-out infinite; }
 .btn-primary.tb.is-off, .btn-primary.tb.is-off:hover:not(:disabled) { background: var(--surface-2); color: var(--muted); box-shadow: none; opacity: .5; filter: grayscale(1); cursor: not-allowed; transform: none; }
 .btn-primary.tb.is-off::after { display: none; }
 .button-leave { background: var(--danger-bg); color: var(--danger-ink); }
@@ -728,3 +729,46 @@ img.logo-dark { display: none; }
 }
 :root[data-theme="dark"] .logo-light { display: none; }
 :root[data-theme="dark"] .logo-dark { display: block; }
+
+/* Chat: campo de várias linhas (Enter envia, Shift+Enter quebra a linha). */
+.chat-compose { align-items: flex-end; }
+.chat-compose textarea { flex: 1; min-width: 0; min-height: 41px; max-height: 120px; padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--r-s); background: var(--surface-3); color: var(--ink); font: inherit; font-size: 12px; line-height: 1.35; resize: none; transition: border-color .2s, box-shadow .25s var(--out), height .12s var(--out); }
+.chat-compose textarea:focus-visible { outline: none; border-color: var(--focus); box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 28%, transparent); }
+.chat-compose textarea:disabled { opacity: .6; }
+.message > div { white-space: pre-wrap; }
+
+/* Indicador de qualidade da conexão. */
+.signal-wrap { position: relative; display: inline-flex; }
+.signal-btn { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: var(--surface-2); cursor: pointer; transition: background-color .2s, transform .35s var(--spring); }
+.signal-btn:hover { background: var(--surface-3); transform: translateY(-1px); }
+.signal-btn:active { transform: scale(.9); }
+.signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
+.signal-bars b { width: 3px; border-radius: 2px; background: color-mix(in srgb, var(--muted) 45%, transparent); transition: background-color .4s, height .4s var(--spring); }
+.signal-bars b:nth-child(1) { height: 4px; }
+.signal-bars b:nth-child(2) { height: 7px; }
+.signal-bars b:nth-child(3) { height: 10px; }
+.signal-bars b:nth-child(4) { height: 14px; }
+.signal-btn[data-level="4"] .signal-bars b, .signal-btn[data-level="3"] .signal-bars b:nth-child(-n+3) { background: var(--ok); }
+.signal-btn[data-level="2"] .signal-bars b:nth-child(-n+2) { background: var(--warn); }
+.signal-btn[data-level="1"] .signal-bars b:nth-child(1) { background: var(--bad); }
+.signal-pop { position: absolute; z-index: 90; top: calc(100% + 10px); right: 0; width: min(280px, calc(100vw - 24px)); padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow-lift); animation: menu-in .3s var(--spring); transform-origin: 100% 0; }
+.signal-pop strong { display: block; margin-bottom: 8px; font-size: 13px; }
+.signal-list { display: grid; gap: 4px; margin: 0; }
+.signal-list > div { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; }
+.signal-list dt { color: var(--muted); }
+.signal-list dd { margin: 0; font-weight: 600; text-align: right; }
+.signal-tip { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.signal-tip:empty { display: none; }
+
+/* Tela de chamada encerrada. */
+.end-screen { display: grid; place-items: center; min-height: clamp(480px, 74dvh, 700px); padding: 16px; }
+.end-card { display: grid; justify-items: center; gap: 12px; width: min(420px, 100%); padding: 28px 24px; text-align: center; }
+.end-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: color-mix(in srgb, var(--bad) 16%, var(--surface-2)); color: var(--bad); font-size: 26px; }
+.end-card h1 { margin: 0; font-size: 22px; }
+.end-reason { margin: 0; color: var(--muted); font-size: 13px; }
+.end-stats { display: flex; gap: 12px; width: 100%; margin: 4px 0; }
+.end-stats > div { flex: 1; padding: 10px; border-radius: 12px; background: var(--surface-2); }
+.end-stats dt { color: var(--muted); font-size: 11px; }
+.end-stats dd { margin: 2px 0 0; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.end-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; }
+.end-actions .btn { gap: 6px; }

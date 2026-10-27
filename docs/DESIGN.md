@@ -403,3 +403,11 @@ Atributos de dados de `.person`: `data-speaking` (fala), `data-present` (convida
 
 - Logos vetoriais em `public/assets`: `tupi-claro.svg` (letras escuras) e `tupi-escuro.svg` (letras claras), trocados por CSS conforme o tema (`.logo-light` / `.logo-dark`, respeitando o botão de tema e o sistema); `tupi-simbolo.svg` é o símbolo isolado. As versões PNG ficam como reserva.
 - `icon-192.png`, `icon-512.png` (PWA, notificações) e `favicon.ico` são gerados a partir do símbolo sobre fundo `#16131a`.
+
+### 6.7 Conexão, chat e encerramento
+
+- **Indicador de qualidade:** `.signal-btn` no cabeçalho (4 barras: verde ótima/boa, âmbar razoável, vermelho ruim, cinza sem dados). Nota calculada em `stats.js` por latência (>80/150/350 ms), perda (>0,5/2/8%) e jitter (>20/40/80 ms). O popover lista rota, latência, perda, jitter e vídeo enviado, e explica quando a qualidade adaptativa está pausando as transferências. Aviso único ao cair para "Ruim".
+- **Reconexão automática:** `PeerSession` avisa `onConnectionLost` após 12 s em `failed`/`disconnected`; `app.js` agenda até 3 tentativas com contagem regressiva e para ao conectar, encerrar a chamada ou sair.
+- **Chat:** `<textarea>` com Enter/Shift+Enter, crescimento automático (máx. 120 px) e `white-space: pre-wrap` nas mensagens.
+- **Chamada encerrada:** `#endScreen` substitui o retorno direto ao lobby quando a chamada chegou a conectar: motivo, duração, mensagens e cópia da conversa (`[HH:MM] Nome: texto`).
+- **Botões da barra inferior:** o anel pulsante dos botões ativos (microfone, câmera, YouTube) só anima ao passar o mouse.

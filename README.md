@@ -135,3 +135,11 @@ A interface usa [Phosphor Icons](https://phosphoricons.com/) (licença MIT), emp
 - `public/sw.js` guarda o app em cache (rede primeiro, cache como reserva): a tela do lobby abre mesmo sem internet, mas a chamada continua exigindo rede.
 - `manifest.webmanifest` permite instalar o TuPi (**Mais > Instalar o TuPi**, quando o navegador oferecer) com ícone próprio.
 - Service Workers exigem HTTPS ou `localhost`. Ao incluir um arquivo novo no app, acrescente-o a `PRECACHE` em `sw.js` (o teste do servidor confere que todos existem) e, em mudanças grandes, troque `CACHE`.
+
+## Conexão, chat e encerramento
+
+- **Qualidade da conexão:** o ícone de barras no cabeçalho mostra de "Ruim" a "Ótima" (latência, perda e jitter). Ao clicar, abre a rota usada (**Direta P2P** ou **Relé TURN**) e dicas. Se a rota for relé, arquivos e vídeo tendem a ficar mais lentos.
+- **Reconexão automática:** se a conexão P2P não se recuperar sozinha em 12 s, o TuPi tenta de novo até 3 vezes (3 s, 6 s e 12 s), com contagem regressiva no status. O botão de recarregar continua disponível.
+- **Chat:** `Enter` envia e `Shift+Enter` quebra a linha; o campo cresce até 5 linhas.
+- **Chamada encerrada:** ao sair (ou quando a outra pessoa sai) aparece uma tela com a duração, o número de mensagens e o botão **Copiar conversa**; **Voltar ao lobby** volta para a tela inicial.
+- **Cloudflare Tunnel:** ele só carrega a página e a sinalização (WebSocket). O áudio, o vídeo e os arquivos vão direto entre os navegadores (ou pelo TURN, se configurado), então o túnel não limita a velocidade; o indicador acima mostra se a rota é direta ou por relé.

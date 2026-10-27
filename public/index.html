@@ -60,7 +60,7 @@
         <a class="room-brand" href="/" aria-label="TuPi, página inicial"><img class="logo-light" src="/assets/tupi-claro.svg" alt="TuPi" /><img class="logo-dark" src="/assets/tupi-escuro.svg" alt="" aria-hidden="true" /></a>
         <div class="room-header-tools">
           <span class="status-chip"><i class="status-dot" aria-hidden="true"></i><span id="status" class="status" role="status" aria-live="polite">Conectando...</span><button id="reconnectBtn" class="reconnect-btn" type="button" data-busy="false" aria-label="Tentar reconectar" title="Tentar reconectar"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i></button></span>
-          <span class="room-member-count" aria-label="Participantes na chamada"><i class="ph ph-users" aria-hidden="true"></i><span id="participantCount">1</span></span>
+          <span class="signal-wrap"><button id="signalBtn" class="signal-btn" type="button" data-level="0" aria-expanded="false" aria-controls="signalPop" aria-label="Conexão: sem dados" title="Conexão: sem dados"><i class="signal-bars" aria-hidden="true"><b></b><b></b><b></b><b></b></i></button><div id="signalPop" class="signal-pop hidden" role="dialog" aria-label="Detalhes da conexão"><strong id="signalTitle">Conexão: sem dados</strong><dl id="signalList" class="signal-list"></dl><p id="signalTip" class="signal-tip"></p></div></span><span class="room-member-count" aria-label="Participantes na chamada"><i class="ph ph-users" aria-hidden="true"></i><span id="participantCount">1</span></span>
         </div>
       </header>
 
@@ -131,7 +131,7 @@
             </div>
           </div>
           <div id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text"><div class="notice"><i class="ph ph-lock-simple notice-lock" aria-hidden="true"></i><span>As mensagens são trocadas diretamente entre vocês e não são salvas.</span></div></div>
-          <form id="chatForm" class="chat-compose"><label class="sr-only" for="chatInput">Escreva uma mensagem</label><input id="chatInput" maxlength="2000" placeholder="Escreva uma mensagem..." autocomplete="off" disabled aria-label="Mensagem" /><button id="sendBtn" class="btn send-button" disabled aria-label="Enviar mensagem"><i class="ph-fill ph-paper-plane-tilt" aria-hidden="true"></i></button></form>
+          <form id="chatForm" class="chat-compose"><label class="sr-only" for="chatInput">Escreva uma mensagem</label><textarea id="chatInput" rows="1" maxlength="2000" placeholder="Escreva uma mensagem..." title="Enter envia · Shift+Enter quebra a linha" autocomplete="off" disabled aria-label="Mensagem"></textarea><button id="sendBtn" class="btn send-button" disabled aria-label="Enviar mensagem"><i class="ph-fill ph-paper-plane-tilt" aria-hidden="true"></i></button></form>
         </section>
       </div>
 
@@ -154,6 +154,15 @@
       </nav>
       <p class="footnote"><i class="ph ph-shield-check" aria-hidden="true"></i> WebRTC usa criptografia em trânsito. Algumas redes precisam de um servidor TURN para retransmissão.</p>
     </section>
+    <section id="endScreen" class="end-screen hidden" aria-labelledby="endTitle">
+      <div class="end-card panel" data-enter>
+        <span class="end-icon" aria-hidden="true"><i class="ph-fill ph-phone-disconnect"></i></span>
+        <h1 id="endTitle">Chamada encerrada</h1>
+        <p id="endReason" class="end-reason"></p>
+        <dl class="end-stats"><div><dt>Duração</dt><dd id="endDuration">—</dd></div><div><dt>Mensagens</dt><dd id="endMessages">0</dd></div></dl>
+        <div class="end-actions"><button id="endCopyBtn" class="btn btn-soft" type="button"><i class="ph ph-copy" aria-hidden="true"></i><span>Copiar conversa</span></button><button id="endBackBtn" class="btn btn-primary" type="button"><i class="ph ph-sign-in" aria-hidden="true"></i>Voltar ao lobby</button></div>
+      </div>
+    </section>
     <dialog id="shortcutsDialog" class="shortcuts-dialog" aria-labelledby="shortcutsTitle">
       <div class="shortcuts-head"><h2 id="shortcutsTitle"><i class="ph ph-keyboard" aria-hidden="true"></i>Atalhos de teclado</h2><button id="shortcutsClose" class="btn btn-soft" type="button" aria-label="Fechar"><i class="ph ph-x" aria-hidden="true"></i></button></div>
       <dl class="shortcuts-list">
@@ -161,6 +170,8 @@
         <div><dt><kbd>V</kbd></dt><dd>Ligar ou desligar a câmera</dd></div>
         <div><dt><kbd>C</kbd></dt><dd>Abrir ou fechar o chat</dd></div>
         <div><dt><kbd>F</kbd></dt><dd>Tela cheia da tela compartilhada</dd></div>
+        <div><dt><kbd>Enter</kbd></dt><dd>Enviar a mensagem do chat</dd></div>
+        <div><dt><kbd>Shift</kbd>+<kbd>Enter</kbd></dt><dd>Quebrar a linha no chat</dd></div>
         <div><dt><kbd>Esc</kbd></dt><dd>Fechar menus e esta janela</dd></div>
       </dl>
       <p class="shortcuts-note">Os atalhos não funcionam enquanto você digita em um campo.</p>

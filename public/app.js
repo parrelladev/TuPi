@@ -41,6 +41,11 @@ let fullTimer = null;
 let graceTimer = null;
 let reconnecting = false;
 const PEER_GRACE_MS = 5000;
+const AUTO_RECONNECT_DELAYS = [3000, 6000, 12000];
+let autoTimer = null;
+let autoTick = null;
+let autoAttempt = 0;
+let connectedAt = 0;
 
 youtube.onModeChange = open => {
   ui.setScreenLocked(open);
@@ -64,6 +69,8 @@ const peer = new PeerSession({
   presence,
   ui,
   sendSignal: message => signaling?.send(message),
+  onConnected: () => { stopAutoReconnect(); if (!connectedAt) connectedAt = Date.now(); },
+  onConnectionLost: () => scheduleAutoReconnect(),
   onPeerLeft: () => {
     // Dá um tempo para a pessoa voltar (por exemplo, ao tocar em Reconectar) antes de encerrar a chamada.
     if (!inCall || graceTimer) return;
@@ -105,6 +112,9 @@ async function startCall() {
   clearGrace();
   if (inCall) return;
   inCall = true;
+  stopAutoReconnect();
+  connectedAt = 0;
+  ui.$('endScreen').classList.add('hidden');
   ui.setLobbyState('call', 2);
   await transition(() => {
     document.body.classList.add('in-room');
@@ -121,21 +131,23 @@ async function startCall() {
 }
 
 // Volta ao lobby (ainda online, esperando alguém). Microfone e câmera continuam como estavam.
-async function endCall() {
+async function endCall(showSummary = true) {
   clearGrace();
+  stopAutoReconnect();
   peer.reset();
   youtube.leave();
   if (media.screenStream) await media.stopSource('screen');
   if (!inCall) return;
   inCall = false;
   connectionStats.stop();
+  const summary = showSummary ? takeSummary('A outra pessoa saiu da chamada.') : null;
   ui.clearMessages();
   await transition(() => {
     ui.$('room').classList.add('hidden');
-    ui.$('landing').classList.remove('hidden');
+    if (summary) showEndScreen(summary); else ui.$('landing').classList.remove('hidden');
     document.body.classList.remove('in-room');
   });
-  enterStagger(ui.$('landing'));
+  enterStagger(summary ? ui.$('endScreen') : ui.$('landing'));
   if (signaling) ui.setLobbyState('waiting', lobbyCount);
 }
 
@@ -146,7 +158,7 @@ async function handleSignal(message) {
       if (message.role === 'guest') { setCount(2); await startCall(); }
       else {
         setCount(1);
-        if (inCall) { clearGrace(); peer.reset(); await endCall(); }
+        if (inCall) { clearGrace(); peer.reset(); await endCall(false); }
         ui.status('Aguardando outra pessoa entrar...');
       }
       return;
@@ -214,6 +226,8 @@ async function leaveLobby() {
   leaving = true;
   clearTimeout(fullTimer);
   clearGrace();
+  stopAutoReconnect();
+  const summary = inCall ? takeSummary('Você saiu da chamada.') : null;
   ui.closeShareSettings();
   connectionStats.stop();
   signaling?.close();
@@ -227,10 +241,10 @@ async function leaveLobby() {
     inCall = false;
     await transition(() => {
       ui.$('room').classList.add('hidden');
-      ui.$('landing').classList.remove('hidden');
+      if (summary) showEndScreen(summary); else ui.$('landing').classList.remove('hidden');
       document.body.classList.remove('in-room');
     });
-    enterStagger(ui.$('landing'));
+    enterStagger(summary ? ui.$('endScreen') : ui.$('landing'));
   }
   ui.setLobbyState('idle', 0);
 }
@@ -247,24 +261,121 @@ async function waitForReconnect(timeout) {
   return 'timeout';
 }
 
-async function reconnectCall() {
-  if (!inCall || !signaling || reconnecting) return;
+// Reconexão automática: até 3 tentativas (3 s, 6 s e 12 s), com contagem regressiva no status.
+function stopAutoReconnect(reset = true) {
+  clearTimeout(autoTimer);
+  clearInterval(autoTick);
+  autoTimer = autoTick = null;
+  if (reset) autoAttempt = 0;
+}
+
+function scheduleAutoReconnect() {
+  if (!inCall || leaving || reconnecting || autoTimer) return;
+  if (autoAttempt >= AUTO_RECONNECT_DELAYS.length) {
+    ui.status('Sem conexão. Use o botão de recarregar para tentar de novo.');
+    ui.notify('Não foi possível reconectar automaticamente. Use o botão de recarregar ou saia e entre de novo.');
+    return;
+  }
+  const delay = AUTO_RECONNECT_DELAYS[autoAttempt];
+  const attempt = ++autoAttempt;
+  let left = Math.round(delay / 1000);
+  const show = () => ui.status(`Sem conexão. Nova tentativa em ${left}s (${attempt} de ${AUTO_RECONNECT_DELAYS.length})…`);
+  show();
+  autoTick = setInterval(() => { left = Math.max(0, left - 1); show(); }, 1000);
+  autoTimer = setTimeout(async () => {
+    stopAutoReconnect(false);
+    const result = await reconnectCall({ auto: true });
+    if (result === 'timeout') scheduleAutoReconnect();
+  }, delay);
+}
+
+async function reconnectCall({ auto = false } = {}) {
+  if (!inCall || !signaling || reconnecting) return 'skipped';
+  if (!auto) stopAutoReconnect();
   reconnecting = true;
   ui.setReconnectBusy(true);
+  let result = 'skipped';
   try {
     ui.status('Reconectando…');
-    ui.notify('Tentando reconectar…');
+    if (!auto) ui.notify('Tentando reconectar…');
     peer.reset();
     await signaling.reconnect();
-    const result = await waitForReconnect(20000);
+    result = await waitForReconnect(20000);
     if (result === 'connected') ui.notify('Reconectado!');
     else if (result === 'left') ui.notify('A outra pessoa não está mais no lobby.');
-    else { ui.status('Não foi possível reconectar.'); ui.notify('Não foi possível reconectar. Tente de novo ou saia e entre no lobby outra vez.'); }
+    else if (!auto) { ui.status('Não foi possível reconectar.'); ui.notify('Não foi possível reconectar. Tente de novo ou saia e entre no lobby outra vez.'); }
+    return result;
   } finally {
     reconnecting = false;
     ui.setReconnectBusy(false);
   }
 }
+
+// Tela de chamada encerrada: duração, mensagens e cópia da conversa.
+function takeSummary(reason) {
+  const started = connectedAt;
+  connectedAt = 0;
+  if (!started) return null;
+  return { reason, seconds: Math.max(1, Math.round((Date.now() - started) / 1000)), messages: ui.getTranscript() };
+}
+
+function formatDuration(total) {
+  const pad = value => String(value).padStart(2, '0');
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  return hours ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
+}
+
+let endTranscript = [];
+function showEndScreen(summary) {
+  endTranscript = summary.messages;
+  ui.$('endReason').textContent = summary.reason;
+  ui.$('endDuration').textContent = formatDuration(summary.seconds);
+  ui.$('endMessages').textContent = String(summary.messages.length);
+  ui.$('endCopyBtn').classList.toggle('hidden', !summary.messages.length);
+  resetCopyButton();
+  ui.$('endScreen').classList.remove('hidden');
+}
+
+function resetCopyButton() {
+  const button = ui.$('endCopyBtn');
+  button.querySelector('i').className = 'ph ph-copy';
+  button.querySelector('span').textContent = 'Copiar conversa';
+}
+
+ui.$('endBackBtn').addEventListener('click', async () => {
+  await transition(() => {
+    ui.$('endScreen').classList.add('hidden');
+    ui.$('landing').classList.remove('hidden');
+  });
+  enterStagger(ui.$('landing'));
+});
+ui.$('endCopyBtn').addEventListener('click', async () => {
+  const pad = value => String(value).padStart(2, '0');
+  const text = endTranscript.map(item => {
+    const time = new Date(item.time);
+    return `[${pad(time.getHours())}:${pad(time.getMinutes())}] ${item.who}: ${item.text}`;
+  }).join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    const button = ui.$('endCopyBtn');
+    button.querySelector('i').className = 'ph ph-check';
+    button.querySelector('span').textContent = 'Copiado!';
+    setTimeout(resetCopyButton, 2000);
+  } catch { ui.notify('Não foi possível copiar a conversa.'); }
+});
+
+// Indicador de qualidade da conexão (cabeçalho): clique abre os detalhes.
+const signalBtn = ui.$('signalBtn');
+const signalPop = ui.$('signalPop');
+function setSignalOpen(open) {
+  signalPop.classList.toggle('hidden', !open);
+  signalBtn.setAttribute('aria-expanded', String(open));
+}
+signalBtn.addEventListener('click', event => { event.stopPropagation(); setSignalOpen(signalPop.classList.contains('hidden')); });
+document.addEventListener('click', event => { if (!signalPop.classList.contains('hidden') && !signalPop.contains(event.target)) setSignalOpen(false); });
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && !signalPop.classList.contains('hidden')) { setSignalOpen(false); signalBtn.focus(); } });
 
 ui.$('lobbyJoinBtn').addEventListener('click', () => { void joinLobby(); });
 ui.$('lobbyLeaveBtn').addEventListener('click', () => { void leaveLobby(); });
