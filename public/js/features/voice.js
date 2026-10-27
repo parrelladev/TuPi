@@ -69,6 +69,7 @@ export class Voice {
     this.frame = 0;
     this.lastTick = 0;
     this.settings = this.loadSettings();
+    this.output = { key: '', nodes: null, left: 0, right: 0, makeup: 1, active: false };
     this.meters = {
       local: new Meter(() => this.media.micStream),
       remote: new Meter(() => this.$('remoteAudio').srcObject)
@@ -175,8 +176,10 @@ export class Voice {
   applyVolume() {
     const { volume, muted } = this.settings;
     const audio = this.$('remoteAudio');
-    audio.volume = volume / 100;
-    audio.muted = muted;
+    const routed = this.output.active;
+    audio.volume = routed ? 1 : volume / 100;
+    audio.muted = routed ? true : muted;
+    this.applyOutputGain();
     const slider = this.$('remoteVolume');
     slider.value = String(volume);
     slider.style.setProperty('--fill', `${muted ? 0 : volume}%`);
@@ -186,6 +189,76 @@ export class Voice {
     button.setAttribute('aria-label', muted ? 'Reativar o som do convidado' : 'Silenciar o convidado');
     button.dataset.level = muted || volume === 0 ? 'off' : volume < 50 ? 'low' : 'high';
     this.renderStates();
+  }
+
+  applyOutputGain() {
+    const { nodes, makeup } = this.output;
+    if (!nodes) return;
+    const level = this.settings.muted ? 0 : this.settings.volume / 100;
+    nodes.gain.gain.setTargetAtTime(level * makeup, this.context.currentTime, 0.05);
+  }
+
+  // O áudio do convidado passa por Web Audio e sai igual nos dois ouvidos. Isso evita o caso de
+  // sair só do lado esquerdo (fonte estéreo com um canal vazio ou mono mapeado para a esquerda).
+  buildOutput(tracks) {
+    const context = this.context;
+    const source = context.createMediaStreamSource(new MediaStream(tracks));
+    const up = context.createGain();
+    up.channelCount = 2; up.channelCountMode = 'explicit'; up.channelInterpretation = 'speakers';
+    const splitter = context.createChannelSplitter(2);
+    const left = context.createAnalyser();
+    const right = context.createAnalyser();
+    left.fftSize = right.fftSize = 512;
+    const mono = context.createGain();
+    mono.channelCount = 1; mono.channelCountMode = 'explicit'; mono.channelInterpretation = 'speakers';
+    const gain = context.createGain();
+    source.connect(up);
+    up.connect(splitter);
+    splitter.connect(left, 0);
+    splitter.connect(right, 1);
+    up.connect(mono);
+    mono.connect(gain);
+    gain.connect(context.destination);
+    this.output.nodes = { source, up, splitter, left, right, mono, gain, dataL: new Uint8Array(512), dataR: new Uint8Array(512) };
+  }
+
+  disposeOutput() {
+    const { nodes } = this.output;
+    if (nodes) for (const node of [nodes.source, nodes.up, nodes.splitter, nodes.mono, nodes.gain]) { try { node.disconnect(); } catch { /* já desconectado */ } }
+    this.output.nodes = null;
+    this.output.left = this.output.right = 0;
+    this.output.makeup = 1;
+  }
+
+  rms(analyser, data) {
+    analyser.getByteTimeDomainData(data);
+    let sum = 0;
+    for (const value of data) { const x = (value - 128) / 128; sum += x * x; }
+    return Math.sqrt(sum / data.length);
+  }
+
+  updateOutput() {
+    const output = this.output;
+    const stream = this.$('remoteAudio').srcObject;
+    const tracks = stream ? stream.getAudioTracks().filter(track => track.readyState === 'live') : [];
+    const key = tracks.map(track => track.id).join(',');
+    if (key !== output.key) {
+      this.disposeOutput();
+      output.key = key;
+      if (tracks.length) { try { this.buildOutput(tracks); } catch { this.disposeOutput(); } }
+    }
+    const { nodes } = output;
+    if (nodes) {
+      output.left = Math.max(this.rms(nodes.left, nodes.dataL), output.left * 0.92);
+      output.right = Math.max(this.rms(nodes.right, nodes.dataR), output.right * 0.92);
+      const loud = Math.max(output.left, output.right);
+      if (loud > 0.01) {
+        const makeup = Math.min(output.left, output.right) < loud * 0.12 ? 2 : 1;
+        if (makeup !== output.makeup) { output.makeup = makeup; this.applyOutputGain(); }
+      }
+    }
+    const active = Boolean(nodes) && this.context.state === 'running';
+    if (active !== output.active) { output.active = active; this.applyVolume(); }
   }
 
   renderStates() {
@@ -219,7 +292,12 @@ export class Voice {
       if (!AudioContext) return;
       try { this.context = new AudioContext(); } catch { return; }
     }
-    if (this.context.state !== 'running') { this.context.resume().catch(() => {}); return; }
+    if (this.context.state !== 'running') {
+      this.context.resume().catch(() => {});
+      if (this.output.active) { this.output.active = false; this.applyVolume(); }
+      return;
+    }
+    this.updateOutput();
     const sides = [
       ['local', this.meters.local.read(this.context, now), ['personLocal', 'avatarMini']],
       ['remote', this.meters.remote.read(this.context, now), ['personRemote', 'miniRemote']]

@@ -37,7 +37,7 @@ export class Media {
 
   audioConstraints(deviceId) {
     const natural = this.audioProfile === 'natural';
-    return { deviceId: deviceId ? { exact: deviceId } : undefined, echoCancellation: !natural, noiseSuppression: !natural, autoGainControl: !natural };
+    return { deviceId: deviceId ? { exact: deviceId } : undefined, channelCount: { ideal: 1 }, echoCancellation: !natural, noiseSuppression: !natural, autoGainControl: !natural };
   }
 
   async attachSenders(audioSender, cameraSender, screenSender) {
