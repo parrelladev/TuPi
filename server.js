@@ -21,6 +21,8 @@ const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '::';
 const IPV6 = process.env.IPV6 || '';
 const PUBLIC = path.join(__dirname, 'public');
+const { Whiteboard } = require('./server/whiteboard');
+const board = new Whiteboard(process.env.BOARD_DATA_DIR || path.join(__dirname, 'data'));
 const lobby = new Set(); // sockets presentes no lobby único (máximo 2)
 const LOBBY_MAX = 2;
 const MAX_PAYLOAD = 64 * 1024;
@@ -30,7 +32,7 @@ const activeSocketsByIp = new Map();
 const MAX_CONNECTIONS_PER_IP = 12;
 const MAX_CONNECTIONS = 200;
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';
-const CSP = "default-src 'self'; script-src 'self' https://www.youtube.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' ws: wss: https://www.youtube.com stun: stuns: turn: turns:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+const CSP = "default-src 'self'; script-src 'self' https://www.youtube.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; media-src 'self' blob: https:; connect-src 'self' ws: wss: https://www.youtube.com stun: stuns: turn: turns:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
 
 // Avatares (SVG): lista fixa montada na inicialização, sem aceitar caminhos arbitrários.
@@ -127,6 +129,11 @@ const server = http.createServer((req, res) => {
     '/js/core/stats.js': 'js/core/stats.js',
     '/js/core/diagnostics.js': 'js/core/diagnostics.js',
     '/js/core/diagnostics-runner.js': 'js/core/diagnostics-runner.js',
+    '/js/features/whiteboard/index.js': 'js/features/whiteboard/index.js',
+    '/js/features/whiteboard/view.js': 'js/features/whiteboard/view.js',
+    '/js/features/whiteboard/renderer.js': 'js/features/whiteboard/renderer.js',
+    '/js/features/whiteboard/export.js': 'js/features/whiteboard/export.js',
+    '/css/whiteboard.css': 'css/whiteboard.css',
     '/js/features/chat.js': 'js/features/chat.js',
     '/js/features/files.js': 'js/features/files.js',
     '/js/features/stream-save.js': 'js/features/stream-save.js',
@@ -171,6 +178,8 @@ function leave(ws) {
   if (!ws.inLobby) return;
   ws.inLobby = false;
   lobby.delete(ws);
+  if (ws.boardHost) { const next = [...lobby][0]; if (next) next.boardHost = true; }
+  for (const member of lobby) send(member, { type: 'board-members', members: [...lobby].map(p => ({ ...p.boardUser, host: p.boardHost })) });
   for (const other of lobby) send(other, { type: 'peer-left' });
   broadcastCount();
 }
@@ -182,16 +191,21 @@ wss.on('connection', (ws, req) => {
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
   ws.on('message', (raw) => {
-    if (limited(requestLimits, ws.rateKey, 120)) { ws.close(1008, 'Limite de mensagens atingido'); return; }
+
     let msg;
     try { msg = JSON.parse(raw.toString()); } catch { send(ws, { type: 'error', message: 'Mensagem inválida.' }); return; }
     if (!msg || typeof msg.type !== 'string') return;
+    if (limited(requestLimits, ws.rateKey + (msg.type.startsWith('board-') ? ':board' : ''), msg.type.startsWith('board-') ? 3600 : 120)) { ws.close(1008, 'Limite de mensagens atingido'); return; }
+    if (msg.type.startsWith('board-')) { board.handle(ws, msg, lobby, send); return; }
     if (msg.type === 'join') {
       if (ws.inLobby) { send(ws, { type: 'error', code: 'already', message: 'Você já está no lobby.' }); return; }
       if (lobby.size >= LOBBY_MAX) { send(ws, { type: 'error', code: 'full', message: 'O lobby está cheio (máximo 2 pessoas).' }); return; }
       const first = lobby.size === 0;
       ws.inLobby = true;
       lobby.add(ws);
+      send(ws, board.join(ws, msg.boardToken, msg.name, first));
+      send(ws, board.snapshot());
+      for (const member of lobby) send(member, { type: 'board-members', members: [...lobby].map(p => ({ ...p.boardUser, host: p.boardHost })) });
       send(ws, { type: 'joined', role: first ? 'host' : 'guest' });
       if (!first) for (const other of lobby) if (other !== ws) send(other, { type: 'peer-joined' });
       broadcastCount();

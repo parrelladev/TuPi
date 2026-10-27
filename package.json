@@ -8,7 +8,8 @@
     "dev": "node --watch server.js",
     "check": "node scripts/check-syntax.js",
     "vendor": "node scripts/build-vendor.js",
-    "test": "node --test"
+    "test": "node --test",
+    "test:browser": "node tests/browser/whiteboard.cjs"
   },
   "engines": {
     "node": ">=20"
@@ -21,6 +22,7 @@
     "@phosphor-icons/web": "^2.1.2",
     "esbuild": "^0.28.2",
     "motion": "^14.6.0",
-    "open-props": "^1.7.23"
+    "open-props": "^1.7.23",
+    "playwright": "1.62.1"
   }
 }

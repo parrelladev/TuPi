@@ -1,0 +1,54 @@
+"use strict";
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { Whiteboard } = require("../server/whiteboard");
+const element = { kind: "rect", x: 20, y: 30, w: 100, h: 80, size: 24, stroke: 3, color: "#123456", fill: "none", text: "", align: "left", bold: false, points: [] };
+test("quadro: dois participantes, persistência, versões, permissões e isolamento", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tupi-board-"));
+  try {
+    const b = new Whiteboard(dir), a = { inLobby: true }, c = { inLobby: true }, outsider = {};
+    const identity = b.join(a, null, "Ana", true);
+    b.join(c, null, "Beto", false);
+    const members = new Set([a, c]), messages = [];
+    const send = (ws, m) => messages.push({ ws, ...m });
+    const op = (ws, msg) => b.handle(ws, msg, members, send);
+    op(a, { type: "board-put", id: "a", version: 0, element, request: "1" });
+    assert.equal(messages.filter((m) => m.type === "board-update").length, 2);
+    assert.equal(b.state.elements.a.author, "Ana");
+    op(c, { type: "board-put", id: "b", version: 0, element: { ...element, text: "Beto" } });
+    op(a, { type: "board-put", id: "a", version: 1, element: null });
+    assert.ok(b.state.elements.b);
+    assert.equal(b.state.elements.a, void 0);
+    op(c, { type: "board-put", id: "b", version: 0, element: null });
+    assert.equal(messages.at(-1).type, "board-error");
+    assert.ok(b.state.elements.b);
+    op(a, { type: "board-permission", user: c.boardUser.id, edit: false });
+    op(c, { type: "board-put", id: "b", version: 2, element: null });
+    assert.equal(messages.at(-1).type, "board-error");
+    op(c, { type: "board-clear", revision: b.state.revision });
+    assert.ok(b.state.elements.b);
+    op(c, { type: "board-permission", user: c.boardUser.id, edit: true });
+    assert.equal(c.boardUser.edit, false);
+    op(outsider, { type: "board-get" });
+    assert.equal(messages.at(-1).type, "board-error");
+    op(a, { type: "board-get", room: "outra" });
+    assert.equal(messages.at(-1).type, "board-error");
+    const recovered = new Whiteboard(dir);
+    assert.deepEqual(recovered.state, b.state);
+    const reconnected = { inLobby: true };
+    b.join(reconnected, identity.token, "Falso", false);
+    assert.equal(reconnected.boardUser.id, a.boardUser.id);
+    op(a, { type: "board-put", id: "malformed", version: 0, element: { ...element, color: "url(evil)" } });
+    assert.equal(messages.at(-1).type, "board-error");
+    op(a, { type: "board-presence", x: 100, y: 50, laser: true });
+    assert.equal(messages.at(-1).type, "board-presence");
+    assert.equal(b.state.elements.laser, void 0);
+    op(a, { type: "board-clear", revision: b.state.revision });
+    assert.deepEqual(b.state.elements, {});
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

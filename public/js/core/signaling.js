@@ -22,7 +22,7 @@ export class Signaling {
     try { socket = new WebSocket(`${protocol}//${location.host}/signal`); }
     catch (error) { this.scheduleRetry(error); return; }
     this.socket = socket;
-    socket.onopen = () => this.send({ type: 'join' });
+    socket.onopen = () => this.send({ type: 'join', boardToken: sessionStorage.getItem('tupi-board-token'), name: document.getElementById('lobbyName')?.value });
     socket.onmessage = async event => {
       try {
         const message = JSON.parse(event.data);
@@ -73,7 +73,7 @@ export class Signaling {
   }
 
   // Tenta entrar de novo no mesmo socket (usado quando o lobby estava cheio).
-  rejoin() { this.send({ type: 'join' }); }
+  rejoin() { this.send({ type: 'join', boardToken: sessionStorage.getItem('tupi-board-token'), name: document.getElementById('lobbyName')?.value }); }
 
   isOpen() { return this.socket?.readyState === WebSocket.OPEN; }
 

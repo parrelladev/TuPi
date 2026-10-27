@@ -309,16 +309,19 @@ input[type=range] { padding: 0; accent-color: var(--pink); box-shadow: none; bor
 .tb.is-on:hover:not(:disabled) { animation: ring-yt 1.2s ease-out infinite; }
 .btn-primary.tb.is-off, .btn-primary.tb.is-off:hover:not(:disabled) { background: var(--surface-2); color: var(--muted); box-shadow: none; opacity: .5; filter: grayscale(1); cursor: not-allowed; transform: none; }
 .btn-primary.tb.is-off::after { display: none; }
-.media-mode-switch { position: relative; display: grid; grid-template-columns: 96px 80px; gap: 4px; }
+.media-mode-switch { position: relative; display: grid; grid-template-columns: repeat(3, 96px); gap: 4px; }
 .media-mode-switch::before { content: ""; position: absolute; top: 0; left: 0; width: 96px; height: 100%; border-radius: 16px; background: var(--brand); box-shadow: var(--shadow-brand); pointer-events: none; transition: transform .3s var(--out), width .3s var(--out); }
-.media-mode-switch[data-mode="youtube"]::before { width: 80px; transform: translateX(100px); }
+.media-mode-switch[data-mode="youtube"]::before { transform: translateX(100px); }
+.media-mode-switch[data-mode="whiteboard"]::before { transform: translateX(200px); }
 .media-mode-switch > .screen-settings { z-index: 2; min-width: 0; }
-.media-mode-switch > #youtubeToggleBtn { position: relative; z-index: 1; }
-.media-mode-switch #screenBtn, .media-mode-switch #youtubeToggleBtn,
-.media-mode-switch #screenBtn:hover, .media-mode-switch #youtubeToggleBtn:hover { width: 100%; background: transparent; box-shadow: none; transform: none; animation: none; filter: none; }
+.media-mode-switch > #youtubeToggleBtn, .media-mode-switch > #whiteboardBtn { position: relative; z-index: 1; }
+.media-mode-switch #screenBtn, .media-mode-switch #youtubeToggleBtn, .media-mode-switch #whiteboardBtn,
+.media-mode-switch #screenBtn:hover, .media-mode-switch #youtubeToggleBtn:hover, .media-mode-switch #whiteboardBtn:hover { width: 100%; background: transparent; box-shadow: none; transform: none; animation: none; filter: none; }
+.media-mode-switch #screenBtn { color: var(--ink-2); }
 .media-mode-switch #screenBtn::after { display: none; }
 .media-mode-switch[data-mode="screen"] #screenBtn,
-.media-mode-switch[data-mode="youtube"] #youtubeToggleBtn { color: #fff; }
+.media-mode-switch[data-mode="youtube"] #youtubeToggleBtn,
+.media-mode-switch[data-mode="whiteboard"] #whiteboardBtn { color: #fff; }
 .media-mode-switch #screenBtn.is-off { color: var(--muted); }
 .button-leave { background: var(--danger-bg); color: var(--danger-ink); }
 .button-leave:hover:not(:disabled) { background: var(--danger-ink); color: #fff; }
@@ -632,9 +635,13 @@ body.in-room { height: 100dvh; overflow: hidden; }
   .tb-group + .tb-group { padding-left: 2px; margin-left: 2px; }
   .tb { flex: 1 1 0; width: auto; min-width: 0; height: 50px; padding: 6px; border-radius: 15px; }
   .btn-primary.tb { width: auto; }
-  .media-mode-switch { flex: 1; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
-  .media-mode-switch::before { width: 50%; border-radius: 15px; }
-  .media-mode-switch[data-mode="youtube"]::before { width: 50%; transform: translateX(100%); }
+  .room-toolbar > .tb-group { min-width: 0; flex: 2 1 0; }
+  .room-toolbar > .tb-group:nth-child(2) { flex: 3 1 0; }
+  .room-toolbar > .tb-group:last-child { flex: 1 1 0; }
+  .media-mode-switch { flex: 1; width: 100%; min-width: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
+  .media-mode-switch::before { width: calc(100% / 3); border-radius: 15px; }
+  .media-mode-switch[data-mode="youtube"]::before { transform: translateX(100%); }
+  .media-mode-switch[data-mode="whiteboard"]::before { transform: translateX(200%); }
   .tb-label { display: none; }
   .tb .control-icon i { font-size: 22px; }
   .chat-unread-badge { top: 7px; right: calc(50% - 17px); }

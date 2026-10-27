@@ -1,3 +1,4 @@
+import { Whiteboard } from './js/features/whiteboard/index.js';
 import { createUI } from './js/ui.js';
 import { Signaling } from './js/core/signaling.js';
 import { PeerSession } from './js/core/peer.js';
@@ -36,6 +37,8 @@ const rtcConfig = { iceServers: [] };
 
 // Estado do lobby único: fora (signaling nulo), no lobby sozinho, ou em chamada (inCall).
 let signaling = null;
+const whiteboard = new Whiteboard(message => signaling?.send(message));
+ui.$('whiteboardBtn').addEventListener('click', () => { if (!inCall) return; ui.closeShareSettings(); if (whiteboard.isOpen()) whiteboard.close(); else whiteboard.open(); });
 let inCall = false;
 let leaving = false;
 let lobbyCount = 0;
@@ -49,18 +52,22 @@ let autoTick = null;
 let autoAttempt = 0;
 let connectedAt = 0;
 
-youtube.onModeChange = open => {
-  ui.setScreenLocked(open);
-  if (open && media.screenStream) {
-    void media.stopSource('screen');
-    ui.notify('Compartilhamento de tela encerrado para abrir o YouTube.');
-  }
+function closeYouTubeMode() {
+  if (!youtube.isOpen()) return;
+  youtube.setPanelOpen(false);youtube.send({ type: 'panel', open: false });youtube.closeSession();
+}
+function renderMediaMode() {
+  const open=whiteboard.isOpen();
+  ui.$('stagePanel').classList.toggle('whiteboard-active',open);
+  ui.$('mediaModeSwitch').dataset.mode=open?'whiteboard':youtube.isOpen()?'youtube':'screen';
+  const button=ui.$('whiteboardBtn');button.setAttribute('aria-expanded',String(open));button.setAttribute('aria-pressed',String(open));button.setAttribute('aria-label',open?'Fechar Quadro Branco':'Abrir Quadro Branco');
+}
+whiteboard.onModeChange=open=>{if(open)closeYouTubeMode();renderMediaMode();};
+youtube.onModeChange=open=>{
+  if(open){whiteboard.close();if(media.screenStream){void media.stopSource('screen');ui.notify('Compartilhamento de tela encerrado para abrir o YouTube.');}}
+  ui.setScreenLocked(false);renderMediaMode();
 };
-ui.$('screenBtn').addEventListener('click', event => {
-  if (!ui.isScreenLocked()) return;
-  event.preventDefault();
-  ui.notify('Feche o YouTube para compartilhar a tela.');
-});
+ui.$('screenBtn').addEventListener('click',()=>{whiteboard.close();closeYouTubeMode();renderMediaMode();},{capture:true});
 
 const peer = new PeerSession({
   rtcConfig,
@@ -154,6 +161,7 @@ async function endCall(showSummary = true) {
   clearGrace();
   stopAutoReconnect();
   peer.reset();
+  whiteboard.close();
   youtube.leave();
   if (media.screenStream) await media.stopSource('screen');
   if (!inCall) return;
@@ -171,6 +179,7 @@ async function endCall(showSummary = true) {
 }
 
 async function handleSignal(message) {
+  if (message.type.startsWith('board-')) { whiteboard.handle(message); return; }
   switch (message.type) {
     case 'joined':
       clearTimeout(fullTimer);
@@ -228,6 +237,7 @@ async function joinLobby() {
     () => {
       if (leaving) return;
       peer.reset();
+      whiteboard.disconnect();
       ui.status('Sinalização interrompida. Tentando reconectar…');
       if (!inCall) ui.setLobbyState('connecting', 0);
     },
@@ -249,9 +259,11 @@ async function leaveLobby() {
   const summary = inCall ? takeSummary('Você saiu da chamada.') : null;
   ui.closeShareSettings();
   connectionStats.stop();
+  whiteboard.disconnect();
   signaling?.close();
   signaling = null;
   peer.reset();
+  whiteboard.close();
   youtube.leave();
   await media.stop();
   ui.clearMessages();

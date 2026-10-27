@@ -110,12 +110,19 @@ roteiro ainda pendente de TURN, redes diferentes e carga de mídia prolongada.
 TuPi/
 ├── package.json
 ├── server.js          # HTTP + WebSocket para sinalização
+├── server/
+│   └── whiteboard.js  # permissões, operações e persistência do quadro
 ├── public/
 │   ├── assets/        # marca vetorial local
+│   ├── css/whiteboard.css # estilos exclusivos do quadro
 │   ├── js/            # UI, sinalização, WebRTC, mídia e chat
+│   │   └── features/whiteboard/ # index, view, renderer e export
 │   ├── index.html     # interface
 │   ├── style.css      # estilos responsivos
 │   └── app.js         # inicialização e ciclo de vida
+├── tests/
+│   ├── whiteboard.test.js # testes do backend
+│   └── browser/whiteboard.cjs # integração em duas sessões
 └── README.md
 ```
 
@@ -150,3 +157,19 @@ O selo sobre a tela mostra **com áudio** ou **sem áudio** (nos dois lados). Se
 - Só **Chrome e Edge** capturam áudio da tela; Firefox e Safari não.
 - Na janela de seleção do navegador, escolha **uma aba** (marque "Compartilhar áudio da guia") ou **a tela inteira** (marque "Compartilhar áudio do sistema"). Compartilhar uma **janela** não inclui áudio.
 - Se mostrar "com áudio" em quem compartilha e quem assiste não ouve, veja o botão de som no canto da tela compartilhada (pode estar mudo) e o alto-falante escolhido em **Mais > Dispositivos e áudio**.
+
+## Quadro Branco colaborativo
+
+Na conversa, escolha **Quadro Branco** no seletor ao lado de **Compartilhar tela** e **YouTube**. O quadro ocupa o palco principal, com a mesma transição e indicador animado dos outros modos. Não há acesso pelo lobby nem janela flutuante. Cada pessoa escolhe seu modo de visualização; o conteúdo do quadro é compartilhado. O quadro funciona sem câmera, microfone ou conexão WebRTC, usando o WebSocket existente.
+
+Ferramentas: seleção, movimento e redimensionamento pela alça; texto (duplo clique para editar), lápis, linha, seta, retângulo, círculo, notas coloridas, carimbos, laser temporário, borracha, exclusão, limpeza confirmada, histórico individual, zoom e ajuste à tela. As ferramentas ficam na lateral; a barra de propriedades mostra apenas as opções relevantes para a ferramenta ou seleção. Em janelas de menor altura, a lateral usa duas colunas. Desfazer/refazer ficam no cabeçalho, navegação no canto inferior, e exportação, autoria, permissões e limpeza no menu do quadro. O botão de teclado abre **Atalhos do quadro**, usando o mesmo visual dos atalhos globais, em uma lista separada. As opções de estilo podem ser aplicadas ao selecionado. Arraste com a ferramenta Mover ou Espaço; use a roda para zoom. Com foco na área de desenho, V/P/T escolhem seleção/lápis/texto; Delete exclui; Ctrl/Cmd Z desfaz; Ctrl/Cmd Shift Z refaz. Atalhos ficam suspensos nos campos de digitação. Cursores desaparecem após inatividade; autoria pode ser exibida pelo controle Autoria.
+
+O anfitrião pode alternar o outro participante entre edição e visualização e limpar o quadro. Se sair, o participante restante assume a administração. Permissões são validadas no servidor, inclusive para mensagens WebSocket enviadas diretamente. Cada elemento tem versão: duas gravações concorrentes no mesmo elemento não se sobrescrevem silenciosamente; a segunda recebe um aviso para conferir e tentar novamente. Desfazer/refazer também exige a versão esperada, preservando alterações de outras pessoas. O histórico fica na sessão do navegador; o conteúdo editável fica no servidor.
+
+O salvamento automático usa `data/whiteboard.json`, fora da pasta pública, com gravação temporária e substituição do arquivo antes da confirmação. Configure `BOARD_DATA_DIR` para um diretório persistente e gravável em produção e faça backup dele. Execute **uma instância do servidor por diretório**; não há coordenação entre múltiplos processos. Erros de disco são apresentados e não confirmam a alteração. Após queda de conexão, o quadro fica bloqueado até recuperar o snapshot. A identidade e a permissão retomáveis usam um token opaco em sessionStorage e registros em memória no servidor; reiniciar o servidor mantém o conteúdo, mas reinicia essas identidades e permissões.
+
+A arquitetura mantém o **único lobby aberto** do TuPi. Não existem contas, organizações ou outras salas: quem pode entrar no lobby pode ler seu quadro persistente, inclusive participantes futuros. Para restringir o público, use a autenticação existente no proxy de implantação. O quadro não cria autenticação de contas nem promete isolamento entre organizações inexistentes. Pedidos de outra sala são recusados, sockets fora do lobby não recebem o conteúdo e os arquivos de dados não são servidos por HTTP. PNG/PDF são gerados localmente a partir do conteúdo recebido, sem URLs públicas de exportação. Depois de baixar um arquivo, seu acesso depende de quem controla esse arquivo.
+
+Exportações abrangem os limites reais de todos os elementos, inclusive textos que ultrapassam suas caixas. PNG e PDF usam renderização local em alta resolução; PDF contém imagem e não texto selecionável. Quadros excessivamente grandes exibem erro em vez de produzir uma imagem ilegível. Limites: 2000 elementos, 1500 pontos por traço, 4000 caracteres por texto e 8 MiB de estado. Não foi adicionada biblioteca de produção; a implementação usa SVG, Pointer Events, Canvas e as dependências existentes.
+
+Validação: `npm run check` e `npm test`. O teste adicional `npm run test:browser` usa o Playwright declarado nas dependências de desenvolvimento (instaladas com `npm ci`) e requer Edge instalado. Para usar o Chromium do Playwright, execute `npx playwright install chromium` e configure `BROWSER_CHANNEL=chromium`. O teste usa duas sessões isoladas, servidor temporário na porta 3139 e dados temporários. Cobre ferramentas, sincronização, histórico individual, tentativa direta de escrita em visualização, recusa de outra sala, reabertura, reconexão, geração PNG/PDF e acesso pelos botões reais da chamada. Valida também o seletor de três modos, propriedades contextuais, atalhos separados, digitação e layouts de desktop, tablet e celular; gera capturas em `test-results/whiteboard/`, pasta ignorada pelo Git. Validação física de gestos em tablet e redes externas continua manual.
