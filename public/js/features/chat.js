@@ -89,7 +89,7 @@ export class Chat {
     channel.onerror = () => this.ui.notify('O canal de mensagens apresentou um erro.');
     channel.onmessage = event => {
       if (typeof event.data === 'string' && event.data.length <= 4000) {
-        this.ui.addMessage('Convidado', event.data);
+        this.ui.addMessage(this.ui.getRemoteName(), event.data);
         if (!this.isChatVisible() || document.hidden) {
           this.unread = true;
           this.ui.setChatUnread(true);

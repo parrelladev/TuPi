@@ -1,4 +1,4 @@
-import { isAvatarId } from './avatars.js';
+import { isAvatarId, sanitizeName } from './avatars.js';
 
 // Canal "presence": avisa explicitamente o que cada lado está enviando (mic, câmera, tela) e qual avatar usa.
 // O estado explícito evita que a última imagem fique congelada quando a outra pessoa para a câmera ou a tela.
@@ -8,11 +8,11 @@ export class Presence {
     this.channel = null;
     this.lastSent = '';
     ui.onLocalMedia(() => this.sendState());
-    voice.onAvatarChange(() => this.sendState());
+    voice.onProfileChange(() => this.sendState());
   }
 
   localState() {
-    return { t: 'state', avatar: this.voice.avatarId, mic: Boolean(this.media.micStream), camera: Boolean(this.media.cameraStream), screen: Boolean(this.media.screenStream) };
+    return { t: 'state', avatar: this.voice.avatarId, name: this.voice.name, mic: Boolean(this.media.micStream), camera: Boolean(this.media.cameraStream), screen: Boolean(this.media.screenStream) };
   }
 
   attach(channel) {
@@ -39,6 +39,7 @@ export class Presence {
     if (message?.t !== 'state') return;
     const state = {
       avatar: isAvatarId(message.avatar) ? message.avatar : null,
+      name: sanitizeName(message.name) || null,
       mic: message.mic === true,
       camera: message.camera === true,
       screen: message.screen === true

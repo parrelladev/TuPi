@@ -1,4 +1,4 @@
-import { AVATARS, avatarById, avatarMarkup, unknownAvatarMarkup, loadAvatarId, saveAvatarId } from './avatars.js';
+import { AVATARS, avatarById, avatarMarkup, unknownAvatarMarkup, loadAvatarId, saveAvatarId, sanitizeName, defaultNameFor, loadCustomName, saveCustomName } from './avatars.js';
 import { pop } from '../fx.js';
 
 const VOICE_KEY = 'tupi-voice';
@@ -63,8 +63,9 @@ export class Voice {
     this.media = media;
     this.$ = ui.$;
     this.avatarId = loadAvatarId();
+    this.customName = loadCustomName();
     this.remote = null;
-    this.avatarListeners = [];
+    this.profileListeners = [];
     this.context = null;
     this.frame = 0;
     this.lastTick = 0;
@@ -74,9 +75,11 @@ export class Voice {
       local: new Meter(() => this.media.micStream),
       remote: new Meter(() => this.$('remoteAudio').srcObject)
     };
-    this.renderPicker();
+    this.renderPickers();
     this.renderAvatars();
+    this.renderNames();
     this.bindControls();
+    this.bindNameEditing();
     this.applyVolume();
     this.renderStates();
     ui.onLocalMedia(() => this.renderStates());
@@ -86,7 +89,14 @@ export class Voice {
     this.frame = requestAnimationFrame(now => this.tick(now));
   }
 
-  onAvatarChange(listener) { this.avatarListeners.push(listener); }
+  onProfileChange(listener) { this.profileListeners.push(listener); }
+
+  get name() { return this.customName || defaultNameFor(this.avatarId); }
+
+  get remoteName() {
+    if (!this.remote) return 'Convidado';
+    return this.remote.name || (this.remote.avatar ? defaultNameFor(this.remote.avatar) : 'Convidado');
+  }
 
   loadSettings() {
     try {
@@ -97,48 +107,99 @@ export class Voice {
 
   saveSettings() { try { localStorage.setItem(VOICE_KEY, JSON.stringify(this.settings)); } catch { /* só nesta sessão */ } }
 
-  renderPicker() {
-    const picker = this.$('avatarPicker');
-    picker.replaceChildren(...AVATARS.map(avatar => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'picker-option';
-      button.dataset.avatar = avatar.id;
-      button.setAttribute('role', 'option');
-      button.setAttribute('aria-label', avatar.name);
-      button.title = avatar.name;
-      button.innerHTML = `<span class="avatar">${avatarMarkup(avatar.id)}</span><small>${avatar.name}</small>`;
-      return button;
-    }));
+  // Há dois seletores de avatar: o da chamada (barra de voz) e o do lobby.
+  renderPickers() {
+    for (const id of ['avatarPicker', 'lobbyPicker']) {
+      this.$(id).replaceChildren(...AVATARS.map(avatar => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'picker-option';
+        button.dataset.avatar = avatar.id;
+        button.setAttribute('role', 'option');
+        button.setAttribute('aria-label', avatar.name);
+        button.title = avatar.name;
+        button.innerHTML = `<span class="avatar">${avatarMarkup(avatar.id)}</span><small>${avatar.name}</small>`;
+        return button;
+      }));
+    }
   }
 
   renderAvatars() {
-    for (const id of ['avatarLocal', 'miniLocalAvatar']) this.$(id).innerHTML = avatarMarkup(this.avatarId);
+    for (const id of ['avatarLocal', 'miniLocalAvatar', 'lobbyAvatar']) this.$(id).innerHTML = avatarMarkup(this.avatarId);
     const remoteId = this.remote?.avatar;
     for (const id of ['avatarRemote', 'miniRemoteAvatar']) this.$(id).innerHTML = remoteId ? avatarMarkup(remoteId) : unknownAvatarMarkup;
     const name = avatarById(this.avatarId).name;
-    for (const id of ['avatarLocalBtn', 'avatarMini']) this.$(id).setAttribute('aria-label', `Trocar meu avatar (atual: ${name})`);
-    this.$('avatarPicker').querySelectorAll('.picker-option').forEach(option => option.setAttribute('aria-selected', String(option.dataset.avatar === this.avatarId)));
+    for (const id of ['avatarLocalBtn', 'avatarMini', 'lobbyAvatarBtn']) this.$(id).setAttribute('aria-label', `Trocar meu avatar (atual: ${name})`);
+    for (const id of ['avatarPicker', 'lobbyPicker']) this.$(id).querySelectorAll('.picker-option').forEach(option => option.setAttribute('aria-selected', String(option.dataset.avatar === this.avatarId)));
+  }
+
+  // Nomes na tela: o seu (card, prévia do lobby, campo do lobby) e o do convidado (todos os [data-remote-name]).
+  renderNames() {
+    const name = this.name;
+    this.$('nameLocal').textContent = name;
+    this.$('lobbyPreviewName').textContent = name;
+    const lobbyInput = this.$('lobbyName');
+    if (document.activeElement !== lobbyInput) lobbyInput.value = this.customName;
+    lobbyInput.placeholder = defaultNameFor(this.avatarId);
+    this.$('personLocal').setAttribute('aria-label', name);
+    const remote = this.remoteName;
+    document.querySelectorAll('[data-remote-name]').forEach(element => { element.textContent = remote; });
+    this.$('personRemote').setAttribute('aria-label', remote);
+    this.ui.setRemoteName(remote);
+  }
+
+  bindNameEditing() {
+    const lobbyInput = this.$('lobbyName');
+    lobbyInput.addEventListener('input', () => this.setLocalName(lobbyInput.value, { fromInput: true }));
+    lobbyInput.addEventListener('blur', () => { lobbyInput.value = this.customName; });
+    const button = this.$('nameLocalBtn');
+    const input = this.$('nameLocalInput');
+    const finish = save => {
+      if (input.classList.contains('hidden')) return;
+      if (save) this.setLocalName(input.value);
+      input.classList.add('hidden');
+      button.classList.remove('hidden');
+      button.focus();
+    };
+    button.addEventListener('click', () => {
+      input.value = this.customName;
+      input.placeholder = defaultNameFor(this.avatarId);
+      button.classList.add('hidden');
+      input.classList.remove('hidden');
+      input.focus();
+      input.select();
+    });
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter') { event.preventDefault(); finish(true); }
+      else if (event.key === 'Escape') { event.preventDefault(); finish(false); }
+    });
+    input.addEventListener('blur', () => finish(true));
   }
 
   bindControls() {
-    const picker = this.$('avatarPicker');
-    const triggers = [this.$('avatarLocalBtn'), this.$('avatarMini')];
-    const setOpen = open => {
-      picker.classList.toggle('hidden', !open);
-      triggers.forEach(trigger => trigger.setAttribute('aria-expanded', String(open)));
-    };
-    triggers.forEach(trigger => trigger.addEventListener('click', event => { event.stopPropagation(); setOpen(picker.classList.contains('hidden')); }));
-    picker.addEventListener('click', event => {
-      const option = event.target.closest('.picker-option');
-      if (!option) return;
-      this.setLocalAvatar(option.dataset.avatar);
-      setOpen(false);
-    });
-    document.addEventListener('click', event => { if (!picker.classList.contains('hidden') && !picker.contains(event.target)) setOpen(false); });
-    document.addEventListener('keydown', event => { if (event.key === 'Escape' && !picker.classList.contains('hidden')) { setOpen(false); this.$('avatarMini').focus(); } });
+    const pairs = [
+      { picker: this.$('avatarPicker'), triggers: [this.$('avatarLocalBtn'), this.$('avatarMini')], focus: this.$('avatarMini') },
+      { picker: this.$('lobbyPicker'), triggers: [this.$('lobbyAvatarBtn')], focus: this.$('lobbyAvatarBtn') }
+    ];
+    for (const { picker, triggers, focus } of pairs) {
+      const setOpen = open => {
+        picker.classList.toggle('hidden', !open);
+        triggers.forEach(trigger => trigger.setAttribute('aria-expanded', String(open)));
+      };
+      triggers.forEach(trigger => trigger.addEventListener('click', event => { event.stopPropagation(); setOpen(picker.classList.contains('hidden')); }));
+      picker.addEventListener('click', event => {
+        const option = event.target.closest('.picker-option');
+        if (!option) return;
+        this.setLocalAvatar(option.dataset.avatar);
+        setOpen(false);
+      });
+      document.addEventListener('click', event => { if (!picker.classList.contains('hidden') && !picker.contains(event.target)) setOpen(false); });
+      document.addEventListener('keydown', event => { if (event.key === 'Escape' && !picker.classList.contains('hidden')) { setOpen(false); focus.focus(); } });
+    }
 
     this.$('voiceMicBtn').addEventListener('click', () => this.$('micBtn').click());
+    this.$('lobbyMicBtn').addEventListener('click', () => this.$('micBtn').click());
+    this.$('lobbyCamBtn').addEventListener('click', () => this.$('cameraBtn').click());
     const volume = this.$('remoteVolume');
     volume.addEventListener('input', () => {
       this.settings.volume = Number(volume.value);
@@ -159,16 +220,34 @@ export class Voice {
     this.avatarId = id;
     saveAvatarId(id);
     this.renderAvatars();
-    pop(this.$('avatarLocal'));
-    pop(this.$('miniLocalAvatar'));
-    this.avatarListeners.forEach(listener => listener());
+    this.renderNames();
+    for (const element of ['avatarLocal', 'miniLocalAvatar', 'lobbyAvatar']) pop(this.$(element));
+    this.profileListeners.forEach(listener => listener());
+  }
+
+  // Nome vazio volta ao nome do avatar. `fromInput` evita reescrever o campo enquanto a pessoa digita.
+  setLocalName(value, { fromInput = false } = {}) {
+    const name = sanitizeName(value);
+    if (name === this.customName) return;
+    this.customName = name;
+    saveCustomName(name);
+    if (fromInput) {
+      const input = this.$('lobbyName');
+      const keep = input.value;
+      this.renderNames();
+      input.value = keep;
+    } else this.renderNames();
+    this.profileListeners.forEach(listener => listener());
   }
 
   setRemoteState(state) {
     const previous = this.remote?.avatar;
+    const previousName = this.remoteName;
     this.remote = state;
     this.renderAvatars();
+    this.renderNames();
     if (state?.avatar && state.avatar !== previous) pop(this.$('avatarRemote'));
+    if (state && this.remoteName !== previousName) pop(this.$('nameRemote'));
     this.$('personRemote').dataset.present = String(Boolean(state));
     this.renderStates();
   }
@@ -267,6 +346,10 @@ export class Voice {
     mic.setAttribute('aria-pressed', String(micOn));
     mic.setAttribute('aria-label', micOn ? 'Desligar microfone' : 'Ativar microfone');
     this.$('personLocal').dataset.mic = micOn ? 'on' : 'off';
+    const lobbyMic = this.$('lobbyMicBtn');
+    lobbyMic.setAttribute('aria-pressed', String(micOn));
+    lobbyMic.setAttribute('aria-label', micOn ? 'Desligar microfone' : 'Ativar microfone');
+    this.$('lobbyPreview').dataset.mic = micOn ? 'on' : 'off';
     this.$('personRemote').dataset.mic = this.remote?.mic ? 'on' : 'off';
     this.$('personRemote').dataset.muted = String(this.settings.muted);
     this.paintStates();
@@ -299,7 +382,7 @@ export class Voice {
     }
     this.updateOutput();
     const sides = [
-      ['local', this.meters.local.read(this.context, now), ['personLocal', 'avatarMini']],
+      ['local', this.meters.local.read(this.context, now), ['personLocal', 'avatarMini', 'lobbyPreview']],
       ['remote', this.meters.remote.read(this.context, now), ['personRemote', 'miniRemote']]
     ];
     let changed = false;
@@ -312,7 +395,9 @@ export class Voice {
         if (element.dataset.speaking !== String(speaking)) { element.dataset.speaking = String(speaking); changed = true; }
       }
     }
-    this.$('micMeter').style.setProperty('--level', (this.media.micStream ? this.meters.local.level : 0).toFixed(3));
+    const micLevel = (this.media.micStream ? this.meters.local.level : 0).toFixed(3);
+    this.$('micMeter').style.setProperty('--level', micLevel);
+    this.$('lobbyMeter').style.setProperty('--level', micLevel);
     if (changed) this.paintStates();
   }
 }

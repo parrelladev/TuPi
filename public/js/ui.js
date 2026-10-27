@@ -35,6 +35,29 @@ export function createUI() {
     const tone = /erro|interrompida|instável|não foi|falha|inválid/i.test(message) ? 'bad' : /conectando|aguardando|entrando|saiu|reconectar/i.test(message) ? 'wait' : 'ok';
     $('status').closest('.status-chip').dataset.tone = tone;
   }
+  function clearMessages() { $('messages').querySelectorAll('.message').forEach(message => message.remove()); }
+
+  let remoteName = 'Convidado';
+  const setRemoteName = name => { remoteName = name; };
+  const getRemoteName = () => remoteName;
+
+  // Estado do lobby: idle (fora), connecting, waiting (sozinho), full (cheio), call (em chamada).
+  function setLobbyState(state, count = 0) {
+    const messages = {
+      idle: 'Você ainda não entrou no lobby.',
+      connecting: 'Entrando no lobby…',
+      waiting: 'Você está no lobby. A chamada começa quando a outra pessoa chegar.',
+      full: 'O lobby está cheio agora. Tentando de novo…',
+      call: 'Chamada em andamento.'
+    };
+    $('lobbyStatus').dataset.state = state;
+    $('lobbyStatusText').textContent = messages[state] || '';
+    $('lobbyCount').textContent = `${count}/2`;
+    const joined = state !== 'idle';
+    $('lobbyJoinBtn').classList.toggle('hidden', joined);
+    $('lobbyLeaveBtn').classList.toggle('hidden', !joined);
+  }
+
   let screenLocked = false;
   function setScreenLocked(locked) {
     screenLocked = locked;
@@ -143,6 +166,11 @@ export function createUI() {
     $('cardLocalVideo').classList.toggle('hidden', !local);
     $('cardRemoteVideo').classList.toggle('hidden', !remote);
     $('personLocal').classList.toggle('has-video', Boolean(local));
+    $('lobbyPreviewVideo').srcObject = local;
+    $('lobbyPreviewVideo').classList.toggle('hidden', !local);
+    $('lobbyPreview').dataset.cam = local ? 'on' : 'off';
+    $('lobbyCamBtn').setAttribute('aria-pressed', String(Boolean(local)));
+    $('lobbyCamBtn').setAttribute('aria-label', local ? 'Desligar câmera' : 'Ativar câmera');
     $('personRemote').classList.toggle('has-video', Boolean(remote));
     $('localCameraTile').classList.toggle('hidden', !local);
     $('remoteCameraTile').classList.toggle('hidden', !remote);
@@ -159,10 +187,13 @@ export function createUI() {
     for (const [kind, id, label] of [['audioinput', 'microphoneSelect', 'Microfone'], ['videoinput', 'cameraSelect', 'Câmera']]) {
       const select = $(id); const current = select.value;
       const available = devices.filter(device => device.kind === kind);
-      select.replaceChildren(new Option(`Padrão (${label.toLowerCase()})`, ''));
-      available.forEach((device, index) => select.add(new Option(device.label || `${label} ${index + 1}`, device.deviceId)));
-      if ([...select.options].some(option => option.value === current)) select.value = current;
-      select.disabled = available.length === 0;
+      const mirror = $(kind === 'audioinput' ? 'lobbyMicSelect' : 'lobbyCameraSelect');
+      for (const target of [select, mirror]) {
+        target.replaceChildren(new Option(`Padrão (${label.toLowerCase()})`, ''));
+        available.forEach((device, index) => target.add(new Option(device.label || `${label} ${index + 1}`, device.deviceId)));
+        if ([...target.options].some(option => option.value === current)) target.value = current;
+        target.disabled = available.length === 0;
+      }
     }
   }
 
@@ -234,5 +265,5 @@ export function createUI() {
     setAudioPlaybackBlocked(false);
   }
 
-  return { $, onLocalMedia, setRemoteFlags, setReconnectBusy, setScreenLocked, isScreenLocked, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setCodecCapabilities, closeShareSettings, clearRoomView };
+  return { $, onLocalMedia, setRemoteFlags, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, setScreenLocked, isScreenLocked, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setCodecCapabilities, closeShareSettings, clearRoomView };
 }

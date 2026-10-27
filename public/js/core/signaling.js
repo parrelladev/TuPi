@@ -4,15 +4,13 @@ export class Signaling {
     this.onClose = onClose;
     this.onError = onError;
     this.socket = null;
-    this.roomId = null;
     this.intentional = false;
     this.attempt = 0;
     this.maxAttempts = 5;
     this.retryTimer = null;
   }
 
-  connect(roomId) {
-    this.roomId = roomId;
+  connect() {
     this.intentional = false;
     this.attempt = 0;
     this.open();
@@ -24,7 +22,7 @@ export class Signaling {
     try { socket = new WebSocket(`${protocol}//${location.host}/signal`); }
     catch (error) { this.scheduleRetry(error); return; }
     this.socket = socket;
-    socket.onopen = () => this.send({ type: 'join', roomId: this.roomId });
+    socket.onopen = () => this.send({ type: 'join' });
     socket.onmessage = async event => {
       try {
         const message = JSON.parse(event.data);
@@ -73,6 +71,9 @@ export class Signaling {
       socket.close();
     });
   }
+
+  // Tenta entrar de novo no mesmo socket (usado quando o lobby estava cheio).
+  rejoin() { this.send({ type: 'join' }); }
 
   isOpen() { return this.socket?.readyState === WebSocket.OPEN; }
 

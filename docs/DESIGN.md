@@ -11,7 +11,7 @@ Arquivos de UI: `public/index.html`, `public/style.css`, `public/js/fx.js`, `pub
 | Tokens | [Open Props](https://open-props.style/) (easings, durações, animações, tamanhos, sombras, z-index) | variáveis CSS (`--ease-spring-3`, `--ease-out-4`, `--animation-shake-x`…) | ~4 kB |
 | Animação em JS | [Motion](https://motion.dev/) (`motion/mini`, só `animate`) | entradas escalonadas, pops, barra do toast, ímã do botão | ~3,4 kB |
 | Listas | [AutoAnimate](https://auto-animate.formkit.com/) | entrada, saída e reordenação das mensagens e do diagnóstico | ~3,3 kB |
-| Transições de tela | View Transitions API (nativa) | Home ↔ Sala com fade | 0 |
+| Transições de tela | View Transitions API (nativa) | Lobby ↔ Chamada com fade | 0 |
 | Mostrar/ocultar | CSS `@starting-style` + `transition-behavior: allow-discrete` (nativo) | entrada e saída de qualquer elemento `.fx` | 0 |
 
 Os pacotes ficam em `devDependencies`. `npm run vendor` (`scripts/build-vendor.js`) gera `public/vendor/` (`open-props.css`, `motion.js`, `auto-animate.js`), que é versionado e servido pelo `server.js`. A CSP não mudou (`script-src 'self'`), porque nada vem de CDN. O Alpine.js não foi adotado: a lógica de UI continua em JS puro, sem avaliar expressões em tempo de execução.
@@ -20,7 +20,7 @@ Navegadores: Chrome/Edge 123+, Safari 17.5+, Firefox 129+ (por `light-dark()` e 
 
 ## 2. Princípios
 
-- Duas telas (Home e Sala), sem cadastro, até 2 pessoas.
+- Duas telas: **Lobby** (pré-entrada) e **Chamada**. Sem salas, sem códigos e sem cadastro; lobby único aberto, até 2 pessoas.
 - Quente, claro e arredondado; o gradiente da marca aparece só em ações primárias.
 - Sala centrada em mídia: palco grande, chat lateral e barra de controles flutuante.
 - Toda interação tem resposta visual: hover, pressão, foco, mudança de estado, entrada e saída.
@@ -68,23 +68,45 @@ O tema segue `prefers-color-scheme` (`color-scheme: light dark`, duas `theme-col
 ```
 body (flex coluna, min-height 100dvh)
 ├── main.app
-│   ├── section#landing         Home (aurora de fundo + card)
+│   ├── section#landing         Lobby (aurora de fundo + prévia + painel de entrada)
 │   ├── section#room.hidden     Sala
 │   └── div#toast.fx.hidden     Aviso flutuante
 └── footer.site-footer          oculto com .in-room
 ```
 
-## 5. Home (`#landing`)
+## 5. Lobby (`#landing`)
 
-- **Fundo:** três blobs desfocados (`.aurora`, `position: fixed`) à deriva em loops de 14–22 s.
-- **Card** (`.home-card`, 470 px, vidro com `backdrop-filter`): logo, botão **Criar nova sala**, divisor "ou entre com um convite", formulário de código/link, chips de recursos (Voz, Tela, Câmera, Chat, Arquivos, YouTube) e linha "Grátis · Sem conta · Até 2 pessoas".
-- **Rodapé do site** só na Home.
+Tela de pré-entrada inspirada no "Pronto para participar?" do Google Meet. Não há criação de sala nem convite: o lobby é único e aberto.
 
-## 6. Sala (`#room`)
+```
+┌─────────────────────────────────┐   ┌──────────────────────────┐
+│  prévia (câmera ou avatar)      │   │ [logo]                   │
+│        ( avatar grande )        │   │ Pronto para participar?  │
+│   nome         [🎤] [🎥]   ▬▬▬  │   │ Seu nome  [__________]   │
+└─────────────────────────────────┘   │ ● Aguardando…       1/2  │
+ [🎤 Padrão ▾]   [🎥 Padrão ▾]         │ [ Participar agora ]     │
+                                       └──────────────────────────┘
+```
+
+- **Prévia** (`#lobbyPreview`, 16:9, fundo escuro): mostra a câmera quando ligada (espelhada) ou o avatar grande; o avatar clicável abre o seletor de 30 ícones. Botões redondos de microfone e câmera (brancos quando ligados), medidor de nível do microfone e o nome no canto. O anel de fala também aparece aqui.
+- **Seletores de dispositivo** (pílulas abaixo da prévia): microfone e câmera, espelhados com o menu "Mais" da chamada.
+- **Painel de entrada:** título, texto de apoio, campo **Seu nome** (vazio usa o nome do avatar), faixa de status com contador `n/2` e o botão **Participar agora**. Depois de entrar, o botão vira **Sair do lobby**.
+- **Estados da faixa de status:** `idle` (fora), `connecting`, `waiting` (ponto verde pulsando), `full` ("O lobby está cheio agora. Tentando de novo…", nova tentativa a cada 4 s) e `call` (chamada em andamento).
+- **Chamada automática:** quando a segunda pessoa entra, as duas telas passam sozinhas do lobby para a chamada. Se a outra pessoa sai, a chamada espera 5 s por ela (para tolerar o botão Reconectar) e depois volta ao lobby; microfone e câmera continuam como estavam, e tela compartilhada e YouTube são encerrados.
+- **Rodapé do site** só no lobby.
+
+### 5.1 Avatares e nomes
+
+- **Avatares:** 30 ícones de animais em SVG (`public/assets/avatars/*.svg`, vindos de `pack_icones/fundo-colorido`), recortados em círculo. O id é o nome do arquivo (`gato`, `raposa-em-pe`, `canguru-01`…). O servidor só serve os arquivos dessa pasta, listados na inicialização.
+- **Seletor:** grade de 5 colunas (4 no celular) com rolagem, com o avatar atual marcado. Existe no lobby (sobre a prévia) e na chamada (acima da barra de voz).
+- **Nome:** o padrão é o nome do avatar ("Gato", "Raposa-ruiva"…) e acompanha o avatar enquanto você não digitar outro. Pode ser trocado no lobby (campo **Seu nome**) e na chamada (clique no seu nome no card; Enter salva, Esc cancela; vazio volta ao padrão). Máximo de 24 caracteres, sem caracteres de controle. A escolha fica salva (`tupi-name`; só quando personalizada).
+- **Sincronização:** o nome e o avatar vão no canal de presença e a outra pessoa os vê no card, nos rótulos "Nome · Tela" e "Nome · Câmera", na barra de voz e no rótulo das mensagens do chat.
+
+## 6. Chamada (`#room`)
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│ header: [logo] [● Sala caju ⧉]            ● status   [👥 2] │
+│ header: [logo] [Chamada]  [☀] ● status ⟳ [👥 2]            │
 ├───────────────────────────────────────────┬────────────────┤
 │ stage                                     │ chat (340 px)  │
 │  youtube-panel (opcional)                 │  cabeçalho     │
@@ -97,7 +119,7 @@ body (flex coluna, min-height 100dvh)
 └────────────────────────────────────────────────────────────┘
 ```
 
-- **Cabeçalho:** logo, pílula com nome da sala e botão de copiar, chip de status com ponto colorido (âmbar = aguardando, verde = conectado, vermelho = erro, via `data-tone`), botão circular **Reconectar** (`#reconnectBtn`) dentro do chip e contador de participantes. O botão continua visível no mobile, onde o texto do status é escondido.
+- **Cabeçalho:** logo, pílula "Chamada", botão de tema, chip de status com ponto colorido (âmbar = aguardando, verde = conectado, vermelho = erro, via `data-tone`), botão circular **Reconectar** (`#reconnectBtn`) dentro do chip e contador de participantes. O botão continua visível no mobile, onde o texto do status é escondido.
 - **Palco:** `.screen-area` (raio 22 px) com badge de estado, botão "Ativar áudio recebido", grade de telas (1 ou 2 colunas) e, sem tela compartilhada, a **tela de participantes** (seção 6.1). As miniaturas de câmera no canto superior direito só aparecem enquanto há uma tela compartilhada; sem tela, a câmera aparece dentro do card de cada pessoa.
 - **Barra de voz** (`#voiceBar`): logo abaixo do palco, sempre visível, inclusive durante o compartilhamento de tela (seção 6.1).
 - **Chat:** cabeçalho (título, botão Som, status), mensagens, painel de transferência de arquivo (criado por `files.js`) e composer. Começa recolhido no desktop e aberto sob demanda; no mobile vira overlay.
@@ -124,7 +146,7 @@ body (flex coluna, min-height 100dvh)
 - **Cards lado a lado** (`#personLocal`, `#personRemote`): avatar circular grande em um cartão com cor própria (rosa para você, roxo para o convidado), nome, estado em texto ("Falando", "Ouvindo", "Microfone desligado", "Silenciado por você", "Aguardando outra pessoa") e cinco barras de voz. Ficam lado a lado também no mobile.
 - **Câmera no card:** com a câmera ligada, o vídeo ocupa o cartão no lugar do avatar (o seu aparece espelhado). Ao desligar, o avatar volta.
 - **Convidado ausente:** o card fica translúcido, com borda tracejada e silhueta cinza.
-- **Avatares:** seis ilustrações próprias, geométricas e simples, inspiradas na fauna e na cultura dos povos originários do Brasil: Arara, Onça, Tucano, Boto, Jabuti e Cocar (`public/js/features/avatars.js`). A escolha fica salva no navegador (`tupi-avatar`) e é sincronizada com a outra pessoa pelo canal de presença. Para trocar, clique no avatar do seu card (aparece um lápis ao passar o mouse) ou na miniatura da barra; abre um seletor com os seis.
+- **Avatares:** os mesmos 30 ícones de animais do lobby (seção 5.1). Para trocar, clique no avatar do seu card (aparece um lápis ao passar o mouse) ou na miniatura da barra; abre o seletor.
 - **Barra de voz:** à esquerda, miniatura sua (com anel de fala), botão de microfone (liga/desliga o mesmo microfone da dock) e medidor de nível; à direita, miniatura do convidado, botão de **mudo** (o ícone mostra 0, 1 ou 2 ondas conforme o volume e vira "X" vermelho quando mudo), **controle de volume** de 0 a 100 % com preenchimento e o valor ao lado. O volume e o mudo ficam salvos (`tupi-voice`).
 - **Áudio nos dois ouvidos:** o áudio do convidado passa por Web Audio (`voice.js`), é reduzido a mono e sai igual na esquerda e na direita. Isso corrige o caso de só tocar do lado esquerdo (visto no Firefox): se o sinal chega estéreo com um canal vazio, o ganho é compensado em 2×. Enquanto o contexto de áudio não está ativo (antes do primeiro clique), o `<audio>` normal continua tocando. O microfone também é pedido em mono (`channelCount: ideal 1`).
 - **Detecção de fala:** `voice.js` mede o nível do seu microfone e do áudio recebido com Web Audio (`AnalyserNode`), com limiar de entrada e saída e 320 ms de espera para não piscar. O mudo local só afeta o que você ouve: o indicador do convidado continua mostrando que ele está falando.
@@ -182,24 +204,28 @@ Legenda: **CSS** = só CSS; **Motion** = `animate()`; **AA** = AutoAnimate; **VT
 ### Navegação e entrada
 | Interação | Resposta visual | Como |
 |---|---|---|
-| Carregar a Home | itens do card sobem e aparecem em sequência (70 ms de intervalo) | Motion (`enterStagger`) |
+| Carregar o lobby | prévia e painel de entrada sobem e aparecem em sequência (70 ms de intervalo) | Motion (`enterStagger`) |
 | Aurora de fundo | blobs à deriva continuamente | CSS |
 | Hover no logo | cresce e inclina levemente | CSS (mola) |
-| Pointer sobre "Criar nova sala" | botão acompanha o cursor (efeito ímã) | Motion (`magnet`) |
-| Hover em "Criar nova sala" | brilho atravessa o botão, gradiente desliza, ícone "+" gira | CSS |
-| Criar sala em andamento | botão desabilitado com gradiente em shimmer | CSS |
-| Hover nos chips de recursos | sobem, crescem e ganham cor | CSS |
-| Entrar na sala | fade entre telas; cabeçalho desce, palco cresce, dock sobe e os botões aparecem em cascata | VT + Motion (`roomIn`) |
-| Sair da sala | fade de volta à Home e card entra em sequência | VT + Motion |
+| Pointer sobre "Participar agora" | botão acompanha o cursor (efeito ímã) | Motion (`magnet`) |
+| Hover em "Participar agora" | brilho atravessa o botão e o gradiente desliza | CSS |
+| Entrar na chamada | fade entre telas; cabeçalho desce, palco cresce, dock sobe e os botões aparecem em cascata | VT + Motion (`roomIn`) |
+| Sair do lobby ou fim da chamada | fade de volta ao lobby e os itens entram em sequência | VT + Motion |
 
-### Formulário de entrada
+### Lobby e nomes
 | Interação | Resposta | Como |
 |---|---|---|
-| Foco no campo de convite | anel roxo suave e o campo sobe 2 px | CSS |
-| Hover em "Entrar →" | fundo tinge e a seta desliza | CSS |
-| Enviar vazio ou código inválido | formulário treme | CSS (`--animation-shake-x`) via `shake` |
+| Foco no campo "Seu nome" | anel roxo suave | CSS |
+| Digitar o nome | prévia e campo mostram o nome na hora; vazio volta ao nome do avatar | JS (`voice.js`) |
+| Clicar no avatar da prévia | seletor de 30 ícones abre com mola sobre a prévia | CSS (`.fx`) |
+| Ligar microfone ou câmera na prévia | botão redondo fica branco; a câmera aparece espelhada; o medidor reage à voz | CSS + Web Audio |
+| Falar na prévia | brilho e anéis em volta do avatar, como na chamada | CSS (`--level`) |
+| Lobby cheio | ponto âmbar pulsando e texto "Tentando de novo…" | CSS |
+| Segunda pessoa entra | as duas telas fazem fade para a chamada | VT + Motion |
+| Clicar no seu nome no card da chamada | vira um campo de texto; o lápis aparece ao passar o mouse | CSS + JS |
+| Outra pessoa muda de nome | o nome dá um "pop" no card | Motion (`pop`) |
 
-### Botões (todos os `.btn`, "Entrar", presets, Som, copiar, arquivos)
+### Botões (todos os `.btn`, "Participar agora", presets, Som, arquivos)
 | Interação | Resposta | Como |
 |---|---|---|
 | Hover | sobem 2 px | CSS (mola) |
@@ -211,8 +237,6 @@ Legenda: **CSS** = só CSS; **Motion** = `animate()`; **AA** = AutoAnimate; **VT
 ### Cabeçalho da sala
 | Interação | Resposta | Como |
 |---|---|---|
-| Copiar link | ícone vira um check que se desenha e volta depois de 1,4 s | CSS (`flash`) |
-| Copiar link (aviso) | toast com barra de tempo | CSS + Motion |
 | Participante entra ou sai | contador dá um "pop" | Motion (`pop`) |
 | Mudança de status | ponto muda de cor e pulsa | CSS (`data-tone`) |
 | Hover em Reconectar | fundo tinge e o ícone gira 180° com mola | CSS |
@@ -326,7 +350,7 @@ Atributos de dados de `.person`: `data-speaking` (fala), `data-present` (convida
 | `public/app.js` | orquestra; usa `transition`, `roomIn`, `enterStagger`, `shake`, `flash`; cria `Voice` e `Presence` |
 | `public/js/theme-boot.js` | aplica o tema salvo antes da primeira pintura (script clássico, sem módulo) |
 | `public/js/theme.js` | botão de tema: alterna automático, claro e escuro e salva a escolha |
-| `public/js/features/avatars.js` | seis avatares SVG e persistência da escolha |
+| `public/js/features/avatars.js` | lista dos 30 avatares, nomes e persistência da escolha |
 | `public/js/features/presence.js` | canal de dados `presence` (avatar e estado de mic, câmera e tela) |
 | `public/js/features/voice.js` | cards, barra de voz, seletor de avatar, detecção de fala e volume |
 | `public/js/core/peer.js` | cria e roteia o canal `presence` |
@@ -338,7 +362,7 @@ Atributos de dados de `.person`: `data-speaking` (fala), `data-present` (convida
 
 - `npm run check` e `npm test` (11 testes) passam.
 - Todos os ids lidos pelo JS existem no HTML (os únicos ausentes são criados dinamicamente ou opcionais).
-- No navegador: Home em tema claro e escuro, criar sala, abrir chat e menu de compartilhamento, duas abas conectadas por P2P com troca de mensagens nos dois sentidos, toast, layout mobile (375 px).
+- No navegador (lobby único): entrada nas duas abas e chamada automática, nomes e avatares sincronizados, renomear durante a chamada, lobby cheio com espera e entrada quando abre vaga, saída e volta ao lobby, abrir chat e menu de compartilhamento, duas abas conectadas por P2P com troca de mensagens nos dois sentidos, toast, layout mobile (375 px).
 - Com câmera, tela e microfone simulados por canvas e oscilador em duas abas: sincronização do avatar nos dois sentidos; câmera e tela somem na hora do outro lado ao parar (antes ficavam congeladas); indicador de fala local e remoto (após uma interação com a página); volume, mudo e persistência; seletor de avatar; layout desktop e mobile.
 - Não testado: captura real de microfone, câmera e tela, microfone com voz humana, transferência de arquivo, YouTube Watch Together e Firefox/Safari.
 - Limitação conhecida: o navegador só inicia o `AudioContext` depois de um clique ou tecla; quem entra por link e ainda não interagiu não vê a animação de fala até o primeiro clique.

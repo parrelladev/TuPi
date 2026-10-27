@@ -53,7 +53,10 @@ export function transition(update) {
     let done = false;
     const once = () => { if (!done) { done = true; update(); resolve(); } };
     setTimeout(once, 350);
-    try { document.startViewTransition(once); } catch { once(); }
+    try {
+      const viewTransition = document.startViewTransition(once);
+      for (const promise of [viewTransition.ready, viewTransition.finished, viewTransition.updateCallbackDone]) promise.catch(() => {});
+    } catch { once(); }
   });
 }
 
@@ -98,7 +101,7 @@ export function animateList(el) {
 
 export function initFx() {
   document.addEventListener('pointerdown', ripple, { passive: true });
-  magnet(document.getElementById('createBtn'));
+  magnet(document.getElementById('lobbyJoinBtn'));
   animateList(document.getElementById('messages'));
   animateList(document.getElementById('qualityDiagnostics'));
   enterStagger(document.getElementById('landing'));
