@@ -119,7 +119,7 @@ Tela de pré-entrada inspirada no "Pronto para participar?" do Google Meet. Não
 └────────────────────────────────────────────────────────────┘
 ```
 
-- **Cabeçalho:** logo, pílula "Chamada", botão de tema, chip de status com ponto colorido (âmbar = aguardando, verde = conectado, vermelho = erro, via `data-tone`), botão circular **Reconectar** (`#reconnectBtn`) dentro do chip e contador de participantes. O botão continua visível no mobile, onde o texto do status é escondido.
+- **Cabeçalho:** logo, pílula "Chamada", chip de status com ponto colorido (âmbar = aguardando, verde = conectado, vermelho = erro, via `data-tone`), botão circular **Reconectar** (`#reconnectBtn`) dentro do chip e contador de participantes. O botão continua visível no mobile, onde o texto do status é escondido.
 - **Palco:** `.screen-area` (raio 22 px) com badge de estado, botão "Ativar áudio recebido", grade de telas (1 ou 2 colunas) e, sem tela compartilhada, a **tela de participantes** (seção 6.1). As miniaturas de câmera no canto superior direito só aparecem enquanto há uma tela compartilhada; sem tela, a câmera aparece dentro do card de cada pessoa.
 - **Barra de voz** (`#voiceBar`): logo abaixo do palco, sempre visível, inclusive durante o compartilhamento de tela (seção 6.1).
 - **Chat:** cabeçalho (título, botão Som, status), mensagens, painel de transferência de arquivo (criado por `files.js`) e composer. Começa recolhido no desktop e aberto sob demanda; no mobile vira overlay.
@@ -147,7 +147,7 @@ Tela de pré-entrada inspirada no "Pronto para participar?" do Google Meet. Não
 - **Câmera no card:** com a câmera ligada, o vídeo ocupa o cartão no lugar do avatar (o seu aparece espelhado). Ao desligar, o avatar volta.
 - **Convidado ausente:** o card fica translúcido, com borda tracejada e silhueta cinza.
 - **Avatares:** os mesmos 30 ícones de animais do lobby (seção 5.1). Para trocar, clique no avatar do seu card (aparece um lápis ao passar o mouse) ou na miniatura da barra; abre o seletor.
-- **Barra de voz:** à esquerda, miniatura sua (com anel de fala), botão de microfone (liga/desliga o mesmo microfone da dock) e medidor de nível; à direita, miniatura do convidado, botão de **mudo** (o ícone mostra 0, 1 ou 2 ondas conforme o volume e vira "X" vermelho quando mudo), **controle de volume** de 0 a 100 % com preenchimento e o valor ao lado. O volume e o mudo ficam salvos (`tupi-voice`).
+- **Barra de voz:** à esquerda, miniatura sua (com anel de fala), botão de microfone (liga/desliga o mesmo microfone da dock) e medidor de nível; à direita, miniatura do convidado, botão de **mudo** (o ícone mostra 0, 1 ou 2 ondas conforme o volume e vira "X" vermelho quando mudo), **controle de volume** de 0 a 200 % com preenchimento e o valor ao lado. De 100 % a 200 % o som é **amplificado** por um ganho de Web Audio (trecho laranja da barra, com dica "pode distorcer") e passa por um limitador (`DynamicsCompressor`) para evitar estalos. O volume do YouTube não passa de 100 %, limite da API do player. O volume e o mudo ficam salvos (`tupi-voice`).
 - **Áudio nos dois ouvidos:** o áudio do convidado passa por Web Audio (`voice.js`), é reduzido a mono e sai igual na esquerda e na direita. Isso corrige o caso de só tocar do lado esquerdo (visto no Firefox): se o sinal chega estéreo com um canal vazio, o ganho é compensado em 2×. Enquanto o contexto de áudio não está ativo (antes do primeiro clique), o `<audio>` normal continua tocando. O microfone também é pedido em mono (`channelCount: ideal 1`).
 - **Detecção de fala:** `voice.js` mede o nível do seu microfone e do áudio recebido com Web Audio (`AnalyserNode`), com limiar de entrada e saída e 320 ms de espera para não piscar. O mudo local só afeta o que você ouve: o indicador do convidado continua mostrando que ele está falando.
 
@@ -187,7 +187,7 @@ Na sala, a página não rola: `body.in-room` ocupa `100dvh` e tudo se distribui 
 
 ### 6.1.5 Tema claro, escuro ou automático
 
-O botão de tema (sol, lua ou meio círculo) fica no canto superior direito da Home e no cabeçalho da sala. Cada clique alterna **Automático** (segue o sistema) → **Claro** → **Escuro**.
+O tema fica na entrada **Tema** do menu **Mais** da chamada (mostra o modo atual: Automático, Claro ou Escuro; o menu continua aberto ao clicar) e em um botão (sol, lua ou meio círculo) no canto superior direito do lobby. Cada clique alterna **Automático** (segue o sistema) → **Claro** → **Escuro**.
 
 - A escolha fica salva (`tupi-theme`; o modo automático não grava nada) e é aplicada antes da primeira pintura por `theme-boot.js`, sem piscar.
 - Aplica-se com `data-theme` em `<html>`, que troca `color-scheme` e, com ele, todos os `light-dark()` dos tokens. Também ajusta as `theme-color` do navegador, a placa clara do logo e a intensidade da aurora.

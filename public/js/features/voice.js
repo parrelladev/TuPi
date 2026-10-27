@@ -2,6 +2,7 @@ import { AVATARS, avatarById, avatarMarkup, unknownAvatarMarkup, loadAvatarId, s
 import { pop } from '../fx.js';
 
 const VOICE_KEY = 'tupi-voice';
+const VOLUME_MAX = 200;
 const SPEAK_ON = 0.14;
 const SPEAK_OFF = 0.08;
 const HOLD_MS = 320;
@@ -101,7 +102,7 @@ export class Voice {
   loadSettings() {
     try {
       const saved = JSON.parse(localStorage.getItem(VOICE_KEY) || '{}');
-      return { volume: Number.isFinite(saved.volume) ? Math.min(100, Math.max(0, saved.volume)) : 100, muted: saved.muted === true };
+      return { volume: Number.isFinite(saved.volume) ? Math.min(VOLUME_MAX, Math.max(0, saved.volume)) : 100, muted: saved.muted === true };
     } catch { return { volume: 100, muted: false }; }
   }
 
@@ -256,12 +257,14 @@ export class Voice {
     const { volume, muted } = this.settings;
     const audio = this.$('remoteAudio');
     const routed = this.output.active;
-    audio.volume = routed ? 1 : volume / 100;
+    audio.volume = routed ? 1 : Math.min(1, volume / 100);
     audio.muted = routed ? true : muted;
     this.applyOutputGain();
     const slider = this.$('remoteVolume');
     slider.value = String(volume);
-    slider.style.setProperty('--fill', `${muted ? 0 : volume}%`);
+    slider.style.setProperty('--fill', `${muted ? 0 : volume / 2}%`);
+    slider.style.setProperty('--fill-base', `${muted ? 0 : Math.min(volume, 100) / 2}%`);
+    slider.dataset.over = String(!muted && volume > 100);
     this.$('remoteVolumeText').textContent = muted ? 'Mudo' : `${volume}%`;
     const button = this.$('remoteMuteBtn');
     button.setAttribute('aria-pressed', String(muted));
@@ -297,13 +300,16 @@ export class Voice {
     splitter.connect(right, 1);
     up.connect(mono);
     mono.connect(gain);
-    gain.connect(context.destination);
-    this.output.nodes = { source, up, splitter, left, right, mono, gain, dataL: new Uint8Array(512), dataR: new Uint8Array(512) };
+    const limiter = context.createDynamicsCompressor();
+    limiter.threshold.value = -8; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.003; limiter.release.value = 0.12;
+    gain.connect(limiter);
+    limiter.connect(context.destination);
+    this.output.nodes = { source, up, splitter, left, right, mono, gain, limiter, dataL: new Uint8Array(512), dataR: new Uint8Array(512) };
   }
 
   disposeOutput() {
     const { nodes } = this.output;
-    if (nodes) for (const node of [nodes.source, nodes.up, nodes.splitter, nodes.mono, nodes.gain]) { try { node.disconnect(); } catch { /* já desconectado */ } }
+    if (nodes) for (const node of [nodes.source, nodes.up, nodes.splitter, nodes.mono, nodes.gain, nodes.limiter]) { try { node.disconnect(); } catch { /* já desconectado */ } }
     this.output.nodes = null;
     this.output.left = this.output.right = 0;
     this.output.makeup = 1;

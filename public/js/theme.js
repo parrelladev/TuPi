@@ -3,6 +3,7 @@ import { transition } from './fx.js';
 const KEY = 'tupi-theme';
 const MODES = ['auto', 'light', 'dark'];
 const LABELS = { auto: 'automático (segue o sistema)', light: 'claro', dark: 'escuro' };
+const SHORT = { auto: 'Automático', light: 'Claro', dark: 'Escuro' };
 const BAR_COLORS = { light: '#fffaf8', dark: '#14111a' };
 
 let mode = 'auto';
@@ -30,6 +31,7 @@ function apply(value) {
     const text = `Tema: ${LABELS[value]}. Clique para alternar.`;
     button.setAttribute('aria-label', text);
     button.title = text;
+    button.querySelectorAll('[data-theme-label]').forEach(label => { label.textContent = SHORT[value]; });
   });
 }
 
