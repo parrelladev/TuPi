@@ -7,6 +7,7 @@ export class Media {
     this.audioSender = null;
     this.cameraSender = null;
     this.screenSender = null;
+    this.screenAudioSender = null;
     this.remoteCameraStream = new MediaStream();
     this.remoteScreenStream = new MediaStream();
     this.micBusy = false;
@@ -40,19 +41,21 @@ export class Media {
     return { deviceId: deviceId ? { exact: deviceId } : undefined, channelCount: { ideal: 1 }, echoCancellation: !natural, noiseSuppression: !natural, autoGainControl: !natural };
   }
 
-  async attachSenders(audioSender, cameraSender, screenSender) {
+  async attachSenders(audioSender, cameraSender, screenSender, screenAudioSender = null) {
     this.audioSender = audioSender;
     this.cameraSender = cameraSender;
     this.screenSender = screenSender;
+    this.screenAudioSender = screenAudioSender;
     await Promise.all([
       audioSender.replaceTrack(this.micStream?.getAudioTracks()[0] || null),
       cameraSender.replaceTrack(this.cameraStream?.getVideoTracks()[0] || null),
-      screenSender.replaceTrack(this.screenStream?.getVideoTracks()[0] || null)
+      screenSender.replaceTrack(this.screenStream?.getVideoTracks()[0] || null),
+      screenAudioSender?.replaceTrack(this.screenStream?.getAudioTracks()[0] || null)
     ]);
     await Promise.allSettled([this.quality?.applySource()]);
   }
 
-  detachSenders() { this.audioSender = this.cameraSender = this.screenSender = null; }
+  detachSenders() { this.audioSender = this.cameraSender = this.screenSender = this.screenAudioSender = null; }
 
   mediaApiError(feature) {
     if (!window.isSecureContext) return `${feature} requer uma conexão segura. Abra o TuPi em https:// ou, neste computador, em http://localhost.`;
@@ -104,11 +107,15 @@ export class Media {
       if (this.screenStream) { await this.stopSource('screen'); return; }
       const apiError = this.mediaApiError('O compartilhamento de tela'); if (apiError) throw new Error(apiError);
       if (typeof navigator.mediaDevices.getDisplayMedia !== 'function') throw new Error('Este navegador ou dispositivo não oferece compartilhamento de tela. Use um navegador de desktop recente.');
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: this.quality?.captureConstraints() || { frameRate: 20 }, audio: false });
+      const wantAudio = Boolean(this.ui.$('shareAudioCheck')?.checked);
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: this.quality?.captureConstraints() || { frameRate: 20 }, audio: wantAudio });
       this.screenStream = stream;
       const track = stream.getVideoTracks()[0];
       track.onended = () => { if (this.screenStream === stream) void this.stopSource('screen'); };
       await this.screenSender?.replaceTrack(track);
+      const audioTrack = stream.getAudioTracks()[0] || null;
+      await this.screenAudioSender?.replaceTrack(audioTrack);
+      if (wantAudio && !audioTrack) this.ui.notify('O navegador nÃ£o compartilhou o Ã¡udio. Na janela de seleÃ§Ã£o, marque a opÃ§Ã£o de compartilhar Ã¡udio (Chrome ou Edge).');
       this.ui.renderScreen(stream, this.remoteScreenStream);
       await this.quality?.applySource();
       return true;
@@ -130,6 +137,7 @@ export class Media {
     this[streamKey] = null;
     stream.getTracks().forEach(track => { track.onended = null; track.stop(); });
     await this[senderKey]?.replaceTrack(null);
+    if (source === 'screen') await this.screenAudioSender?.replaceTrack(null);
     if (source === 'mic') this.ui.setMicState('off');
     if (source === 'camera') this.ui.renderCamera(null, this.remoteCameraStream);
     if (source === 'screen') this.ui.renderScreen(null, this.remoteScreenStream);
@@ -163,6 +171,10 @@ export class Media {
       this.ui.setDevices(devices);
     } catch { /* Device enumeration is optional and browser-controlled. */ }
   }
+
+  // Liga ou desliga o envio do Ã¡udio da tela sem parar a captura.
+  setScreenAudioEnabled(enabled) { this.screenStream?.getAudioTracks().forEach(track => { track.enabled = enabled; }); }
+  hasScreenAudio() { return Boolean(this.screenStream?.getAudioTracks().some(track => track.readyState === 'live')); }
 
   setRemoteCameraStream(stream) { this.remoteCameraStream = stream; this.ui.renderCamera(this.cameraStream, stream); }
   setRemoteScreenStream(stream) { this.remoteScreenStream = stream; this.ui.renderScreen(this.screenStream, stream); }

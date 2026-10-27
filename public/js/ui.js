@@ -6,7 +6,7 @@ export function createUI() {
   const $ = id => document.getElementById(id);
   let effectiveScreenQuality = '';
   let unreadChatCount = 0;
-  let remoteFlags = { camera: true, screen: true };
+  let remoteFlags = { camera: true, screen: true, screenAudio: false };
   let lastCamera = [null, null];
   let lastScreen = [null, null];
   const localMediaListeners = [];
@@ -14,8 +14,9 @@ export function createUI() {
   const onLocalMedia = listener => { localMediaListeners.push(listener); };
 
   function setRemoteFlags(flags) {
-    if (flags.camera === remoteFlags.camera && flags.screen === remoteFlags.screen) return;
-    remoteFlags = { ...flags };
+    const next = { screenAudio: false, ...flags };
+    if (next.camera === remoteFlags.camera && next.screen === remoteFlags.screen && next.screenAudio === remoteFlags.screenAudio) return;
+    remoteFlags = next;
     renderCamera(...lastCamera);
     renderScreen(...lastScreen);
   }
@@ -35,6 +36,13 @@ export function createUI() {
     const tone = /erro|interrompida|instável|não foi|falha|inválid/i.test(message) ? 'bad' : /conectando|aguardando|entrando|saiu|reconectar/i.test(message) ? 'wait' : 'ok';
     $('status').closest('.status-chip').dataset.tone = tone;
   }
+  const getRemoteFlags = () => remoteFlags;
+  function setScreenAudio(stream) {
+    const element = $('screenAudio');
+    element.srcObject = stream;
+    if (stream) element.play().catch(() => {});
+  }
+
   function clearMessages() { $('messages').querySelectorAll('.message').forEach(message => message.remove()); }
 
   let remoteName = 'Convidado';
@@ -183,12 +191,15 @@ export function createUI() {
     $('cameraBtn').querySelector('span:last-child').textContent = enabled ? 'Parar câmera' : 'Câmera';
   }
 
+  let preferredSpeaker = null;
+  const setPreferredSpeaker = id => { preferredSpeaker = id; };
+
   function setDevices(devices) {
-    for (const [kind, id, label] of [['audioinput', 'microphoneSelect', 'Microfone'], ['videoinput', 'cameraSelect', 'Câmera']]) {
-      const select = $(id); const current = select.value;
+    for (const [kind, id, label] of [['audioinput', 'microphoneSelect', 'Microfone'], ['videoinput', 'cameraSelect', 'Câmera'], ['audiooutput', 'speakerSelect', 'Alto-falante']]) {
+      const select = $(id); const current = id === 'speakerSelect' && preferredSpeaker !== null ? preferredSpeaker : select.value;
       const available = devices.filter(device => device.kind === kind);
-      const mirror = $(kind === 'audioinput' ? 'lobbyMicSelect' : 'lobbyCameraSelect');
-      for (const target of [select, mirror]) {
+      const mirror = { audioinput: $('lobbyMicSelect'), videoinput: $('lobbyCameraSelect') }[kind];
+      for (const target of [select, mirror].filter(Boolean)) {
         target.replaceChildren(new Option(`Padrão (${label.toLowerCase()})`, ''));
         available.forEach((device, index) => target.add(new Option(device.label || `${label} ${index + 1}`, device.deviceId)));
         if ([...target.options].some(option => option.value === current)) target.value = current;
@@ -257,7 +268,7 @@ export function createUI() {
     element.textContent = `Codecs disponíveis: ${message}`;
   }
   function clearRoomView() {
-    remoteFlags = { camera: true, screen: true };
+    remoteFlags = { camera: true, screen: true, screenAudio: false };
     setChatConnected(false);
     setPeerMediaStatus('Aguardando...');
     setRemoteAudio(null);
@@ -265,5 +276,5 @@ export function createUI() {
     setAudioPlaybackBlocked(false);
   }
 
-  return { $, onLocalMedia, setRemoteFlags, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, setScreenLocked, isScreenLocked, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setCodecCapabilities, closeShareSettings, clearRoomView };
+  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, setScreenLocked, isScreenLocked, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setScreenState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setCodecCapabilities, closeShareSettings, clearRoomView };
 }

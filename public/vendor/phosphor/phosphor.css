@@ -27,6 +27,9 @@
 .ph.ph-chat-circle-dots:before{content:"\e16c"}
 .ph.ph-check-circle:before{content:"\e184"}
 .ph.ph-circle-half:before{content:"\e18c"}
+.ph.ph-corners-in:before{content:"\e1ce"}
+.ph.ph-corners-out:before{content:"\e1d0"}
+.ph.ph-crop:before{content:"\e1d4"}
 .ph.ph-dots-three-outline:before{content:"\e204"}
 .ph.ph-download-simple:before{content:"\e20c"}
 .ph.ph-lock-simple:before{content:"\e308"}
@@ -83,6 +86,9 @@
 .ph-fill.ph-chat-circle-dots:before{content:"\e16c"}
 .ph-fill.ph-check-circle:before{content:"\e184"}
 .ph-fill.ph-circle-half:before{content:"\e18c"}
+.ph-fill.ph-corners-in:before{content:"\e1ce"}
+.ph-fill.ph-corners-out:before{content:"\e1d0"}
+.ph-fill.ph-crop:before{content:"\e1d4"}
 .ph-fill.ph-dots-three-outline:before{content:"\e204"}
 .ph-fill.ph-download-simple:before{content:"\e20c"}
 .ph-fill.ph-lock-simple:before{content:"\e308"}

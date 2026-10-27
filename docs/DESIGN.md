@@ -194,6 +194,23 @@ O tema fica na entrada **Tema** do menu **Mais** da chamada (mostra o modo atual
 - Aplica-se com `data-theme` em `<html>`, que troca `color-scheme` e, com ele, todos os `light-dark()` dos tokens. Também ajusta as `theme-color` do navegador, a placa clara do logo e a intensidade da aurora.
 - A troca tem transição suave (View Transitions) e o ícone gira ao mudar de modo.
 
+### 6.3 Notificações, atalhos e chat automático
+
+- **Chegada no lobby:** quando a outra pessoa chega e a chamada começa, toca um arpejo de 4 notas (o som respeita o botão **Som** do chat), o título da aba pisca "● A chamada começou" e, se o usuário permitiu, aparece uma notificação do navegador (a permissão é pedida ao clicar em **Participar agora**). Título e notificação só aparecem com a aba em segundo plano.
+- **Mensagem ou arquivo recebido:** mensagem toca 2 notas e pedido de arquivo toca 3 notas diferentes. Nos dois casos o **chat abre sozinho** (no celular, o painel sobe) e a aba em segundo plano também pisca e notifica.
+- **Atalhos de teclado:** `M` liga ou desliga o microfone, `V` a câmera, `C` abre ou fecha o chat e `F` alterna tela cheia. Ficam desativados ao digitar em campos e com Ctrl, Alt ou Cmd. As dicas aparecem nos botões e no menu **Mais**.
+
+### 6.4 Tela compartilhada: áudio, tela cheia e ajuste
+
+- **Áudio da tela:** o menu **Compartilhar tela** ganhou a opção **Compartilhar áudio da tela** (ligada por padrão). No Chrome e no Edge é preciso marcar também o áudio na janela do navegador; o Firefox não captura áudio de tela. Há um 4º transceptor de áudio na conexão (separado do microfone) e um elemento `<audio id="screenAudio">` no receptor. Para evitar eco, prefira compartilhar uma aba em vez do sistema inteiro.
+- **Mudo:** dois botões redondos no canto inferior direito da tela. Quem assiste silencia o áudio da tela só para si; quem compartilha silencia o áudio que envia (a captura continua). O ícone vira "X" vermelho quando mudo.
+- **Tela cheia** (`F`): expande o palco, sem a barra de voz.
+- **Ajustar ou preencher:** alterna entre mostrar a tela inteira (sem cortar) e preencher o espaço (corta as bordas).
+
+### 6.5 Alto-falante
+
+Em **Mais > Dispositivos e áudio**, o seletor **Alto-falante** escolhe a saída de áudio (`setSinkId`) e o botão **Testar** toca três notas no dispositivo escolhido. A escolha vale para a voz do convidado (que agora sai por um elemento `<audio>` alimentado pelo Web Audio, para funcionar também no Firefox), para o áudio da tela e, onde o navegador permite, para os sons de aviso. Fica salva em `tupi-speaker`.
+
 ### 6.2 Canal de presença
 
 Um quarto canal de dados (`presence`) avisa explicitamente a outra pessoa o que você está enviando: `{ t: "state", avatar, mic, camera, screen }`, reenviado a cada mudança. Quem recebe usa esse estado para mostrar ou esconder a câmera e a tela do outro. Isso corrige o defeito em que, ao parar a câmera ou a tela, o outro lado ficava com o último quadro congelado: o navegador nem sempre avisa o fim do envio (o evento `mute` não chegava), então a interface agora não depende dele. Mensagens maiores que 512 bytes, inválidas ou com avatar desconhecido são ignoradas.

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#fffaf8" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#16131a" media="(prefers-color-scheme: dark)" />
-  <meta name="description" content="Um lobby para conversar, compartilhar a tela e trocar mensagens diretamente: quando as duas pessoas estão online, a chamada começa." />
+  <meta name="description" content="Um lobby para conversar, compartilhar a tela e trocar mensagens diretamente: quando as duas pessoas estÃ£o online, a chamada comeÃ§a." />
   <title>TuPi: chat de voz e tela P2P</title>
   <link rel="icon" href="/assets/favicon.ico" type="image/x-icon" />
   <script src="/js/theme-boot.js"></script>
@@ -20,42 +20,42 @@
 <body>
   <main class="app">
     <section id="landing" class="landing lobby" aria-labelledby="homeTitle">
-      <button class="theme-btn home-theme" type="button" data-theme-toggle data-mode="auto" aria-label="Tema: automático (segue o sistema). Clique para alternar." title="Tema: automático (segue o sistema). Clique para alternar."><i class="ph ph-circle-half ico-auto" aria-hidden="true"></i><i class="ph ph-sun ico-light" aria-hidden="true"></i><i class="ph ph-moon ico-dark" aria-hidden="true"></i></button>
+      <button class="theme-btn home-theme" type="button" data-theme-toggle data-mode="auto" aria-label="Tema: automÃ¡tico (segue o sistema). Clique para alternar." title="Tema: automÃ¡tico (segue o sistema). Clique para alternar."><i class="ph ph-circle-half ico-auto" aria-hidden="true"></i><i class="ph ph-sun ico-light" aria-hidden="true"></i><i class="ph ph-moon ico-dark" aria-hidden="true"></i></button>
       <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
       <div class="lobby-grid">
         <div class="lobby-left" data-enter>
           <div id="lobbyPreview" class="lobby-preview" data-speaking="false" data-cam="off" data-mic="off">
-            <video id="lobbyPreviewVideo" class="lobby-video fx hidden" autoplay muted playsinline aria-label="Prévia da sua câmera"></video>
+            <video id="lobbyPreviewVideo" class="lobby-video fx hidden" autoplay muted playsinline aria-label="PrÃ©via da sua cÃ¢mera"></video>
             <button id="lobbyAvatarBtn" class="avatar-btn lobby-avatar-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Trocar meu avatar"><span id="lobbyAvatar" class="avatar"></span><span class="avatar-edit" aria-hidden="true"><i class="ph ph-pencil-simple" aria-hidden="true"></i></span></button>
             <span id="lobbyPreviewName" class="lobby-preview-name"></span>
             <div class="lobby-controls">
               <button id="lobbyMicBtn" class="lobby-round" type="button" aria-pressed="false" aria-label="Ativar microfone"><i class="ph-fill ph-microphone mic-on-icon" aria-hidden="true"></i><i class="ph ph-microphone-slash mic-off-icon" aria-hidden="true"></i></button>
-              <button id="lobbyCamBtn" class="lobby-round" type="button" aria-pressed="false" aria-label="Ativar câmera"><i class="ph-fill ph-video-camera cam-on-icon" aria-hidden="true"></i><i class="ph ph-video-camera-slash cam-off-icon" aria-hidden="true"></i></button>
+              <button id="lobbyCamBtn" class="lobby-round" type="button" aria-pressed="false" aria-label="Ativar cÃ¢mera"><i class="ph-fill ph-video-camera cam-on-icon" aria-hidden="true"></i><i class="ph ph-video-camera-slash cam-off-icon" aria-hidden="true"></i></button>
             </div>
-            <div class="meter lobby-meter" role="img" aria-label="Nível do seu microfone"><i id="lobbyMeter"></i></div>
+            <div class="meter lobby-meter" role="img" aria-label="NÃ­vel do seu microfone"><i id="lobbyMeter"></i></div>
             <div id="lobbyPicker" class="avatar-picker panel fx hidden" role="listbox" aria-label="Escolher avatar"></div>
           </div>
           <div class="lobby-selects">
-            <label class="pill-select"><i class="ph ph-microphone" aria-hidden="true"></i><select id="lobbyMicSelect" aria-label="Microfone"><option value="">Padrão (microfone)</option></select></label>
-            <label class="pill-select"><i class="ph ph-video-camera" aria-hidden="true"></i><select id="lobbyCameraSelect" aria-label="Câmera"><option value="">Padrão (câmera)</option></select></label>
+            <label class="pill-select"><i class="ph ph-microphone" aria-hidden="true"></i><select id="lobbyMicSelect" aria-label="Microfone"><option value="">PadrÃ£o (microfone)</option></select></label>
+            <label class="pill-select"><i class="ph ph-video-camera" aria-hidden="true"></i><select id="lobbyCameraSelect" aria-label="CÃ¢mera"><option value="">PadrÃ£o (cÃ¢mera)</option></select></label>
           </div>
         </div>
         <div class="lobby-side" data-enter>
-          <a class="brand home-brand" href="/" aria-label="TuPi, página inicial"><img src="/assets/tupi-logo.png" alt="TuPi" /></a>
+          <a class="brand home-brand" href="/" aria-label="TuPi, pÃ¡gina inicial"><img src="/assets/tupi-logo.png" alt="TuPi" /></a>
           <h1 id="homeTitle" class="lobby-title">Pronto para participar?</h1>
-          <p class="lobby-sub">Este é o lobby do TuPi. Quando a outra pessoa também estiver online, a chamada começa sozinha.</p>
+          <p class="lobby-sub">Este Ã© o lobby do TuPi. Quando a outra pessoa tambÃ©m estiver online, a chamada comeÃ§a sozinha.</p>
           <label class="lobby-name"><span>Seu nome</span><input id="lobbyName" maxlength="24" autocomplete="off" spellcheck="false" placeholder="Seu nome" /></label>
-          <div id="lobbyStatus" class="lobby-status" data-state="idle" role="status" aria-live="polite"><i aria-hidden="true"></i><span id="lobbyStatusText">Você ainda não entrou no lobby.</span><b id="lobbyCount">0/2</b></div>
+          <div id="lobbyStatus" class="lobby-status" data-state="idle" role="status" aria-live="polite"><i aria-hidden="true"></i><span id="lobbyStatusText">VocÃª ainda nÃ£o entrou no lobby.</span><b id="lobbyCount">0/2</b></div>
           <button id="lobbyJoinBtn" class="btn btn-primary btn-xl" type="button"><i class="ph-fill ph-sign-in" aria-hidden="true"></i><span>Participar agora</span></button>
           <button id="lobbyLeaveBtn" class="btn btn-soft lobby-leave hidden" type="button"><i class="ph ph-sign-out" aria-hidden="true"></i>Sair do lobby</button>
-          <div class="hero-reassurance"><i class="ph-fill ph-check-circle check-icon" aria-hidden="true"></i> Grátis <span class="reassurance-separator">·</span> Sem conta <span class="reassurance-separator">·</span> Até 2 pessoas</div>
+          <div class="hero-reassurance"><i class="ph-fill ph-check-circle check-icon" aria-hidden="true"></i> GrÃ¡tis <span class="reassurance-separator">Â·</span> Sem conta <span class="reassurance-separator">Â·</span> AtÃ© 2 pessoas</div>
         </div>
       </div>
     </section>
 
     <section id="room" class="room hidden" aria-label="Chamada">
       <header class="room-header panel">
-        <a class="room-brand" href="/" aria-label="TuPi, página inicial"><img src="/assets/tupi-logo.png" alt="TuPi" /></a>
+        <a class="room-brand" href="/" aria-label="TuPi, pÃ¡gina inicial"><img src="/assets/tupi-logo.png" alt="TuPi" /></a>
         <div class="room-header-tools">
           <span class="status-chip"><i class="status-dot" aria-hidden="true"></i><span id="status" class="status" role="status" aria-live="polite">Conectando...</span><button id="reconnectBtn" class="reconnect-btn" type="button" data-busy="false" aria-label="Tentar reconectar" title="Tentar reconectar"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i></button></span>
           <span class="room-member-count" aria-label="Participantes na chamada"><i class="ph ph-users" aria-hidden="true"></i><span id="participantCount">1</span></span>
@@ -63,70 +63,78 @@
       </header>
 
       <div class="columns">
-        <section id="stagePanel" class="stage" aria-label="Mídia da chamada">
+        <section id="stagePanel" class="stage" aria-label="MÃ­dia da chamada">
           <section id="youtubePanel" class="youtube-panel panel fx hidden" aria-label="YouTube Watch Together">
-            <form id="youtubeForm" class="youtube-form"><label class="sr-only" for="youtubeUrl">Link ou ID do vídeo do YouTube</label><input id="youtubeUrl" maxlength="2048" type="text" placeholder="Cole um link do YouTube" autocomplete="off" /><button class="btn btn-primary" type="submit"><i class="ph-fill ph-play-circle" aria-hidden="true"></i>Abrir vídeo</button></form>
-            <div class="youtube-title-row"><strong id="youtubeVideoTitle">YouTube Watch Together</strong><label>Tolerância <select id="youtubeTolerance"><option value="0.5">0,5 s</option><option value="1" selected>1 s</option><option value="2.5">2,5 s</option></select></label></div>
+            <form id="youtubeForm" class="youtube-form"><label class="sr-only" for="youtubeUrl">Link ou ID do vÃ­deo do YouTube</label><input id="youtubeUrl" maxlength="2048" type="text" placeholder="Cole um link do YouTube" autocomplete="off" /><button class="btn btn-primary" type="submit"><i class="ph-fill ph-play-circle" aria-hidden="true"></i>Abrir vÃ­deo</button></form>
+            <div class="youtube-title-row"><strong id="youtubeVideoTitle">YouTube Watch Together</strong><label>TolerÃ¢ncia <select id="youtubeTolerance"><option value="0.5">0,5 s</option><option value="1" selected>1 s</option><option value="2.5">2,5 s</option></select></label></div>
             <div id="youtubePlayer" class="youtube-player" aria-label="Player incorporado do YouTube"></div>
-            <div class="youtube-controls"><button id="youtubePlay" class="btn btn-soft" type="button"><i class="ph-fill ph-play" aria-hidden="true"></i>Reproduzir</button><button id="youtubePause" class="btn btn-soft" type="button"><i class="ph-fill ph-pause" aria-hidden="true"></i>Pausar</button><input id="youtubeSeek" type="range" min="0" max="1" value="0" aria-label="Posição do vídeo" /><span id="youtubePosition">0:00 / 0:00</span><button id="youtubeSync" class="btn btn-soft" type="button"><i class="ph ph-arrows-counter-clockwise" aria-hidden="true"></i>Sincronizar</button></div>
-            <div class="youtube-volume" role="group" aria-label="Volume do vídeo">
-              <button id="ytMuteBtn" class="vb-btn" type="button" aria-pressed="false" data-level="high" aria-label="Silenciar o vídeo só para mim" title="Silenciar só para mim"><i class="ph ph-speaker-high spk-high" aria-hidden="true"></i><i class="ph ph-speaker-low spk-low" aria-hidden="true"></i><i class="ph ph-speaker-x spk-off" aria-hidden="true"></i></button>
+            <div class="youtube-controls"><button id="youtubePlay" class="btn btn-soft" type="button"><i class="ph-fill ph-play" aria-hidden="true"></i>Reproduzir</button><button id="youtubePause" class="btn btn-soft" type="button"><i class="ph-fill ph-pause" aria-hidden="true"></i>Pausar</button><input id="youtubeSeek" type="range" min="0" max="1" value="0" aria-label="PosiÃ§Ã£o do vÃ­deo" /><span id="youtubePosition">0:00 / 0:00</span><button id="youtubeSync" class="btn btn-soft" type="button"><i class="ph ph-arrows-counter-clockwise" aria-hidden="true"></i>Sincronizar</button></div>
+            <div class="youtube-volume" role="group" aria-label="Volume do vÃ­deo">
+              <button id="ytMuteBtn" class="vb-btn" type="button" aria-pressed="false" data-level="high" aria-label="Silenciar o vÃ­deo sÃ³ para mim" title="Silenciar sÃ³ para mim"><i class="ph ph-speaker-high spk-high" aria-hidden="true"></i><i class="ph ph-speaker-low spk-low" aria-hidden="true"></i><i class="ph ph-speaker-x spk-off" aria-hidden="true"></i></button>
               <label class="yv-field"><span>Volume compartilhado</span><input id="ytSharedVolume" class="volume-slider shared" type="range" min="0" max="100" step="1" value="100" /><output id="ytSharedText" class="volume-text" for="ytSharedVolume">100%</output></label>
-              <label class="yv-field"><span>Só para mim</span><input id="ytMyVolume" class="volume-slider" type="range" min="0" max="100" step="1" value="100" /><output id="ytMyText" class="volume-text" for="ytMyVolume">100%</output></label>
+              <label class="yv-field"><span>SÃ³ para mim</span><input id="ytMyVolume" class="volume-slider" type="range" min="0" max="100" step="1" value="100" /><output id="ytMyText" class="volume-text" for="ytMyVolume">100%</output></label>
             </div>
-            <p id="youtubeStatus" class="youtube-status" role="status" aria-live="polite">O player ainda não está conectado.</p>
+            <p id="youtubeStatus" class="youtube-status" role="status" aria-live="polite">O player ainda nÃ£o estÃ¡ conectado.</p>
           </section>
           <div class="screen-area">
-            <div id="cameraViews" class="camera-views fx hidden" aria-label="Câmeras da sala">
-              <div id="localCameraTile" class="media-tile fx hidden"><video id="localCameraVideo" autoplay muted playsinline aria-label="Sua câmera"></video><span class="media-name">Você · Câmera</span></div>
-              <div id="remoteCameraTile" class="media-tile fx hidden"><video id="remoteCameraVideo" autoplay playsinline aria-label="Câmera do convidado"></video><span class="media-name"><span data-remote-name>Convidado</span> · Câmera</span></div>
+            <div id="cameraViews" class="camera-views fx hidden" aria-label="CÃ¢meras da sala">
+              <div id="localCameraTile" class="media-tile fx hidden"><video id="localCameraVideo" autoplay muted playsinline aria-label="Sua cÃ¢mera"></video><span class="media-name">VocÃª Â· CÃ¢mera</span></div>
+              <div id="remoteCameraTile" class="media-tile fx hidden"><video id="remoteCameraVideo" autoplay playsinline aria-label="CÃ¢mera do convidado"></video><span class="media-name"><span data-remote-name>Convidado</span> Â· CÃ¢mera</span></div>
             </div>
             <div id="screenViews" class="screen-views">
-              <div id="localMediaTile" class="media-tile fx hidden"><video id="localScreenVideo" autoplay muted playsinline aria-label="Sua tela compartilhada"></video><span class="media-name">Você · Tela</span></div>
-              <div id="remoteMediaTile" class="media-tile fx hidden"><video id="screenVideo" autoplay playsinline aria-label="Tela do convidado"></video><span class="media-name"><span data-remote-name>Convidado</span> · Tela</span></div>
+              <div id="localMediaTile" class="media-tile fx hidden"><video id="localScreenVideo" autoplay muted playsinline aria-label="Sua tela compartilhada"></video><span class="media-name">VocÃª Â· Tela</span></div>
+              <div id="remoteMediaTile" class="media-tile fx hidden"><video id="screenVideo" autoplay playsinline aria-label="Tela do convidado"></video><span class="media-name"><span data-remote-name>Convidado</span> Â· Tela</span></div>
             </div>
             <div id="screenPlaceholder" class="screen-placeholder voice-stage fx">
               <div class="voice-grid">
-                <article id="personLocal" class="person person-local" data-speaking="false" data-mic="off" aria-label="Você">
+                <article id="personLocal" class="person person-local" data-speaking="false" data-mic="off" aria-label="VocÃª">
                   <div class="person-media">
                     <span class="speak-ring" aria-hidden="true"></span>
                     <button id="avatarLocalBtn" class="avatar-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Trocar meu avatar"><span id="avatarLocal" class="avatar"></span><span class="avatar-edit" aria-hidden="true"><i class="ph ph-pencil-simple" aria-hidden="true"></i></span></button>
-                    <video id="cardLocalVideo" class="person-video fx hidden" autoplay muted playsinline aria-label="Sua câmera"></video>
+                    <video id="cardLocalVideo" class="person-video fx hidden" autoplay muted playsinline aria-label="Sua cÃ¢mera"></video>
                   </div>
-                  <div class="person-info"><span class="name-wrap"><button id="nameLocalBtn" class="name-btn" type="button" aria-label="Alterar meu nome" title="Alterar meu nome"><strong id="nameLocal" class="person-name">Você</strong><span class="name-pencil" aria-hidden="true"><i class="ph ph-pencil-simple" aria-hidden="true"></i></span></button><input id="nameLocalInput" class="name-input hidden" maxlength="24" autocomplete="off" spellcheck="false" aria-label="Seu nome" /></span><span id="stateLocal" class="person-state" role="status">Microfone desligado</span><span class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>
+                  <div class="person-info"><span class="name-wrap"><button id="nameLocalBtn" class="name-btn" type="button" aria-label="Alterar meu nome" title="Alterar meu nome"><strong id="nameLocal" class="person-name">VocÃª</strong><span class="name-pencil" aria-hidden="true"><i class="ph ph-pencil-simple" aria-hidden="true"></i></span></button><input id="nameLocalInput" class="name-input hidden" maxlength="24" autocomplete="off" spellcheck="false" aria-label="Seu nome" /></span><span id="stateLocal" class="person-state" role="status">Microfone desligado</span><span class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>
                 </article>
                 <article id="personRemote" class="person person-remote" data-speaking="false" data-present="false" data-mic="off" data-muted="false" aria-label="Convidado">
                   <div class="person-media">
                     <span class="speak-ring" aria-hidden="true"></span>
                     <span class="avatar-btn static"><span id="avatarRemote" class="avatar"></span></span>
-                    <video id="cardRemoteVideo" class="person-video fx hidden" autoplay muted playsinline aria-label="Câmera do convidado"></video>
+                    <video id="cardRemoteVideo" class="person-video fx hidden" autoplay muted playsinline aria-label="CÃ¢mera do convidado"></video>
                   </div>
                   <div class="person-info"><strong id="nameRemote" class="person-name" data-remote-name>Convidado</strong><span id="stateRemote" class="person-state" role="status">Aguardando outra pessoa</span><span class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>
                 </article>
               </div>
-              <p class="voice-hint">Compartilhe sua tela ou ligue o microfone para começar.</p>
+              <p class="voice-hint">Compartilhe sua tela ou ligue o microfone para comeÃ§ar.</p>
               <span class="waiting-label"><i></i> <span id="peerMediaStatus">Aguardando outra pessoa</span></span>
             </div>
             <span id="screenBadge" class="pill stage-status"><i></i> Aguardando compartilhamento</span>
-            <button id="enableAudioBtn" class="btn audio-enable fx hidden" type="button"><i class="ph-fill ph-speaker-high" aria-hidden="true"></i>Ativar áudio recebido</button>
+            <div id="screenControls" class="screen-controls" role="toolbar" aria-label="Controles da tela">
+              <button id="shareAudioBtn" class="sc-btn hidden" type="button" data-level="high" aria-pressed="false" aria-label="Silenciar o Ã¡udio que vocÃª compartilha" title="Silenciar o Ã¡udio que vocÃª compartilha"><i class="ph ph-speaker-high spk-high" aria-hidden="true"></i><i class="ph ph-speaker-x spk-off" aria-hidden="true"></i></button>
+              <button id="screenAudioBtn" class="sc-btn hidden" type="button" data-level="high" aria-pressed="false" aria-label="Silenciar o Ã¡udio da tela" title="Silenciar o Ã¡udio da tela"><i class="ph ph-speaker-high spk-high" aria-hidden="true"></i><i class="ph ph-speaker-x spk-off" aria-hidden="true"></i></button>
+              <button id="screenFitBtn" class="sc-btn" type="button" aria-pressed="false" aria-label="Preencher o espaÃ§o (cortar bordas)" title="Preencher o espaÃ§o (cortar bordas)"><i class="ph ph-crop" aria-hidden="true"></i></button>
+              <button id="screenFullBtn" class="sc-btn" type="button" aria-pressed="false" aria-label="Tela cheia (F)" title="Tela cheia (F)"><i class="ph ph-corners-out fs-enter" aria-hidden="true"></i><i class="ph ph-corners-in fs-exit" aria-hidden="true"></i></button>
+            </div>
+            <button id="enableAudioBtn" class="btn audio-enable fx hidden" type="button"><i class="ph-fill ph-speaker-high" aria-hidden="true"></i>Ativar Ã¡udio recebido</button>
           </div>
           <div id="voiceBar" class="voice-bar panel" role="group" aria-label="Controles de voz">
             <div class="vb-group vb-me">
               <button id="avatarMini" class="avatar-mini" data-speaking="false" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Trocar meu avatar"><span id="miniLocalAvatar" class="avatar"></span></button>
-              <span class="vb-label">Você</span>
+              <span class="vb-label">VocÃª</span>
               <button id="voiceMicBtn" class="vb-btn" type="button" aria-pressed="false" aria-label="Ativar microfone"><i class="ph-fill ph-microphone mic-on-icon" aria-hidden="true"></i><i class="ph ph-microphone-slash mic-off-icon" aria-hidden="true"></i></button>
-              <div class="meter" role="img" aria-label="Nível do seu microfone"><i id="micMeter"></i></div>
+              <div class="meter" role="img" aria-label="NÃ­vel do seu microfone"><i id="micMeter"></i></div>
             </div>
             <div class="vb-group vb-peer">
               <span id="miniRemote" class="avatar-mini static" data-speaking="false"><span id="miniRemoteAvatar" class="avatar"></span></span>
               <span class="vb-label" data-remote-name>Convidado</span>
               <button id="remoteMuteBtn" class="vb-btn" type="button" aria-pressed="false" data-level="high" aria-label="Silenciar o convidado"><i class="ph ph-speaker-high spk-high" aria-hidden="true"></i><i class="ph ph-speaker-low spk-low" aria-hidden="true"></i><i class="ph ph-speaker-x spk-off" aria-hidden="true"></i></button>
-              <input id="remoteVolume" class="volume-slider boost" type="range" min="0" max="200" step="1" value="100" aria-label="Volume do convidado (até 200%)" title="Acima de 100% o som é amplificado e pode distorcer" />
+              <input id="remoteVolume" class="volume-slider boost" type="range" min="0" max="200" step="1" value="100" aria-label="Volume do convidado (atÃ© 200%)" title="Acima de 100% o som Ã© amplificado e pode distorcer" />
               <output id="remoteVolumeText" class="volume-text" for="remoteVolume">100%</output>
             </div>
             <div id="avatarPicker" class="avatar-picker panel fx hidden" role="listbox" aria-label="Escolher avatar"></div>
           </div>
           <audio id="remoteAudio" autoplay playsinline></audio>
+          <audio id="voiceOut" autoplay playsinline></audio>
+          <audio id="screenAudio" autoplay playsinline></audio>
         </section>
 
         <section id="chatPanel" class="chat panel" aria-label="Chat da sala">
@@ -137,38 +145,38 @@
               <span class="chat-connection"><i></i><span id="chatStatus">Desconectado</span></span>
             </div>
           </div>
-          <div id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text"><div class="notice"><i class="ph ph-lock-simple notice-lock" aria-hidden="true"></i><span>As mensagens são trocadas diretamente entre vocês e não são salvas.</span></div></div>
+          <div id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text"><div class="notice"><i class="ph ph-lock-simple notice-lock" aria-hidden="true"></i><span>As mensagens sÃ£o trocadas diretamente entre vocÃªs e nÃ£o sÃ£o salvas.</span></div></div>
           <form id="chatForm" class="chat-compose"><label class="sr-only" for="chatInput">Escreva uma mensagem</label><input id="chatInput" maxlength="2000" placeholder="Escreva uma mensagem..." autocomplete="off" disabled aria-label="Mensagem" /><button id="sendBtn" class="btn send-button" disabled aria-label="Enviar mensagem"><i class="ph-fill ph-paper-plane-tilt" aria-hidden="true"></i></button></form>
         </section>
       </div>
 
       <nav class="room-toolbar" aria-label="Controles da sala">
         <div class="tb-group">
-          <button id="micBtn" class="btn tb" aria-label="Ativar microfone" aria-pressed="false"><span class="control-icon mic-icon" aria-hidden="true"><i class="ph-fill ph-microphone mic-on-icon" aria-hidden="true"></i><i class="ph ph-microphone-slash mic-off-icon" aria-hidden="true"></i></span><span class="tb-label">Microfone</span></button>
-          <button id="cameraBtn" class="btn tb" type="button" aria-label="Ativar câmera" aria-pressed="false"><span class="control-icon" aria-hidden="true"><i class="ph ph-video-camera" aria-hidden="true"></i></span><span class="tb-label">Câmera</span></button>
+          <button id="micBtn" class="btn tb" aria-label="Ativar microfone" aria-pressed="false" aria-keyshortcuts="M" title="Microfone (M)"><span class="control-icon mic-icon" aria-hidden="true"><i class="ph-fill ph-microphone mic-on-icon" aria-hidden="true"></i><i class="ph ph-microphone-slash mic-off-icon" aria-hidden="true"></i></span><span class="tb-label">Microfone</span></button>
+          <button id="cameraBtn" class="btn tb" type="button" aria-label="Ativar cÃ¢mera" aria-pressed="false" aria-keyshortcuts="V" title="CÃ¢mera (V)"><span class="control-icon" aria-hidden="true"><i class="ph ph-video-camera" aria-hidden="true"></i></span><span class="tb-label">CÃ¢mera</span></button>
         </div>
         <div class="tb-group">
-          <details id="screenSettings" class="device-settings screen-settings"><summary id="screenBtn" class="btn btn-primary tb" aria-label="Compartilhar tela" aria-controls="qualityOptions" aria-expanded="false"><span class="control-icon" aria-hidden="true"><i class="ph ph-monitor-arrow-up" aria-hidden="true"></i></span><span class="tb-label">Compartilhar tela</span></summary><div id="qualityOptions" class="more-menu quality-settings-fields" role="group" aria-label="Configurações da transmissão"><strong>Configurações da transmissão</strong><span class="quality-label">Perfil de tela</span><div class="quality-presets" role="group" aria-label="Perfil de tela"><button type="button" data-quality-preset="standard" aria-pressed="true">Padrão <small>720p, 30 fps</small></button><button type="button" data-quality-preset="performance" aria-pressed="false">Desempenho <small>480p, 30 fps</small></button><button type="button" data-quality-preset="high" aria-pressed="false">Alta qualidade <small>1080p, 30 fps</small></button><button type="button" data-quality-preset="maximum" aria-pressed="false">Máxima <small>1440p, 30 fps</small></button></div><span class="quality-label">Personalizar</span><label>Resolução<select id="screenResolution"><option value="480">480p</option><option value="720" selected>720p</option><option value="1080">1080p</option><option value="1440">1440p</option><option value="native">Nativa</option></select></label><label>Quadros por segundo<select id="screenFps"><option>30</option><option>60</option><option>120</option><option>144</option></select></label><label>Bitrate máximo desejado (Mbps)<input id="screenBitrate" type="number" min="1" max="50" value="8" step="1" /></label><label>Foco<select id="screenFocus"><option value="auto">Automático</option><option value="game">Jogar</option><option value="watch">Assistir</option></select></label><div id="qualityDiagnostics" class="quality-diagnostics" aria-live="polite">Aguardando conexão de mídia</div><button id="shareConfiguredBtn" class="btn btn-primary quality-share-button" type="button">Compartilhar tela</button></div></details>
+          <details id="screenSettings" class="device-settings screen-settings"><summary id="screenBtn" class="btn btn-primary tb" aria-label="Compartilhar tela" aria-controls="qualityOptions" aria-expanded="false"><span class="control-icon" aria-hidden="true"><i class="ph ph-monitor-arrow-up" aria-hidden="true"></i></span><span class="tb-label">Compartilhar tela</span></summary><div id="qualityOptions" class="more-menu quality-settings-fields" role="group" aria-label="ConfiguraÃ§Ãµes da transmissÃ£o"><strong>ConfiguraÃ§Ãµes da transmissÃ£o</strong><span class="quality-label">Perfil de tela</span><div class="quality-presets" role="group" aria-label="Perfil de tela"><button type="button" data-quality-preset="standard" aria-pressed="true">PadrÃ£o <small>720p, 30 fps</small></button><button type="button" data-quality-preset="performance" aria-pressed="false">Desempenho <small>480p, 30 fps</small></button><button type="button" data-quality-preset="high" aria-pressed="false">Alta qualidade <small>1080p, 30 fps</small></button><button type="button" data-quality-preset="maximum" aria-pressed="false">MÃ¡xima <small>1440p, 30 fps</small></button></div><span class="quality-label">Personalizar</span><label>ResoluÃ§Ã£o<select id="screenResolution"><option value="480">480p</option><option value="720" selected>720p</option><option value="1080">1080p</option><option value="1440">1440p</option><option value="native">Nativa</option></select></label><label>Quadros por segundo<select id="screenFps"><option>30</option><option>60</option><option>120</option><option>144</option></select></label><label>Bitrate mÃ¡ximo desejado (Mbps)<input id="screenBitrate" type="number" min="1" max="50" value="8" step="1" /></label><label>Foco<select id="screenFocus"><option value="auto">AutomÃ¡tico</option><option value="game">Jogar</option><option value="watch">Assistir</option></select></label><label class="check-row"><input id="shareAudioCheck" type="checkbox" checked /><span>Compartilhar Ã¡udio da tela<small>No Chrome e no Edge, marque tambÃ©m a opÃ§Ã£o de Ã¡udio na janela do navegador. Prefira compartilhar uma aba para evitar eco.</small></span></label><div id="qualityDiagnostics" class="quality-diagnostics" aria-live="polite">Aguardando conexÃ£o de mÃ­dia</div><button id="shareConfiguredBtn" class="btn btn-primary quality-share-button" type="button">Compartilhar tela</button></div></details>
           <button id="youtubeToggleBtn" class="btn tb" type="button" aria-controls="youtubePanel" aria-expanded="false" aria-label="Abrir YouTube Watch Together"><span class="control-icon" aria-hidden="true"><i class="ph ph-youtube-logo" aria-hidden="true"></i></span><span class="tb-label">YouTube</span></button>
         </div>
         <div class="tb-group">
-          <button id="chatToggleBtn" class="btn tb chat-toggle" aria-controls="chatPanel" aria-expanded="true" aria-label="Ocultar chat"><span class="control-icon" aria-hidden="true"><i class="ph ph-chat-circle-dots" aria-hidden="true"></i></span><span class="tb-label">Chat</span><span id="chatUnreadBadge" class="chat-unread-badge fx hidden" aria-hidden="true"></span></button>
-          <details id="deviceSettings" class="device-settings"><summary id="moreBtn" class="btn tb" aria-label="Mais opções" aria-controls="mediaSettingsMenu" aria-expanded="false"><span class="control-icon" aria-hidden="true"><i class="ph ph-dots-three-outline" aria-hidden="true"></i></span><span class="tb-label">Mais</span></summary><div id="mediaSettingsMenu" class="more-menu"><button id="themeMenuBtn" class="more-menu-entry theme-entry" type="button" data-theme-toggle data-mode="auto" aria-label="Tema: automático (segue o sistema). Clique para alternar."><span class="theme-entry-label"><span class="theme-entry-ico" aria-hidden="true"><i class="ph ph-circle-half ico-auto" aria-hidden="true"></i><i class="ph ph-sun ico-light" aria-hidden="true"></i><i class="ph ph-moon ico-dark" aria-hidden="true"></i></span>Tema</span><span class="theme-entry-value" data-theme-label>Automático</span></button><button id="devicesMenuToggle" class="more-menu-entry" type="button" aria-expanded="false" aria-controls="deviceOptions"><span class="theme-entry-label"><span class="theme-entry-ico" aria-hidden="true"><i class="ph ph-sliders-horizontal"></i></span>Dispositivos e áudio</span><i class="ph ph-caret-right chevron" aria-hidden="true"></i></button><div id="deviceOptions" class="device-settings-fields fx hidden" role="group" aria-label="Dispositivos e áudio"><label>Microfone<select id="microphoneSelect"><option value="">Padrão (microfone)</option></select></label><label>Câmera<select id="cameraSelect"><option value="">Padrão (câmera)</option></select></label><label>Processamento do microfone<select id="audioProfile"><option value="standard">Padrão (redução de eco e ruído)</option><option value="natural">Natural (sem processamento)</option></select></label></div></div></details>
+          <button id="chatToggleBtn" class="btn tb chat-toggle" aria-keyshortcuts="C" title="Chat (C)" aria-controls="chatPanel" aria-expanded="true" aria-label="Ocultar chat"><span class="control-icon" aria-hidden="true"><i class="ph ph-chat-circle-dots" aria-hidden="true"></i></span><span class="tb-label">Chat</span><span id="chatUnreadBadge" class="chat-unread-badge fx hidden" aria-hidden="true"></span></button>
+          <details id="deviceSettings" class="device-settings"><summary id="moreBtn" class="btn tb" aria-label="Mais opÃ§Ãµes" aria-controls="mediaSettingsMenu" aria-expanded="false"><span class="control-icon" aria-hidden="true"><i class="ph ph-dots-three-outline" aria-hidden="true"></i></span><span class="tb-label">Mais</span></summary><div id="mediaSettingsMenu" class="more-menu"><button id="themeMenuBtn" class="more-menu-entry theme-entry" type="button" data-theme-toggle data-mode="auto" aria-label="Tema: automÃ¡tico (segue o sistema). Clique para alternar."><span class="theme-entry-label"><span class="theme-entry-ico" aria-hidden="true"><i class="ph ph-circle-half ico-auto" aria-hidden="true"></i><i class="ph ph-sun ico-light" aria-hidden="true"></i><i class="ph ph-moon ico-dark" aria-hidden="true"></i></span>Tema</span><span class="theme-entry-value" data-theme-label>AutomÃ¡tico</span></button><p class="menu-hint">Atalhos: <kbd>M</kbd> microfone Â· <kbd>V</kbd> cÃ¢mera Â· <kbd>C</kbd> chat Â· <kbd>F</kbd> tela cheia</p><button id="devicesMenuToggle" class="more-menu-entry" type="button" aria-expanded="false" aria-controls="deviceOptions"><span class="theme-entry-label"><span class="theme-entry-ico" aria-hidden="true"><i class="ph ph-sliders-horizontal"></i></span>Dispositivos e Ã¡udio</span><i class="ph ph-caret-right chevron" aria-hidden="true"></i></button><div id="deviceOptions" class="device-settings-fields fx hidden" role="group" aria-label="Dispositivos e Ã¡udio"><label>Microfone<select id="microphoneSelect"><option value="">PadrÃ£o (microfone)</option></select></label><label>CÃ¢mera<select id="cameraSelect"><option value="">PadrÃ£o (cÃ¢mera)</option></select></label><label>Alto-falante<span class="speaker-row"><select id="speakerSelect"><option value="">PadrÃ£o (alto-falante)</option></select><button id="speakerTest" class="btn btn-soft" type="button"><i class="ph-fill ph-play" aria-hidden="true"></i>Testar</button></span></label><label>Processamento do microfone<select id="audioProfile"><option value="standard">PadrÃ£o (reduÃ§Ã£o de eco e ruÃ­do)</option><option value="natural">Natural (sem processamento)</option></select></label></div></div></details>
         </div>
         <div class="tb-group">
           <button id="leaveBtn" class="btn tb button-leave" type="button" aria-label="Sair da sala" title="Sair da sala"><span class="control-icon" aria-hidden="true"><i class="ph ph-power" aria-hidden="true"></i></span><span class="tb-label">Sair</span></button>
         </div>
       </nav>
-      <p class="footnote"><i class="ph ph-shield-check" aria-hidden="true"></i> WebRTC usa criptografia em trânsito. Algumas redes precisam de um servidor TURN para retransmissão.</p>
+      <p class="footnote"><i class="ph ph-shield-check" aria-hidden="true"></i> WebRTC usa criptografia em trÃ¢nsito. Algumas redes precisam de um servidor TURN para retransmissÃ£o.</p>
     </section>
     <div id="toast" class="toast fx hidden" role="alert"><span id="toastText"></span><i id="toastBar" class="toast-bar" aria-hidden="true"></i></div>
   </main>
   <footer class="site-footer">
     <div class="site-footer-inner">
       <div class="footer-meta">
-        <span>© 2026 TuPi</span><span class="footer-separator" aria-hidden="true">·</span>
-        <span>Versão 1.0.0</span><span class="footer-separator" aria-hidden="true">·</span>
-        <a href="https://github.com/parrelladev/TuPi" target="_blank" rel="noopener noreferrer">Repositório no GitHub</a>
+        <span>Â© 2026 TuPi</span><span class="footer-separator" aria-hidden="true">Â·</span>
+        <span>VersÃ£o 1.0.0</span><span class="footer-separator" aria-hidden="true">Â·</span>
+        <a href="https://github.com/parrelladev/TuPi" target="_blank" rel="noopener noreferrer">RepositÃ³rio no GitHub</a>
       </div>
       <span class="footer-tech">Tecnologia: peer-to-peer</span>
     </div>

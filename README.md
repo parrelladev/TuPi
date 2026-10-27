@@ -122,3 +122,9 @@ TuPi/
 ## Ícones
 
 A interface usa [Phosphor Icons](https://phosphoricons.com/) (licença MIT), empacotados em `public/vendor/phosphor` sem CDN, porque a CSP só permite recursos do próprio site. Para usar um ícone novo, escreva `<i class="ph ph-nome"></i>` (ou `ph-fill` para a versão preenchida) e rode `npm run vendor` para regenerar o CSS com os ícones usados.
+
+## Atalhos e avisos
+
+- Teclado: `M` microfone, `V` câmera, `C` chat, `F` tela cheia.
+- Com a aba em segundo plano, o TuPi pisca o título e (se permitido) notifica quando a outra pessoa chega, chega uma mensagem ou um pedido de arquivo; o chat abre sozinho ao receber mensagem ou arquivo.
+- Ao compartilhar a tela, marque **Compartilhar áudio da tela** (Chrome e Edge) para enviar o som; quem assiste e quem compartilha têm um botão de mudo. Em **Mais > Dispositivos e áudio** dá para escolher o alto-falante.

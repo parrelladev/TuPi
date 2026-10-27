@@ -9,6 +9,9 @@ import { FileTransfers } from './js/features/files.js';
 import { YouTubeTogether } from './js/features/youtube.js';
 import { Voice } from './js/features/voice.js';
 import { Presence } from './js/features/presence.js';
+import { Speaker } from './js/features/speaker.js';
+import { Notifier } from './js/features/notifier.js';
+import { ScreenControls } from './js/features/screen.js';
 import { initFx, roomIn, enterStagger, transition } from './js/fx.js';
 import { initTheme } from './js/theme.js';
 
@@ -23,6 +26,10 @@ const quality = new QualitySettings(ui, media);
 media.quality = quality;
 const files = new FileTransfers(ui, { shouldPause: () => quality.adaptiveLevel > 0 });
 const youtube = new YouTubeTogether(ui);
+const speaker = new Speaker(ui);
+chat.speaker = speaker;
+const notifier = new Notifier();
+const screenControls = new ScreenControls(ui, media);
 const rtcConfig = { iceServers: [] };
 
 // Estado do lobby único: fora (signaling nulo), no lobby sozinho, ou em chamada (inCall).
@@ -65,6 +72,26 @@ const peer = new PeerSession({
   }
 });
 const connectionStats = new ConnectionStats(ui, peer, quality);
+
+// Abre o chat sozinho quando chega mensagem ou pedido de arquivo.
+function openChat() {
+  const room = ui.$('room');
+  const mobile = window.matchMedia('(max-width: 760px)').matches;
+  const open = mobile ? room.classList.contains('chat-open') : !room.classList.contains('chat-collapsed');
+  if (open) return;
+  if (mobile) room.classList.add('chat-open'); else room.classList.remove('chat-collapsed');
+  ui.setChatOpen(true);
+  chat.markRead();
+}
+chat.onIncoming = () => {
+  if (inCall) openChat();
+  notifier.attention('Nova mensagem', `${ui.getRemoteName()} escreveu no chat.`);
+};
+files.onIncoming = message => {
+  void chat.playNotification('file');
+  if (inCall) openChat();
+  notifier.attention('Arquivo recebido', `${ui.getRemoteName()} quer enviar ${message.name}.`);
+};
 
 function clearGrace() { clearTimeout(graceTimer); graceTimer = null; }
 
@@ -125,6 +152,10 @@ async function handleSignal(message) {
       return;
     case 'peer-joined':
       setCount(2);
+      if (!inCall) {
+        void chat.playNotification('arrival');
+        notifier.attention('A chamada começou', 'A outra pessoa chegou ao lobby.');
+      }
       await startCall();
       await peer.handle(message);
       return;
@@ -150,6 +181,7 @@ async function handleSignal(message) {
 
 async function joinLobby() {
   if (signaling) return;
+  void notifier.requestPermission();
   leaving = false;
   ui.setLobbyState('connecting', 0);
   if (!window.isSecureContext) ui.notify('WebRTC requer HTTPS ou localhost para microfone, câmera e tela.');
@@ -309,5 +341,18 @@ document.addEventListener('keydown', event => {
       moreButton.focus();
     }
   }
+});
+// Atalhos: M microfone, V câmera, C chat, F tela cheia (ignorados ao digitar).
+document.addEventListener('keydown', event => {
+  if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
+  const target = event.target;
+  if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
+  const key = event.key.toLowerCase();
+  if (key === 'm') ui.$('micBtn').click();
+  else if (key === 'v') ui.$('cameraBtn').click();
+  else if (key === 'c' && inCall) ui.$('chatToggleBtn').click();
+  else if (key === 'f' && inCall) void screenControls.toggleFullscreen();
+  else return;
+  event.preventDefault();
 });
 window.addEventListener('beforeunload', () => { signaling?.close(); void media.stop(); });

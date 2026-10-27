@@ -71,7 +71,7 @@ export class Voice {
     this.frame = 0;
     this.lastTick = 0;
     this.settings = this.loadSettings();
-    this.output = { key: '', nodes: null, left: 0, right: 0, makeup: 1, active: false };
+    this.output = { key: '', nodes: null, left: 0, right: 0, makeup: 1, active: false, blocked: false };
     this.meters = {
       local: new Meter(() => this.media.micStream),
       remote: new Meter(() => this.$('remoteAudio').srcObject)
@@ -84,7 +84,10 @@ export class Voice {
     this.applyVolume();
     this.renderStates();
     ui.onLocalMedia(() => this.renderStates());
-    const resume = () => { if (this.context?.state === 'suspended') void this.context.resume(); };
+    const resume = () => {
+      if (this.context?.state === 'suspended') void this.context.resume();
+      if (this.output.blocked) this.$('voiceOut').play().then(() => { this.output.blocked = false; }).catch(() => {});
+    };
     document.addEventListener('pointerdown', resume);
     document.addEventListener('keydown', resume);
     this.frame = requestAnimationFrame(now => this.tick(now));
@@ -303,7 +306,13 @@ export class Voice {
     const limiter = context.createDynamicsCompressor();
     limiter.threshold.value = -8; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.003; limiter.release.value = 0.12;
     gain.connect(limiter);
-    limiter.connect(context.destination);
+    // A saída passa por um elemento <audio> para poder usar o alto-falante escolhido (setSinkId) em qualquer navegador.
+    const sink = context.createMediaStreamDestination();
+    limiter.connect(sink);
+    const out = this.$('voiceOut');
+    out.srcObject = sink.stream;
+    this.output.blocked = false;
+    out.play().catch(() => { this.output.blocked = true; });
     this.output.nodes = { source, up, splitter, left, right, mono, gain, limiter, dataL: new Uint8Array(512), dataR: new Uint8Array(512) };
   }
 
@@ -311,6 +320,7 @@ export class Voice {
     const { nodes } = this.output;
     if (nodes) for (const node of [nodes.source, nodes.up, nodes.splitter, nodes.mono, nodes.gain, nodes.limiter]) { try { node.disconnect(); } catch { /* já desconectado */ } }
     this.output.nodes = null;
+    this.$('voiceOut').srcObject = null;
     this.output.left = this.output.right = 0;
     this.output.makeup = 1;
   }
@@ -342,7 +352,7 @@ export class Voice {
         if (makeup !== output.makeup) { output.makeup = makeup; this.applyOutputGain(); }
       }
     }
-    const active = Boolean(nodes) && this.context.state === 'running';
+    const active = Boolean(nodes) && this.context.state === 'running' && !output.blocked;
     if (active !== output.active) { output.active = active; this.applyVolume(); }
   }
 

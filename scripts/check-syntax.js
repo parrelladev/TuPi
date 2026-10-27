@@ -10,7 +10,7 @@ const moduleFiles = [
   'public/js/core/peer.js', 'public/js/core/quality.js', 'public/js/core/stats.js',
   'public/js/features/chat.js', 'public/js/features/media.js',
   'public/js/features/files.js', 'public/js/features/youtube.js',
-  'public/js/features/avatars.js', 'public/js/features/presence.js', 'public/js/features/voice.js'
+  'public/js/features/avatars.js', 'public/js/features/presence.js', 'public/js/features/voice.js', 'public/js/features/speaker.js', 'public/js/features/notifier.js', 'public/js/features/screen.js'
 ];
 
 function check(file, module = false) {

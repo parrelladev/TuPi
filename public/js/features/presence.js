@@ -12,7 +12,7 @@ export class Presence {
   }
 
   localState() {
-    return { t: 'state', avatar: this.voice.avatarId, name: this.voice.name, mic: Boolean(this.media.micStream), camera: Boolean(this.media.cameraStream), screen: Boolean(this.media.screenStream) };
+    return { t: 'state', avatar: this.voice.avatarId, name: this.voice.name, mic: Boolean(this.media.micStream), camera: Boolean(this.media.cameraStream), screen: Boolean(this.media.screenStream), screenAudio: this.media.hasScreenAudio() };
   }
 
   attach(channel) {
@@ -42,14 +42,15 @@ export class Presence {
       name: sanitizeName(message.name) || null,
       mic: message.mic === true,
       camera: message.camera === true,
-      screen: message.screen === true
+      screen: message.screen === true,
+      screenAudio: message.screenAudio === true
     };
-    this.ui.setRemoteFlags({ camera: state.camera, screen: state.screen });
+    this.ui.setRemoteFlags({ camera: state.camera, screen: state.screen, screenAudio: state.screenAudio });
     this.voice.setRemoteState(state);
   }
 
   clearRemote() {
-    this.ui.setRemoteFlags({ camera: true, screen: true });
+    this.ui.setRemoteFlags({ camera: true, screen: true, screenAudio: false });
     this.voice.setRemoteState(null);
   }
 

@@ -125,6 +125,9 @@ const server = http.createServer((req, res) => {
     '/js/features/avatars.js': 'js/features/avatars.js',
     '/js/features/presence.js': 'js/features/presence.js',
     '/js/features/voice.js': 'js/features/voice.js',
+    '/js/features/speaker.js': 'js/features/speaker.js',
+    '/js/features/notifier.js': 'js/features/notifier.js',
+    '/js/features/screen.js': 'js/features/screen.js',
     '/vendor/open-props.css': 'vendor/open-props.css',
     '/vendor/motion.js': 'vendor/motion.js',
     '/vendor/auto-animate.js': 'vendor/auto-animate.js'

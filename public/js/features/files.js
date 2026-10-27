@@ -81,6 +81,7 @@ export class FileTransfers {
     this.transfer = { ...message, role: 'receiver', cancelled: false };
     this.incomingText.textContent = `${message.name} · ${this.formatSize(message.size)}. Você aceita receber?`;
     this.incoming.classList.remove('hidden'); this.setStatus('Aguardando seu consentimento para receber o arquivo');
+    this.onIncoming?.(message);
   }
 
   async accept() {

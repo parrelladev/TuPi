@@ -2,7 +2,7 @@ export class PeerSession {
   constructor({ rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft }) {
     Object.assign(this, { rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft });
     this.pc = null;
-    this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = null;
+    this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = this.screenAudioTransceiver = null;
     this.pendingCandidates = [];
     this.restartTimer = null;
     this.restartingIce = false;
@@ -10,6 +10,7 @@ export class PeerSession {
     this.remoteAudioStream = new MediaStream();
     this.remoteCameraStream = new MediaStream();
     this.remoteScreenStream = new MediaStream();
+    this.remoteScreenAudioStream = new MediaStream();
     this.ui.$('enableAudioBtn').addEventListener('click', () => { void this.playRemoteAudio(); });
   }
 
@@ -28,7 +29,8 @@ export class PeerSession {
       this.audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
       this.cameraTransceiver = pc.addTransceiver('video', { direction: 'sendrecv' });
       this.screenTransceiver = pc.addTransceiver('video', { direction: 'sendrecv' });
-      await this.media.attachSenders(this.audioTransceiver.sender, this.cameraTransceiver.sender, this.screenTransceiver.sender);
+      this.screenAudioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
+      await this.media.attachSenders(this.audioTransceiver.sender, this.cameraTransceiver.sender, this.screenTransceiver.sender, this.screenAudioTransceiver.sender);
     }
     pc.onicecandidate = event => { if (event.candidate && this.pc === pc) this.sendSignal({ type: 'ice', candidate: event.candidate }); };
     pc.ontrack = event => this.handleTrack(event, pc);
@@ -60,6 +62,15 @@ export class PeerSession {
   handleTrack(event, pc) {
     if (this.pc !== pc) return;
     const { track, transceiver } = event;
+    // No receptor o evento chega antes de os transceptores serem guardados: o 2º áudio (depois do microfone) é o da tela.
+    const isScreenAudio = track.kind === 'audio' && (this.screenAudioTransceiver
+      ? transceiver.mid === this.screenAudioTransceiver.mid
+      : this.remoteAudioStream.getTracks().length > 0 && !this.remoteAudioStream.getTracks().includes(track));
+    if (isScreenAudio) {
+      if (!this.remoteScreenAudioStream.getTracks().includes(track)) this.remoteScreenAudioStream.addTrack(track);
+      this.ui.setScreenAudio(this.remoteScreenAudioStream);
+      return;
+    }
     if (track.kind === 'audio') {
       if (!this.remoteAudioStream.getTracks().includes(track)) this.remoteAudioStream.addTrack(track);
       this.ui.setRemoteAudio(this.remoteAudioStream); this.ui.setPeerMediaStatus('Áudio conectado');
@@ -92,12 +103,14 @@ export class PeerSession {
         this.ui.status('Negociando conexão...'); const pc = await this.create(false);
         await pc.setRemoteDescription(message.sdp);
         const transceivers = pc.getTransceivers();
-        this.audioTransceiver = transceivers.find(t => t.receiver.track.kind === 'audio');
+        const audios = transceivers.filter(t => t.receiver.track.kind === 'audio');
+        this.audioTransceiver = audios[0];
+        this.screenAudioTransceiver = audios[1] || null;
         const videos = transceivers.filter(t => t.receiver.track.kind === 'video');
         this.cameraTransceiver = videos[0] || null; this.screenTransceiver = videos[1] || null;
         if (!this.audioTransceiver || !this.cameraTransceiver || !this.screenTransceiver) throw new Error('A oferta não contém os transceivers de áudio, câmera e tela esperados. Atualize ambos os navegadores.');
-        for (const transceiver of [this.audioTransceiver, this.cameraTransceiver, this.screenTransceiver]) transceiver.direction = 'sendrecv';
-        await this.media.attachSenders(this.audioTransceiver.sender, this.cameraTransceiver.sender, this.screenTransceiver.sender);
+        for (const transceiver of [this.audioTransceiver, this.cameraTransceiver, this.screenTransceiver, this.screenAudioTransceiver]) if (transceiver) transceiver.direction = 'sendrecv';
+        await this.media.attachSenders(this.audioTransceiver.sender, this.cameraTransceiver.sender, this.screenTransceiver.sender, this.screenAudioTransceiver?.sender || null);
         const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
         this.checkAudioSendDirection(); this.sendSignal({ type: 'answer', sdp: pc.localDescription }); await this.flushIce(); break;
       }
@@ -131,8 +144,9 @@ export class PeerSession {
     this.chat.detach(); this.files.detach(); this.youtube.detach(); this.presence.detach(); this.media.detachSenders();
     if (this.pc) { this.pc.ontrack = this.pc.onicecandidate = this.pc.ondatachannel = this.pc.onconnectionstatechange = null; this.pc.close(); this.pc = null; }
     this.pendingCandidates = [];
-    this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = null;
-    this.remoteAudioStream = new MediaStream(); this.remoteCameraStream = new MediaStream(); this.remoteScreenStream = new MediaStream();
+    this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = this.screenAudioTransceiver = null;
+    this.remoteAudioStream = new MediaStream(); this.remoteCameraStream = new MediaStream(); this.remoteScreenStream = new MediaStream(); this.remoteScreenAudioStream = new MediaStream();
+    this.ui.setScreenAudio(null);
     this.ui.clearRoomView(); this.media.setRemoteCameraStream(this.remoteCameraStream); this.media.setRemoteScreenStream(this.remoteScreenStream);
   }
 }
