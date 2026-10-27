@@ -225,7 +225,7 @@ export class Diagnostics {
   }
 }
 
-export const diagnostics = new Diagnostics(typeof location !== 'undefined');
+export const diagnostics = new Diagnostics(typeof location !== 'undefined' && new URLSearchParams(location.search).get('diagnostics') === '1');
 
 export function mountDiagnostics(sampleLocal) {
   if (!diagnostics.enabled) return;
