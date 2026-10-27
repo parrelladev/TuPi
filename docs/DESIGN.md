@@ -47,7 +47,7 @@ Navegadores: Chrome/Edge 123+, Safari 17.5+, Firefox 129+ (por `light-dark()` e 
 | `--focus` | `#a777f2` | igual | anel de foco |
 | `--brand` | `linear-gradient(105deg,#ff7a35,#f24b59 42%,#d83b9e 72%,#824fe8)` | igual | ações primárias |
 
-O tema segue `prefers-color-scheme` (`color-scheme: light dark`, duas `theme-color`). O logo tem letras escuras, então no tema escuro ele ganha uma placa clara (`#fffaf8`).
+O tema segue `prefers-color-scheme` (`color-scheme: light dark`, duas `theme-color`). O logo troca entre a versão de letras escuras e a de letras claras conforme o tema, sem placa de fundo (ver 6.6).
 
 ### Forma, elevação e tipografia
 - Raios: 10 / 14 / 20 / 28 px e pílulas de 99 px. Sombras `--shadow-card`, `--shadow-lift`, `--shadow-brand`.
