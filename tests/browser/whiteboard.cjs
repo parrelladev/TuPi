@@ -20,7 +20,7 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     const pages = await Promise.all(contexts.map((c) => c.newPage()));
     for (const [i, p2] of pages.entries()) {
       p2.setDefaultTimeout(7e3);
-      await p2.goto("http://127.0.0.1:3139");
+      await p2.goto("http://127.0.0.1:3139", { timeout: 20000 });
       await p2.evaluate(async (i2) => {
         const { Whiteboard } = await import("/js/features/whiteboard/index.js");
         document.querySelector("#whiteboard").remove();

@@ -94,6 +94,7 @@ export class YouTubeTogether {
       const open = !this.isOpen();
       this.setPanelOpen(open);
       this.send({ type: 'panel', open });
+      if (open) this.onOpened?.();
       if (!open) this.closeSession();
     });
     this.ui.$('youtubeForm').addEventListener('submit', event => {

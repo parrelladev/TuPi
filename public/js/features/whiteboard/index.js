@@ -64,6 +64,7 @@ class Whiteboard {
     this.close();
   }
   handle(m) {
+    if (m.type === "board-opened") this.onOpened?.();
     if (m.type === "board-panel") { this.sharedPanelOpen = m.open; this.setPanelOpen(m.open); }
     if (m.type === "board-session") {
       sessionStorage.setItem("tupi-board-token", m.token);

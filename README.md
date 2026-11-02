@@ -52,6 +52,16 @@ HOST=127.0.0.1 PORT=3000 npm start
 - O servidor limita conexões por endereço e mensagens de sinalização; os limites em processo único reduzem abuso básico, mas não substituem proteção distribuída.
 - Cabeçalhos CSP e de segurança restringem scripts e embeds ao TuPi e ao player do YouTube. O serviço não registra conteúdo de chat, arquivos, SDP ou mídia.
 
+## Notificações sonoras
+
+Iniciar o compartilhamento de tela, abrir o quadro ou abrir o YouTube toca um aviso para cada participante, inclusive uma vez para quem iniciou a ação. Cancelar a captura, carregar outro vídeo, sincronizar o quadro ou restaurar painéis numa reconexão não gera um novo aviso.
+
+O botão **Som** no chat controla também esses avisos; a preferência é salva neste navegador. Se o navegador bloquear o áudio, aparece **Som de notificações bloqueado pelo navegador. Clique para ativar.** na chamada. Clique nesse botão para liberar o som. A indisponibilidade de áudio não altera a preferência salva. Avisos próximos são tocados em sequência.
+
+O canal P2P `notifications` é confiável e ordenado e envia somente uma string: `screen-started`, `board-opened` ou `youtube-opened`. Cada ação publica uma vez na origem, sem eco no recebimento, fila de envio ou replay na reconexão. O quadro confirma a transição real de fechado para aberto ao solicitante com `board-opened`; snapshots e pedidos concorrentes de um painel já aberto não repetem a confirmação. Avisos ocorridos sem canal P2P aberto não são entregues à outra pessoa posteriormente. Sem suporte a Web Audio, o navegador exibe uma mensagem em vez de tocar os avisos.
+
+Verificação: `npm run check`, `npm test`, `npm run test:browser` e `npm run test:browser:notifications`. Os testes de avisos cobrem envio/recebimento, ações próximas, reconexão, aberturas concorrentes do quadro, captura cancelada, áudio desativado e desbloqueio com um clique. O teste de navegador dos avisos requer Edge, usa dois participantes WebRTC na porta 3140 e simula a captura da tela com canvas; a seleção de tela do sistema e outros navegadores continuam sendo verificações manuais.
+
 ## Qualidade e diagnóstico
 
 Ao clicar em **Compartilhar**, a pessoa escolhe o perfil de tela (480p a 1440p, tentativa Ultra 4K60 ou resolução nativa), FPS (30 a 144), bitrate máximo desejado e foco automático/jogo/vídeo; o botão para iniciar a captura fica no rodapé desse menu. A câmera continua com o perfil padrão de captura e pode ser ligada/desligada e ter o dispositivo selecionado em **Mais**. Os valores de tela são solicitações; navegador, dispositivo, capturador e rede podem aplicar valores menores. O painel mostra configurações efetivas da captura, codecs divulgados pelo navegador, bitrate/FPS medidos, RTT, jitter, perda, estado ICE e indicação de relay TURN quando identificável. Durante o compartilhamento, a resolução e o FPS efetivos ficam no indicador da tela. Um ajuste adaptativo conservador reduz o teto de envio após congestionamento persistente e o recupera gradualmente quando a rede estabiliza.

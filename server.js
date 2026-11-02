@@ -137,6 +137,7 @@ const server = http.createServer((req, res) => {
     '/js/features/stage-layout.js': 'js/features/stage-layout.js',
     '/css/whiteboard.css': 'css/whiteboard.css',
     '/js/features/chat.js': 'js/features/chat.js',
+    '/js/features/activity-notifications.js': 'js/features/activity-notifications.js',
     '/js/features/files.js': 'js/features/files.js',
     '/js/features/stream-save.js': 'js/features/stream-save.js',
     '/js/features/youtube.js': 'js/features/youtube.js',

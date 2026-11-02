@@ -228,6 +228,7 @@ input[type=range] { padding: 0; accent-color: var(--pink); box-shadow: none; bor
 .waiting-label { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
 .waiting-label i { width: 6px; height: 6px; border-radius: 50%; background: var(--warn); color: var(--warn); animation: pulse-dot 1.6s ease-out infinite; }
 .audio-enable { position: absolute; z-index: 4; top: 12px; right: 12px; background: var(--surface); color: var(--ink); box-shadow: 0 5px 18px #17131c35; --fx-from: translateY(-10px) scale(.9); }
+#enableNotificationAudioBtn { flex: none; max-width: 100%; margin-bottom: 12px; white-space: normal; }
 .camera-views { position: absolute; z-index: 3; top: 16px; right: 16px; display: flex; gap: 10px; max-width: 48%; pointer-events: none; --fx-from: translateY(-12px) scale(.9); }
 .camera-views .media-tile { width: min(210px, 22vw); min-height: 90px; aspect-ratio: 4 / 3; border-radius: 14px; background: #24212a; box-shadow: 0 6px 20px #211b2b40; --fx-from: scale(.7) translateY(-10px); }
 .camera-views video { width: 100%; height: 100%; object-fit: cover; }

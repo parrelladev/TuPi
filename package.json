@@ -9,7 +9,8 @@
     "check": "node scripts/check-syntax.js",
     "vendor": "node scripts/build-vendor.js",
     "test": "node --test",
-    "test:browser": "node tests/browser/whiteboard.cjs"
+    "test:browser": "node tests/browser/whiteboard.cjs",
+    "test:browser:notifications": "node tests/browser/activity-notifications.cjs"
   },
   "engines": {
     "node": ">=20"

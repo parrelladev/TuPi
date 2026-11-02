@@ -4,8 +4,9 @@ const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const commonJsFiles = ['server.js', 'server/whiteboard.js', 'tests/browser/whiteboard.cjs', 'public/sw.js', 'public/js/theme-boot.js'];
+const commonJsFiles = ['server.js', 'server/whiteboard.js', 'tests/browser/whiteboard.cjs', 'tests/browser/activity-notifications.cjs', 'public/sw.js', 'public/js/theme-boot.js'];
 const moduleFiles = [
+  'public/js/features/activity-notifications.js',
   'public/js/features/stage-layout.js',
   'public/js/features/whiteboard/index.js', 'public/js/features/whiteboard/view.js', 'public/js/features/whiteboard/renderer.js', 'public/js/features/whiteboard/export.js', 'public/app.js', 'public/js/ui.js', 'public/js/fx.js', 'public/js/theme.js', 'public/js/core/signaling.js',
   'public/js/core/peer.js', 'public/js/core/quality.js', 'public/js/core/stats.js', 'public/js/core/diagnostics.js', 'public/js/core/diagnostics-runner.js',

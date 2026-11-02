@@ -114,8 +114,8 @@ export function createUI() {
   function setChatSoundEnabled(enabled) {
     const button = $('chatSoundToggle');
     button.setAttribute('aria-pressed', String(enabled));
-    button.setAttribute('aria-label', `${enabled ? 'Silenciar' : 'Ativar'} som de novas mensagens`);
-    button.title = `${enabled ? 'Silenciar' : 'Ativar'} som de novas mensagens`;
+    button.setAttribute('aria-label', `${enabled ? 'Silenciar' : 'Ativar'} som de notificações`);
+    button.title = `${enabled ? 'Silenciar' : 'Ativar'} som de notificações`;
     button.classList.toggle('enabled', enabled);
   }
 
@@ -243,6 +243,12 @@ export function createUI() {
   function setPeerMediaStatus(message) { $('peerMediaStatus').textContent = message; }
   function setRemoteAudio(stream) { $('remoteAudio').srcObject = stream; }
   function setAudioPlaybackBlocked(blocked) { $('enableAudioBtn').classList.toggle('hidden', !blocked); }
+  function setNotificationAudioBlocked(blocked, unsupported = false) {
+    const button = $('enableNotificationAudioBtn');
+    button.classList.toggle('hidden', !blocked);
+    button.disabled = unsupported;
+    button.textContent = unsupported ? 'Este navegador não oferece áudio para notificações.' : 'Som de notificações bloqueado pelo navegador. Clique para ativar.';
+  }
   function setEffectiveQuality(message) {
     let element = $('effectiveScreenQuality');
     if (!element) {
@@ -302,5 +308,5 @@ export function createUI() {
     setAudioPlaybackBlocked(false);
   }
 
-  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, playScreenAudio, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setEffectiveQuality, setConnectionDiagnostics, setConnectionQuality, getTranscript, setCodecCapabilities, closeShareSettings, clearRoomView };
+  return { $, onLocalMedia, setPreferredSpeaker, setRemoteFlags, getRemoteFlags, setScreenAudio, playScreenAudio, setRemoteName, getRemoteName, setLobbyState, clearMessages, setReconnectBusy, notify, status, setParticipantCount, setChatConnected, setChatUnread, setChatOpen, setChatSoundEnabled, addMessage, renderScreen, renderCamera, setDevices, setSourceState, setMicState, setPeerMediaStatus, setRemoteAudio, setAudioPlaybackBlocked, setNotificationAudioBlocked, setEffectiveQuality, setConnectionDiagnostics, setConnectionQuality, getTranscript, setCodecCapabilities, closeShareSettings, clearRoomView };
 }

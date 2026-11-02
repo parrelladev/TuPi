@@ -45,8 +45,12 @@ class Whiteboard {
     const user = ws.boardUser;
     if (msg.type === "board-panel") {
       if (typeof msg.open !== "boolean") return fail("Estado do painel inválido.");
+      const opened = msg.open && !this.panelOpen;
       this.panelOpen = msg.open;
       broadcast({ type: "board-panel", open: this.panelOpen });
+      // Confirma só a ação que abriu o quadro; snapshots e pedidos concorrentes
+      // de um painel já aberto não são novas aberturas.
+      if (opened) reply({ type: "board-opened" });
       return;
     }
     if (msg.type === "board-get") {

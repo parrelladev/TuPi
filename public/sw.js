@@ -2,8 +2,9 @@
 
 // Service Worker do TuPi: (1) abre o app offline (rede primeiro, cache como reserva) e
 // (2) entrega arquivos recebidos por P2P ao gerenciador de downloads do navegador, em stream.
-const CACHE = 'tupi-shell-v5';
+const CACHE = 'tupi-shell-v6';
 const PRECACHE = [
+  '/js/features/activity-notifications.js',
   '/', '/app.js', '/style.css', '/manifest.webmanifest',
   '/assets/tupi-claro.svg', '/assets/tupi-escuro.svg', '/assets/favicon.ico', '/assets/icon-192.png', '/assets/icon-512.png',
   '/js/ui.js', '/js/fx.js', '/js/theme.js', '/js/theme-boot.js',

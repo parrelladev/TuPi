@@ -120,6 +120,7 @@ export class Media {
       const note = audioTrack ? '' : this.noAudioReason(track, wantAudio);
       if (wantAudio && !audioTrack) this.ui.notify(`O navegador não enviou o áudio: ${note}`);
       this.ui.renderScreen(stream, this.remoteScreenStream);
+      if (this.screenStream === stream && track.readyState === 'live') this.onScreenStarted?.();
       await this.quality?.applySource();
       return true;
     } catch (error) { this.reportCaptureError(error, 'tela'); return false; }

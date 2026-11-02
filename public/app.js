@@ -4,6 +4,7 @@ import { createUI } from './js/ui.js';
 import { Signaling } from './js/core/signaling.js';
 import { PeerSession } from './js/core/peer.js';
 import { Chat } from './js/features/chat.js';
+import { ActivityNotifications } from './js/features/activity-notifications.js';
 import { Media } from './js/features/media.js';
 import { QualitySettings } from './js/core/quality.js';
 import { ConnectionStats } from './js/core/stats.js';
@@ -23,13 +24,16 @@ initTheme();
 initFx();
 const ui = createUI();
 const chat = new Chat(ui);
+const activityNotifications = new ActivityNotifications(chat);
 const media = new Media(ui);
+media.onScreenStarted = () => activityNotifications.publish('screen-started');
 const voice = new Voice(ui, media);
 const presence = new Presence(ui, media, voice);
 const quality = new QualitySettings(ui, media);
 media.quality = quality;
 const files = new FileTransfers(ui, { shouldPause: () => quality.adaptiveLevel > 0 });
 const youtube = new YouTubeTogether(ui);
+youtube.onOpened = () => activityNotifications.publish('youtube-opened');
 const speaker = new Speaker(ui);
 chat.speaker = speaker;
 const notifier = new Notifier();
@@ -39,6 +43,7 @@ const rtcConfig = { iceServers: [] };
 // Estado do lobby único: fora (signaling nulo), no lobby sozinho, ou em chamada (inCall).
 let signaling = null;
 const whiteboard = new Whiteboard(message => signaling?.send(message));
+whiteboard.onOpened = () => activityNotifications.publish('board-opened');
 ui.$('whiteboardBtn').addEventListener('click', () => { if (!inCall) return; ui.closeShareSettings(); whiteboard.requestPanel(!whiteboard.isOpen()); });
 let inCall = false;
 let leaving = false;
@@ -64,6 +69,7 @@ const peer = new PeerSession({
   files,
   youtube,
   presence,
+  activityNotifications,
   ui,
   sendSignal: message => signaling?.send(message),
   onConnected: () => { stopAutoReconnect(); if (!connectedAt) connectedAt = Date.now(); },

@@ -7,6 +7,8 @@ export class Chat {
     this.storageKey = 'tupi-chat-sound';
     this.soundEnabled = this.readSoundPreference();
     this.audioContext = null;
+    this.nextNotificationTime = 0;
+    this.notificationOscillators = new Set();
     ui.$('chatForm').addEventListener('submit', event => this.sendFromForm(event));
     // Enter envia; Shift+Enter quebra a linha. O campo cresce até 5 linhas.
     const input = ui.$('chatInput');
@@ -17,6 +19,9 @@ export class Chat {
     });
     input.addEventListener('input', () => this.autosize());
     ui.$('chatSoundToggle').addEventListener('click', () => this.toggleSound());
+    ui.$('enableNotificationAudioBtn').addEventListener('click', () => {
+      if (this.soundEnabled) void this.unlockAudio();
+    });
     ui.setChatSoundEnabled(this.soundEnabled);
     this.unlockAudioOnInteraction = () => {
       if (this.soundEnabled) void this.unlockAudio();
@@ -57,35 +62,45 @@ export class Chat {
     try { localStorage.setItem(this.storageKey, this.soundEnabled ? 'on' : 'off'); }
     catch { /* Preferência vale durante esta sessão mesmo sem armazenamento. */ }
     this.ui.setChatSoundEnabled(this.soundEnabled);
-    if (this.soundEnabled) {
-      const ready = await this.unlockAudio();
-      if (!ready) {
-        this.soundEnabled = false;
-        this.ui.setChatSoundEnabled(false);
-        try { localStorage.setItem(this.storageKey, 'off'); } catch {}
-        this.ui.notify('Este navegador não oferece áudio para notificações.');
+    if (!this.soundEnabled) {
+      this.ui.setNotificationAudioBlocked(false);
+      for (const oscillator of this.notificationOscillators) {
+        try { oscillator.stop(); } catch { /* Já finalizado. */ }
       }
+      this.notificationOscillators.clear();
+      this.nextNotificationTime = 0;
+    }
+    if (this.soundEnabled) {
+      await this.unlockAudio();
     }
   }
 
   async unlockAudio() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return false;
+    if (!AudioContext) { this.ui.setNotificationAudioBlocked(this.soundEnabled, true); return false; }
     try {
-      if (!this.audioContext) { this.audioContext = new AudioContext(); this.speaker?.track(this.audioContext); }
-      if (this.audioContext.state === 'suspended') await this.audioContext.resume();
-      return this.audioContext.state === 'running';
-    } catch { return false; }
+      if (!this.audioContext) {
+        this.audioContext = new AudioContext(); this.speaker?.track(this.audioContext);
+        this.audioContext.onstatechange = () => this.ui.setNotificationAudioBlocked(this.soundEnabled && this.audioContext.state !== 'running');
+      }
+      // resume() pode ficar pendente até uma interação: mostre o botão antes.
+      this.ui.setNotificationAudioBlocked(this.soundEnabled && this.audioContext.state !== 'running');
+      if (this.audioContext.state !== 'running') await this.audioContext.resume();
+      const ready = this.audioContext.state === 'running';
+      this.ui.setNotificationAudioBlocked(this.soundEnabled && !ready);
+      return ready;
+    } catch { this.ui.setNotificationAudioBlocked(this.soundEnabled); return false; }
   }
 
-  // kind: 'message' (duas notas), 'file' (três notas) ou 'arrival' (arpejo ascendente, a outra pessoa chegou).
+  // Mensagem, arquivo, chegada à chamada ou início/abertura de uma atividade.
   async playNotification(kind = 'message') {
-    if (!this.soundEnabled || !await this.unlockAudio()) return;
-    const notes = { message: [740, 988], file: [660, 880, 1175], arrival: [523, 659, 784, 1047] }[kind] || [740, 988];
+    if (!this.soundEnabled || !await this.unlockAudio() || !this.soundEnabled) return;
+    const notes = { message: [740, 988], file: [660, 880, 1175], arrival: [523, 659, 784, 1047], activity: [587, 784, 988] }[kind] || [740, 988];
     try {
       const context = this.audioContext;
       const step = kind === 'arrival' ? 0.12 : 0.09;
-      const now = context.currentTime;
+      const now = Math.max(context.currentTime, this.nextNotificationTime);
+      this.nextNotificationTime = now + (notes.length - 1) * step + 0.35;
       notes.forEach((frequency, index) => {
         const oscillator = context.createOscillator();
         const gain = context.createGain();
@@ -96,6 +111,8 @@ export class Chat {
         gain.gain.exponentialRampToValueAtTime(0.12, start + 0.015);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + (index === notes.length - 1 ? 0.3 : 0.16));
         oscillator.connect(gain).connect(context.destination);
+        this.notificationOscillators.add(oscillator);
+        oscillator.onended = () => { this.notificationOscillators.delete(oscillator); oscillator.disconnect(); gain.disconnect(); };
         oscillator.start(start);
         oscillator.stop(start + 0.32);
       });
