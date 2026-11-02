@@ -337,12 +337,13 @@ async function reconnectCall({ auto = false } = {}) {
   }
 }
 
-// Tela de chamada encerrada: duração, mensagens e cópia da conversa.
+// Tela de chamada encerrada: duração, mensagens e download da conversa.
 function takeSummary(reason) {
   const started = connectedAt;
   connectedAt = 0;
   if (!started) return null;
-  return { reason, seconds: Math.max(1, Math.round((Date.now() - started) / 1000)), messages: ui.getTranscript() };
+  const endedAt = Date.now();
+  return { reason, endedAt, seconds: Math.max(1, Math.round((endedAt - started) / 1000)), messages: ui.getTranscript() };
 }
 
 function formatDuration(total) {
@@ -354,20 +355,26 @@ function formatDuration(total) {
 }
 
 let endTranscript = [];
+let endTranscriptFilename = '';
+let endDownloadTimer = null;
 function showEndScreen(summary) {
   endTranscript = summary.messages;
+  const ended = new Date(summary.endedAt);
+  const pad = value => String(value).padStart(2, '0');
+  endTranscriptFilename = `tupi-conversa-${ended.getFullYear()}-${pad(ended.getMonth() + 1)}-${pad(ended.getDate())}_${pad(ended.getHours())}-${pad(ended.getMinutes())}-${pad(ended.getSeconds())}.txt`;
   ui.$('endReason').textContent = summary.reason;
   ui.$('endDuration').textContent = formatDuration(summary.seconds);
   ui.$('endMessages').textContent = String(summary.messages.length);
-  ui.$('endCopyBtn').classList.toggle('hidden', !summary.messages.length);
-  resetCopyButton();
+  ui.$('endDownloadBtn').classList.toggle('hidden', !summary.messages.length);
+  clearTimeout(endDownloadTimer);
+  resetDownloadButton();
   ui.$('endScreen').classList.remove('hidden');
 }
 
-function resetCopyButton() {
-  const button = ui.$('endCopyBtn');
-  button.querySelector('i').className = 'ph ph-copy';
-  button.querySelector('span').textContent = 'Copiar conversa';
+function resetDownloadButton() {
+  const button = ui.$('endDownloadBtn');
+  button.querySelector('i').className = 'ph ph-download-simple';
+  button.querySelector('span').textContent = 'Baixar conversa (.txt)';
 }
 
 ui.$('endBackBtn').addEventListener('click', async () => {
@@ -377,19 +384,31 @@ ui.$('endBackBtn').addEventListener('click', async () => {
   });
   enterStagger(ui.$('landing'));
 });
-ui.$('endCopyBtn').addEventListener('click', async () => {
+ui.$('endDownloadBtn').addEventListener('click', () => {
+  if (!endTranscript.length) return;
   const pad = value => String(value).padStart(2, '0');
   const text = endTranscript.map(item => {
     const time = new Date(item.time);
     return `[${pad(time.getHours())}:${pad(time.getMinutes())}] ${item.who}: ${item.text}`;
   }).join('\n');
   try {
-    await navigator.clipboard.writeText(text);
-    const button = ui.$('endCopyBtn');
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = endTranscriptFilename;
+    try {
+      document.body.append(link);
+      link.click();
+    } finally {
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+    const button = ui.$('endDownloadBtn');
     button.querySelector('i').className = 'ph ph-check';
-    button.querySelector('span').textContent = 'Copiado!';
-    setTimeout(resetCopyButton, 2000);
-  } catch { ui.notify('Não foi possível copiar a conversa.'); }
+    button.querySelector('span').textContent = 'Download iniciado';
+    clearTimeout(endDownloadTimer);
+    endDownloadTimer = setTimeout(resetDownloadButton, 2000);
+  } catch { ui.notify('Não foi possível baixar a conversa. Tente novamente.'); }
 });
 
 // Indicador de qualidade da conexão (cabeçalho): clique abre os detalhes.

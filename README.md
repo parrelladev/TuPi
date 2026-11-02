@@ -158,7 +158,7 @@ A interface usa [Phosphor Icons](https://phosphoricons.com/) (licença MIT), emp
 - **Qualidade da conexão:** o ícone de barras no cabeçalho mostra de "Ruim" a "Ótima" (latência, perda e jitter). Ao clicar, abre a rota usada (**Direta P2P** ou **Relé TURN**) e dicas. Se a rota for relé, arquivos e vídeo tendem a ficar mais lentos.
 - **Reconexão automática:** se a conexão P2P não se recuperar sozinha em 12 s, o TuPi tenta de novo até 3 vezes (3 s, 6 s e 12 s), com contagem regressiva no status. O botão de recarregar continua disponível.
 - **Chat:** `Enter` envia e `Shift+Enter` quebra a linha; o campo cresce até 5 linhas.
-- **Chamada encerrada:** ao sair (ou quando a outra pessoa sai) aparece uma tela com a duração, o número de mensagens e o botão **Copiar conversa**; **Voltar ao lobby** volta para a tela inicial.
+- **Chamada encerrada:** ao sair (ou quando a outra pessoa sai) aparece uma tela com a duração, o número de mensagens e, se houver mensagens, o botão **Baixar conversa (.txt)**. O arquivo é gerado no navegador em UTF-8, com horários e autores, e recebe o nome `tupi-conversa-AAAA-MM-DD_HH-MM-SS.txt`, baseado no horário local de encerramento. Inclui somente o texto do chat, sem enviar a exportação ao servidor. **Voltar ao lobby** volta para a tela inicial; recarregar a página descarta o histórico em memória.
 - **Cloudflare Tunnel:** ele só carrega a página e a sinalização (WebSocket). O áudio, o vídeo e os arquivos vão direto entre os navegadores (ou pelo TURN, se configurado), então o túnel não limita a velocidade; o indicador acima mostra se a rota é direta ou por relé.
 
 ### Sem som ao compartilhar a tela?
