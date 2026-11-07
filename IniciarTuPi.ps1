@@ -18,7 +18,7 @@ $script:server = Start-Process `
 
 # Cria o icone na bandeja
 $tray = New-Object System.Windows.Forms.NotifyIcon
-$tray.Icon = [System.Drawing.SystemIcons]::Application
+$tray.Icon = New-Object System.Drawing.Icon("D:\Programacao\TuPi\public\assets\favicon.ico")
 $tray.Text = "TuPi - Servidor"
 $tray.Visible = $true
 
