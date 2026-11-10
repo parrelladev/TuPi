@@ -5,6 +5,47 @@ Add-Type -AssemblyName System.Drawing
 $projectPath = "D:\Programacao\TuPi"
 $logPath = Join-Path $projectPath "tupi.log"
 $errorPath = Join-Path $projectPath "tupi-error.log"
+$tunnelService = "Cloudflared"
+
+# Liga ou desliga o servico do Cloudflare Tunnel. Tenta direto; se o Windows
+# negar por falta de permissao, pede elevacao (UAC) so para esse comando.
+function Set-TunnelState([bool]$running) {
+    $service = Get-Service -Name $tunnelService -ErrorAction SilentlyContinue
+    if (-not $service) { return "Servico '$tunnelService' nao encontrado." }
+
+    $target = if ($running) { 'Running' } else { 'Stopped' }
+    if ($service.Status -eq $target) { return $null }
+
+    try {
+        if ($running) { Start-Service -Name $tunnelService -ErrorAction Stop }
+        else { Stop-Service -Name $tunnelService -Force -ErrorAction Stop }
+    }
+    catch {
+        $verb = if ($running) { 'Start-Service' } else { 'Stop-Service -Force' }
+        try {
+            Start-Process powershell.exe `
+                -Verb RunAs `
+                -WindowStyle Hidden `
+                -Wait `
+                -ArgumentList "-NoProfile -Command $verb -Name $tunnelService" `
+                -ErrorAction Stop
+        }
+        catch {
+            return "Permissao negada para alterar o tunel."
+        }
+    }
+
+    try {
+        $service.WaitForStatus($target, [TimeSpan]::FromSeconds(15))
+        return $null
+    }
+    catch {
+        return "O tunel nao ficou '$target' a tempo."
+    }
+}
+
+# Liga o tunel antes do servidor
+$tunnelError = Set-TunnelState $true
 
 # Inicia o servidor oculto
 $script:server = Start-Process `
@@ -43,7 +84,13 @@ $tray.ContextMenuStrip = $menu
 
 # Notificacao de inicializacao
 $tray.BalloonTipTitle = "TuPi"
-$tray.BalloonTipText = "Servidor iniciado!"
+if ($tunnelError) {
+    $tray.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Warning
+    $tray.BalloonTipText = "Servidor iniciado, mas o tunel falhou: $tunnelError"
+}
+else {
+    $tray.BalloonTipText = "Servidor e tunel iniciados!"
+}
 $tray.ShowBalloonTip(2000)
 
 # Monitora o processo
@@ -71,6 +118,9 @@ finally {
             -WindowStyle Hidden `
             -Wait
     }
+
+    # Desliga o tunel ao encerrar (pelo menu ou se o servidor cair)
+    [void](Set-TunnelState $false)
 
     $tray.Visible = $false
     $tray.Dispose()
