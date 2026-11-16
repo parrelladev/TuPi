@@ -11,3 +11,6 @@ data/
 
 # Capturas e resultados gerados pelos testes de navegador.
 test-results/
+
+# Grafo de conhecimento gerado pelo graphify.
+graphify-out/
