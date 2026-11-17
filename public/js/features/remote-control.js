@@ -48,14 +48,14 @@ export class RemoteControl {
     this.bindUI();
     this.renderAllowUI();
     this.updateRequestButton();
-    ui.onLocalMedia(() => this.syncScreenState());
+    ui.onLocalMedia(() => { this.syncScreenState(); this.renderAllowUI(); });
   }
 
   // ---- canal P2P ----
   attach(channel) {
     this.detach();
     this.channel = channel;
-    channel.onopen = () => this.sendToggle();
+    channel.onopen = () => { this.sendToggle(); this.renderAllowUI(); };
     channel.onclose = () => this.handlePeerGone();
     channel.onerror = () => this.handlePeerGone();
     channel.onmessage = event => this.receive(event.data);
@@ -72,6 +72,7 @@ export class RemoteControl {
     this.pendingRequestId = null; this.incomingRequestId = null;
     clearTimeout(this.requestTimeout); clearTimeout(this.requestAckTimeout);
     this.updateRequestButton();
+    this.renderAllowUI();
   }
 
   leave() {
@@ -111,20 +112,19 @@ export class RemoteControl {
       ui.$('rcOptions').classList.toggle('hidden', !open);
       ui.$('rcMenuToggle').setAttribute('aria-expanded', String(open));
     });
-    ui.$('rcAllowCheck').addEventListener('change', event => {
-      if (!this.local.screenOk) { event.target.checked = false; return; }
-      this.local.allow = event.target.checked;
-      if (this.local.allow) this.connectHelper();
-      else { this.disconnectHelper(); if (this.grant?.role === 'owner') this.revoke(); }
-      this.sendToggle();
+    ui.$('rcAllowCheck').addEventListener('change', event => this.setAllow(event.target.checked));
+    // Atalhos visíveis na barra da tela: quem compartilha permite, quem assiste pede.
+    ui.$('rcAllowBtn').addEventListener('click', () => {
+      if (!this.local.screenOk) { ui.notify('Para permitir o controle, compartilhe a tela inteira (não uma janela ou aba).'); return; }
+      this.setAllow(!this.local.allow);
     });
+    ui.$('rcRequestStageBtn').addEventListener('click', () => this.requestControl());
     ui.$('rcAutoAcceptCheck').addEventListener('change', event => {
       this.local.autoAccept = event.target.checked;
       this.sendToggle();
     });
     ui.$('rcConnectBtn').addEventListener('click', () => this.connectHelper());
     ui.$('rcRequestBtn').addEventListener('click', () => this.requestControl());
-    ui.$('rcRequestInlineBtn').addEventListener('click', () => this.requestControl());
     ui.$('rcAcceptBtn').addEventListener('click', () => this.respondToRequest(true));
     ui.$('rcDeclineBtn').addEventListener('click', () => this.respondToRequest(false));
     ui.$('remoteControlRequestDialog').addEventListener('click', event => { if (event.target === ui.$('remoteControlRequestDialog')) this.respondToRequest(false); });
@@ -144,23 +144,39 @@ export class RemoteControl {
     video.addEventListener('keyup', event => this.onKey(event, 0));
   }
 
+  setAllow(allow) {
+    allow = Boolean(allow && this.local.screenOk);
+    this.local.allow = allow;
+    this.ui.$('rcAllowCheck').checked = allow;
+    if (allow) this.connectHelper();
+    else { this.disconnectHelper(); if (this.grant?.role === 'owner') this.revoke(); }
+    this.renderAllowUI();
+    this.sendToggle();
+  }
+
   renderAllowUI() {
     const check = this.ui.$('rcAllowCheck');
     check.disabled = !this.local.screenOk;
     this.ui.$('rcAllowHint').textContent = this.local.screenOk ? '' : 'Compartilhe a tela inteira (não uma janela ou aba) para habilitar.';
-    if (!this.local.screenOk) check.checked = false;
+    if (!this.local.screenOk) { check.checked = false; this.local.allow = false; }
+    const sharing = Boolean(this.media.screenStream?.getVideoTracks().some(track => track.readyState === 'live'));
+    const button = this.ui.$('rcAllowBtn');
+    button.classList.toggle('hidden', !sharing || !this.channel);
+    button.setAttribute('aria-pressed', String(this.local.allow));
+    button.setAttribute('aria-disabled', String(!this.local.screenOk));
+    const label = !this.local.screenOk ? 'Compartilhe a tela inteira para permitir o controle' : this.local.allow ? 'Controle permitido (clique para bloquear)' : 'Permitir controle remoto deste PC';
+    button.title = label; button.setAttribute('aria-label', label);
+    button.querySelector('.sc-rc-label').textContent = this.local.allow ? 'Controle permitido' : 'Permitir controle';
   }
 
   updateRequestButton() {
-    const available = Boolean(this.remote.allow && this.remote.screenOk);
-    const enabled = available && !this.grant && !this.pendingRequestId;
-    const label = this.pendingRequestId ? 'Pedido enviado…' : 'Pedir controle';
+    const available = Boolean(this.remote.allow && this.remote.screenOk && !this.grant);
+    const enabled = available && !this.pendingRequestId;
     this.ui.$('rcRequestBtn').disabled = !enabled;
-    const inline = this.ui.$('rcRequestInlineBtn');
-    inline.classList.toggle('hidden', !available || Boolean(this.grant));
-    inline.disabled = !enabled;
-    const span = inline.querySelector('span');
-    if (span) span.textContent = label;
+    const stage = this.ui.$('rcRequestStageBtn');
+    stage.classList.toggle('hidden', !available);
+    stage.disabled = !enabled;
+    stage.querySelector('.sc-rc-label').textContent = this.pendingRequestId ? 'Aguardando…' : 'Pedir controle';
   }
 
   renderGrantUI() {

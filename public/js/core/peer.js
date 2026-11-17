@@ -1,7 +1,7 @@
 import { diagnostics } from './diagnostics.js';
 export class PeerSession {
-  constructor({ rtcConfig, media, chat, files, youtube, presence, remoteControl, activityNotifications, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost }) {
-    Object.assign(this, { rtcConfig, media, chat, files, youtube, presence, remoteControl, activityNotifications, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost });
+  constructor({ rtcConfig, media, chat, files, youtube, presence, activityNotifications, remoteControl, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost }) {
+    Object.assign(this, { rtcConfig, media, chat, files, youtube, presence, activityNotifications, remoteControl, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost });
     this.pc = null;
     this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = this.screenAudioTransceiver = null;
     this.pendingCandidates = [];
@@ -54,8 +54,8 @@ export class PeerSession {
       this.files.attach(pc.createDataChannel('files', { ordered: true }));
       this.youtube.attach(pc.createDataChannel('control', { ordered: true }), true);
       this.presence.attach(pc.createDataChannel('presence', { ordered: true }));
-      this.remoteControl.attach(pc.createDataChannel('remote-control', { ordered: true }));
       this.activityNotifications.attach(pc.createDataChannel('notifications', { ordered: true }));
+      this.remoteControl.attach(pc.createDataChannel('remote-control', { ordered: true }));
     }
     return pc;
   }
@@ -65,9 +65,9 @@ export class PeerSession {
     else if (channel.label === 'files') this.files.attach(channel);
     else if (channel.label === 'control') this.youtube.attach(channel, false);
     else if (channel.label === 'presence') this.presence.attach(channel);
-    else if (channel.label === 'remote-control') this.remoteControl.attach(channel);
     else if (channel.label === 'notifications') this.activityNotifications.attach(channel);
     else if (channel.label === 'diagnostics' && diagnostics.enabled) diagnostics.attach(channel);
+    else if (channel.label === 'remote-control') this.remoteControl.attach(channel);
     else channel.close();
   }
 
