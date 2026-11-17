@@ -1,6 +1,6 @@
 export class PeerSession {
-  constructor({ rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost }) {
-    Object.assign(this, { rtcConfig, media, chat, files, youtube, presence, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost });
+  constructor({ rtcConfig, media, chat, files, youtube, presence, remoteControl, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost }) {
+    Object.assign(this, { rtcConfig, media, chat, files, youtube, presence, remoteControl, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost });
     this.pc = null;
     this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = this.screenAudioTransceiver = null;
     this.pendingCandidates = [];
@@ -51,6 +51,7 @@ export class PeerSession {
       this.files.attach(pc.createDataChannel('files', { ordered: true }));
       this.youtube.attach(pc.createDataChannel('control', { ordered: true }), true);
       this.presence.attach(pc.createDataChannel('presence', { ordered: true }));
+      this.remoteControl.attach(pc.createDataChannel('remote-control', { ordered: true }));
     }
     return pc;
   }
@@ -60,6 +61,7 @@ export class PeerSession {
     else if (channel.label === 'files') this.files.attach(channel);
     else if (channel.label === 'control') this.youtube.attach(channel, false);
     else if (channel.label === 'presence') this.presence.attach(channel);
+    else if (channel.label === 'remote-control') this.remoteControl.attach(channel);
     else channel.close();
   }
 
@@ -145,7 +147,7 @@ export class PeerSession {
 
   reset() {
     clearTimeout(this.restartTimer); this.restartTimer = null; clearTimeout(this.lostTimer); this.lostTimer = null; this.restartingIce = false; this.isInitiator = false;
-    this.chat.detach(); this.files.detach(); this.youtube.detach(); this.presence.detach(); this.media.detachSenders();
+    this.chat.detach(); this.files.detach(); this.youtube.detach(); this.presence.detach(); this.remoteControl.detach(); this.media.detachSenders();
     if (this.pc) { this.pc.ontrack = this.pc.onicecandidate = this.pc.ondatachannel = this.pc.onconnectionstatechange = null; this.pc.close(); this.pc = null; }
     this.pendingCandidates = [];
     this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = this.screenAudioTransceiver = null;

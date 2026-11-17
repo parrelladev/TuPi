@@ -12,6 +12,7 @@ import { Presence } from './js/features/presence.js';
 import { Speaker } from './js/features/speaker.js';
 import { Notifier } from './js/features/notifier.js';
 import { ScreenControls } from './js/features/screen.js';
+import { RemoteControl } from './js/features/remote-control.js';
 import { initFx, roomIn, enterStagger, transition } from './js/fx.js';
 import { initTheme } from './js/theme.js';
 
@@ -30,6 +31,7 @@ const speaker = new Speaker(ui);
 chat.speaker = speaker;
 const notifier = new Notifier();
 const screenControls = new ScreenControls(ui, media);
+const remoteControl = new RemoteControl(ui, media);
 const rtcConfig = { iceServers: [] };
 
 // Estado do lobby único: fora (signaling nulo), no lobby sozinho, ou em chamada (inCall).
@@ -67,6 +69,7 @@ const peer = new PeerSession({
   files,
   youtube,
   presence,
+  remoteControl,
   ui,
   sendSignal: message => signaling?.send(message),
   onConnected: () => { stopAutoReconnect(); if (!connectedAt) connectedAt = Date.now(); },
@@ -136,6 +139,7 @@ async function endCall(showSummary = true) {
   stopAutoReconnect();
   peer.reset();
   youtube.leave();
+  remoteControl.leave();
   if (media.screenStream) await media.stopSource('screen');
   if (!inCall) return;
   inCall = false;
@@ -234,6 +238,7 @@ async function leaveLobby() {
   signaling = null;
   peer.reset();
   youtube.leave();
+  remoteControl.leave();
   await media.stop();
   ui.clearMessages();
   lobbyCount = 0;
@@ -494,6 +499,7 @@ shortcutsDialog.addEventListener('click', event => { if (event.target === shortc
 // Atalhos: M microfone, V câmera, C chat, F tela cheia (ignorados ao digitar).
 document.addEventListener('keydown', event => {
   if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
+  if (remoteControl.isControlling()) return;
   const target = event.target;
   if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
   const key = event.key.toLowerCase();
