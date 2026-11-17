@@ -118,9 +118,9 @@ export class Media {
       const audioTrack = stream.getAudioTracks()[0] || null;
       await this.screenAudioSender?.replaceTrack(audioTrack);
       const note = audioTrack ? '' : this.noAudioReason(track, wantAudio);
-      this.ui.setScreenAudioNote(note);
       if (wantAudio && !audioTrack) this.ui.notify(`O navegador não enviou o áudio: ${note}`);
       this.ui.renderScreen(stream, this.remoteScreenStream);
+      if (this.screenStream === stream && track.readyState === 'live') this.onScreenStarted?.();
       await this.quality?.applySource();
       return true;
     } catch (error) { this.reportCaptureError(error, 'tela'); return false; }
@@ -130,6 +130,7 @@ export class Media {
   // Explica por que a captura veio sem áudio, conforme o que foi escolhido na janela do navegador.
   noAudioReason(track, wantAudio) {
     if (!wantAudio) return 'a opção "Compartilhar áudio da tela" está desmarcada';
+    if (/Firefox\//i.test(navigator.userAgent)) return "o Firefox não oferece captura do som da tela. Para enviar esse áudio, compartilhe pelo Chrome ou Edge com a opção de áudio marcada; quem recebe pode continuar no Firefox";
     const surface = track.getSettings?.().displaySurface;
     const mac = /Mac/i.test(navigator.userAgent);
     if (surface === 'window') return 'janelas não têm áudio; compartilhe uma aba ou a tela inteira';
@@ -155,7 +156,7 @@ export class Media {
     if (source === 'screen') await this.screenAudioSender?.replaceTrack(null);
     if (source === 'mic') this.ui.setMicState('off');
     if (source === 'camera') this.ui.renderCamera(null, this.remoteCameraStream);
-    if (source === 'screen') { this.ui.setScreenAudioNote(''); this.ui.renderScreen(null, this.remoteScreenStream); }
+    if (source === 'screen') this.ui.renderScreen(null, this.remoteScreenStream);
   }
 
   async changeDevice(kind, deviceId) {

@@ -17,6 +17,8 @@
   <link rel="stylesheet" href="/vendor/open-props.css" />
   <link rel="stylesheet" href="/vendor/phosphor/phosphor.css" />
   <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/css/whiteboard.css" />
+  <link rel="stylesheet" href="/css/stage-layout.css" />
   <script src="/app.js" type="module"></script>
 </head>
 <body>
@@ -64,6 +66,7 @@
         </div>
       </header>
 
+      <button id="enableNotificationAudioBtn" class="btn hidden" type="button">Som de notificações bloqueado pelo navegador. Clique para ativar.</button>
       <div class="columns">
         <section id="stagePanel" class="stage" aria-label="Mídia da chamada">
           <section id="youtubePanel" class="youtube-panel panel fx hidden" aria-label="YouTube Watch Together">
@@ -108,12 +111,13 @@
               </div>
               <span class="waiting-label"><i></i> <span id="peerMediaStatus">Aguardando outra pessoa</span></span>
             </div>
-            <span id="screenBadge" class="pill stage-status"><i></i> Aguardando compartilhamento</span>
             <span id="rcBeingControlledBanner" class="pill stage-status rc-banner hidden"><i></i> Você está sendo controlado por <span data-remote-name>Convidado</span><button id="rcRevokeBtn" class="btn btn-soft" type="button">Revogar agora</button></span>
             <span id="rcControllingBanner" class="pill stage-status rc-banner hidden"><i></i> Você está controlando o computador de <span data-remote-name>Convidado</span><button id="rcStopControllingBtn" class="btn btn-soft" type="button">Parar de controlar</button></span>
             <div id="screenControls" class="screen-controls" role="toolbar" aria-label="Controles da tela">
               <button id="shareAudioBtn" class="sc-btn hidden" type="button" data-level="high" aria-pressed="false" aria-label="Silenciar o áudio que você compartilha" title="Silenciar o áudio que você compartilha"><i class="ph ph-speaker-high spk-high" aria-hidden="true"></i><i class="ph ph-speaker-x spk-off" aria-hidden="true"></i></button>
               <button id="screenAudioBtn" class="sc-btn hidden" type="button" data-level="high" aria-pressed="false" aria-label="Silenciar o áudio da tela" title="Silenciar o áudio da tela"><i class="ph ph-speaker-high spk-high" aria-hidden="true"></i><i class="ph ph-speaker-x spk-off" aria-hidden="true"></i></button>
+              <label id="screenVolumeControl" class="screen-volume hidden"><span class="sr-only">Volume da tela recebida, só para você</span><input id="screenVolume" type="range" min="0" max="100" value="100" aria-label="Volume da tela recebida, só para você" /><output id="screenVolumeText" for="screenVolume">100%</output></label>
+              <button id="screenAudioPlayBtn" class="sc-btn hidden" type="button" aria-label="Ativar áudio da tela recebida" title="Ativar áudio da tela recebida"><i class="ph ph-play" aria-hidden="true"></i></button>
               <button id="screenFitBtn" class="sc-btn" type="button" aria-pressed="false" aria-label="Preencher o espaço (cortar bordas)" title="Preencher o espaço (cortar bordas)"><i class="ph ph-crop" aria-hidden="true"></i></button>
               <button id="screenFullBtn" class="sc-btn" type="button" aria-pressed="false" aria-label="Tela cheia (F)" title="Tela cheia (F)"><i class="ph ph-corners-out fs-enter" aria-hidden="true"></i><i class="ph ph-corners-in fs-exit" aria-hidden="true"></i></button>
             </div>
@@ -128,7 +132,7 @@
           <div class="chat-header">
             <div><span class="chat-title-icon" aria-hidden="true"><i class="ph ph-chat-circle-dots" aria-hidden="true"></i></span><strong>Mensagens</strong></div>
             <div class="chat-header-actions">
-              <button id="chatSoundToggle" class="chat-sound-toggle" type="button" aria-pressed="false" aria-label="Ativar som de novas mensagens" title="Ativar som de novas mensagens"><i class="ph ph-bell-ringing snd-on" aria-hidden="true"></i><i class="ph ph-bell-slash snd-off" aria-hidden="true"></i><span>Som</span></button>
+              <button id="chatSoundToggle" class="chat-sound-toggle" type="button" aria-pressed="false" aria-label="Ativar som de notificações" title="Ativar som de notificações"><i class="ph ph-bell-ringing snd-on" aria-hidden="true"></i><i class="ph ph-bell-slash snd-off" aria-hidden="true"></i><span>Som</span></button>
               <span class="chat-connection"><i></i><span id="chatStatus">Desconectado</span></span>
             </div>
           </div>
@@ -143,8 +147,11 @@
           <button id="cameraBtn" class="btn tb" type="button" aria-label="Ativar câmera" aria-pressed="false" aria-keyshortcuts="V" title="Câmera (V)"><span class="control-icon" aria-hidden="true"><i class="ph ph-video-camera" aria-hidden="true"></i></span><span class="tb-label">Câmera</span></button>
         </div>
         <div class="tb-group">
+          <div id="mediaModeSwitch" class="media-mode-switch" role="group" aria-label="Recursos da conversa">
           <details id="screenSettings" class="device-settings screen-settings"><summary id="screenBtn" class="btn btn-primary tb" aria-label="Compartilhar tela" aria-controls="qualityOptions" aria-expanded="false"><span class="control-icon" aria-hidden="true"><i class="ph ph-monitor-arrow-up" aria-hidden="true"></i></span><span class="tb-label">Compartilhar tela</span></summary><div id="qualityOptions" class="more-menu quality-settings-fields" role="group" aria-label="Configurações da transmissão"><strong>Configurações da transmissão</strong><span class="quality-label">Perfil de tela</span><div class="quality-presets" role="group" aria-label="Perfil de tela"><button type="button" data-quality-preset="standard" aria-pressed="true">Padrão <small>720p, 30 fps</small></button><button type="button" data-quality-preset="performance" aria-pressed="false">Desempenho <small>480p, 30 fps</small></button><button type="button" data-quality-preset="high" aria-pressed="false">Alta qualidade <small>1080p, 30 fps</small></button><button type="button" data-quality-preset="maximum" aria-pressed="false">Máxima <small>1440p, 30 fps</small></button></div><span class="quality-label">Personalizar</span><label>Resolução<select id="screenResolution"><option value="480">480p</option><option value="720" selected>720p</option><option value="1080">1080p</option><option value="1440">1440p</option><option value="native">Nativa</option></select></label><label>Quadros por segundo<select id="screenFps"><option>30</option><option>60</option><option>120</option><option>144</option></select></label><label>Bitrate máximo desejado (Mbps)<input id="screenBitrate" type="number" min="1" max="50" value="8" step="1" /></label><label>Foco<select id="screenFocus"><option value="auto">Automático</option><option value="game">Jogar</option><option value="watch">Assistir</option></select></label><label class="check-row"><input id="shareAudioCheck" type="checkbox" checked /><span>Compartilhar áudio da tela<small>No Chrome e no Edge, marque também a opção de áudio na janela do navegador. Prefira compartilhar uma aba para evitar eco.</small></span></label><div id="qualityDiagnostics" class="quality-diagnostics" aria-live="polite">Aguardando conexão de mídia</div><button id="shareConfiguredBtn" class="btn btn-primary quality-share-button" type="button">Compartilhar tela</button></div></details>
           <button id="youtubeToggleBtn" class="btn tb" type="button" aria-controls="youtubePanel" aria-expanded="false" aria-label="Abrir YouTube Watch Together"><span class="control-icon" aria-hidden="true"><i class="ph ph-youtube-logo" aria-hidden="true"></i></span><span class="tb-label">YouTube</span></button>
+          <button id="whiteboardBtn" class="btn tb" type="button" aria-controls="whiteboard" aria-expanded="false" aria-pressed="false" aria-label="Abrir Quadro Branco"><span class="control-icon" aria-hidden="true"><i class="ph ph-chalkboard-simple" aria-hidden="true"></i></span><span class="tb-label">Quadro Branco</span></button>
+          </div>
         </div>
         <div class="tb-group">
           <button id="chatToggleBtn" class="btn tb chat-toggle" aria-keyshortcuts="C" title="Chat (C)" aria-controls="chatPanel" aria-expanded="true" aria-label="Ocultar chat"><span class="control-icon" aria-hidden="true"><i class="ph ph-chat-circle-dots" aria-hidden="true"></i></span><span class="tb-label">Chat</span><span id="chatUnreadBadge" class="chat-unread-badge fx hidden" aria-hidden="true"></span></button>
@@ -162,7 +169,7 @@
         <h1 id="endTitle">Chamada encerrada</h1>
         <p id="endReason" class="end-reason"></p>
         <dl class="end-stats"><div><dt>Duração</dt><dd id="endDuration">—</dd></div><div><dt>Mensagens</dt><dd id="endMessages">0</dd></div></dl>
-        <div class="end-actions"><button id="endCopyBtn" class="btn btn-soft" type="button"><i class="ph ph-copy" aria-hidden="true"></i><span>Copiar conversa</span></button><button id="endBackBtn" class="btn btn-primary" type="button"><i class="ph ph-sign-in" aria-hidden="true"></i>Voltar ao lobby</button></div>
+        <div class="end-actions"><button id="endDownloadBtn" class="btn btn-soft" type="button"><i class="ph ph-download-simple" aria-hidden="true"></i><span>Baixar conversa (.txt)</span></button><button id="endBackBtn" class="btn btn-primary" type="button"><i class="ph ph-sign-in" aria-hidden="true"></i>Voltar ao lobby</button></div>
       </div>
     </section>
     <dialog id="shortcutsDialog" class="shortcuts-dialog" aria-labelledby="shortcutsTitle">
@@ -196,7 +203,7 @@
     <div class="site-footer-inner">
       <div class="footer-meta">
         <span>© 2026 TuPi</span><span class="footer-separator" aria-hidden="true">·</span>
-        <span>Versão 1.0.0</span><span class="footer-separator" aria-hidden="true">·</span>
+        <span>Versão 1.1.0</span><span class="footer-separator" aria-hidden="true">·</span>
         <a href="https://github.com/parrelladev/TuPi" target="_blank" rel="noopener noreferrer">Repositório no GitHub</a>
       </div>
       <span class="footer-tech">Tecnologia: peer-to-peer</span>

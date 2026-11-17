@@ -1,6 +1,7 @@
+import { diagnostics } from './diagnostics.js';
 export class PeerSession {
-  constructor({ rtcConfig, media, chat, files, youtube, presence, remoteControl, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost }) {
-    Object.assign(this, { rtcConfig, media, chat, files, youtube, presence, remoteControl, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost });
+  constructor({ rtcConfig, media, chat, files, youtube, presence, remoteControl, activityNotifications, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost }) {
+    Object.assign(this, { rtcConfig, media, chat, files, youtube, presence, remoteControl, activityNotifications, ui, sendSignal, onPeerLeft, onConnected, onConnectionLost });
     this.pc = null;
     this.audioTransceiver = this.cameraTransceiver = this.screenTransceiver = this.screenAudioTransceiver = null;
     this.pendingCandidates = [];
@@ -36,6 +37,7 @@ export class PeerSession {
     pc.ontrack = event => this.handleTrack(event, pc);
     pc.onconnectionstatechange = () => {
       if (this.pc !== pc) return;
+      diagnostics.record('connection-state', { state: pc.connectionState });
       clearTimeout(this.restartTimer);
       if (pc.connectionState === 'connected') { clearTimeout(this.lostTimer); this.lostTimer = null; this.ui.status('Conectado diretamente (ou via relay TURN)'); this.onConnected?.(); }
       // Se o ICE não se recuperar sozinho em 12 s, avisa o app para tentar reconectar.
@@ -47,11 +49,13 @@ export class PeerSession {
     };
     pc.ondatachannel = event => this.attachDataChannel(event.channel);
     if (initiator) {
+      if (diagnostics.enabled) diagnostics.attach(pc.createDataChannel('diagnostics', { ordered: true }));
       this.chat.attach(pc.createDataChannel('messages', { ordered: true }));
       this.files.attach(pc.createDataChannel('files', { ordered: true }));
       this.youtube.attach(pc.createDataChannel('control', { ordered: true }), true);
       this.presence.attach(pc.createDataChannel('presence', { ordered: true }));
       this.remoteControl.attach(pc.createDataChannel('remote-control', { ordered: true }));
+      this.activityNotifications.attach(pc.createDataChannel('notifications', { ordered: true }));
     }
     return pc;
   }
@@ -62,6 +66,8 @@ export class PeerSession {
     else if (channel.label === 'control') this.youtube.attach(channel, false);
     else if (channel.label === 'presence') this.presence.attach(channel);
     else if (channel.label === 'remote-control') this.remoteControl.attach(channel);
+    else if (channel.label === 'notifications') this.activityNotifications.attach(channel);
+    else if (channel.label === 'diagnostics' && diagnostics.enabled) diagnostics.attach(channel);
     else channel.close();
   }
 
@@ -69,12 +75,13 @@ export class PeerSession {
     if (this.pc !== pc) return;
     const { track, transceiver } = event;
     // No receptor o evento chega antes de os transceptores serem guardados: o 2º áudio (depois do microfone) é o da tela.
-    const isScreenAudio = track.kind === 'audio' && (this.screenAudioTransceiver
-      ? transceiver.mid === this.screenAudioTransceiver.mid
-      : this.remoteAudioStream.getTracks().length > 0 && !this.remoteAudioStream.getTracks().includes(track));
+    const audioTransceivers = pc.getTransceivers().filter(t => t.receiver.track?.kind === 'audio');
+    const isScreenAudio = track.kind === 'audio' &&
+      (transceiver === this.screenAudioTransceiver || audioTransceivers.indexOf(transceiver) === 1);
     if (isScreenAudio) {
       if (!this.remoteScreenAudioStream.getTracks().includes(track)) this.remoteScreenAudioStream.addTrack(track);
       this.ui.setScreenAudio(this.remoteScreenAudioStream);
+      track.onunmute = () => { void this.ui.playScreenAudio(); };
       return;
     }
     if (track.kind === 'audio') {
@@ -147,6 +154,8 @@ export class PeerSession {
 
   reset() {
     clearTimeout(this.restartTimer); this.restartTimer = null; clearTimeout(this.lostTimer); this.lostTimer = null; this.restartingIce = false; this.isInitiator = false;
+    diagnostics.detach();
+    this.activityNotifications.detach();
     this.chat.detach(); this.files.detach(); this.youtube.detach(); this.presence.detach(); this.remoteControl.detach(); this.media.detachSenders();
     if (this.pc) { this.pc.ontrack = this.pc.onicecandidate = this.pc.ondatachannel = this.pc.onconnectionstatechange = null; this.pc.close(); this.pc = null; }
     this.pendingCandidates = [];

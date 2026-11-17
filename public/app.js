@@ -1,7 +1,10 @@
+import { StageLayout } from './js/features/stage-layout.js';
+import { Whiteboard } from './js/features/whiteboard/index.js';
 import { createUI } from './js/ui.js';
 import { Signaling } from './js/core/signaling.js';
 import { PeerSession } from './js/core/peer.js';
 import { Chat } from './js/features/chat.js';
+import { ActivityNotifications } from './js/features/activity-notifications.js';
 import { Media } from './js/features/media.js';
 import { QualitySettings } from './js/core/quality.js';
 import { ConnectionStats } from './js/core/stats.js';
@@ -16,17 +19,22 @@ import { RemoteControl } from './js/features/remote-control.js';
 import { initFx, roomIn, enterStagger, transition } from './js/fx.js';
 import { initTheme } from './js/theme.js';
 
+import { diagnostics, mountDiagnostics } from './js/core/diagnostics.js';
+
 initTheme();
 initFx();
 const ui = createUI();
 const chat = new Chat(ui);
+const activityNotifications = new ActivityNotifications(chat);
 const media = new Media(ui);
+media.onScreenStarted = () => activityNotifications.publish('screen-started');
 const voice = new Voice(ui, media);
 const presence = new Presence(ui, media, voice);
 const quality = new QualitySettings(ui, media);
 media.quality = quality;
 const files = new FileTransfers(ui, { shouldPause: () => quality.adaptiveLevel > 0 });
 const youtube = new YouTubeTogether(ui);
+youtube.onOpened = () => activityNotifications.publish('youtube-opened');
 const speaker = new Speaker(ui);
 chat.speaker = speaker;
 const notifier = new Notifier();
@@ -36,6 +44,9 @@ const rtcConfig = { iceServers: [] };
 
 // Estado do lobby único: fora (signaling nulo), no lobby sozinho, ou em chamada (inCall).
 let signaling = null;
+const whiteboard = new Whiteboard(message => signaling?.send(message));
+whiteboard.onOpened = () => activityNotifications.publish('board-opened');
+ui.$('whiteboardBtn').addEventListener('click', () => { if (!inCall) return; ui.closeShareSettings(); whiteboard.requestPanel(!whiteboard.isOpen()); });
 let inCall = false;
 let leaving = false;
 let lobbyCount = 0;
@@ -49,18 +60,9 @@ let autoTick = null;
 let autoAttempt = 0;
 let connectedAt = 0;
 
-youtube.onModeChange = open => {
-  ui.setScreenLocked(open);
-  if (open && media.screenStream) {
-    void media.stopSource('screen');
-    ui.notify('Compartilhamento de tela encerrado para abrir o YouTube.');
-  }
-};
-ui.$('screenBtn').addEventListener('click', event => {
-  if (!ui.isScreenLocked()) return;
-  event.preventDefault();
-  ui.notify('Feche o YouTube para compartilhar a tela.');
-});
+const stageLayout = new StageLayout(ui, youtube, whiteboard);
+whiteboard.onModeChange = () => stageLayout.update();
+youtube.onModeChange = () => stageLayout.update();
 
 const peer = new PeerSession({
   rtcConfig,
@@ -70,6 +72,7 @@ const peer = new PeerSession({
   youtube,
   presence,
   remoteControl,
+  activityNotifications,
   ui,
   sendSignal: message => signaling?.send(message),
   onConnected: () => { stopAutoReconnect(); if (!connectedAt) connectedAt = Date.now(); },
@@ -82,6 +85,23 @@ const peer = new PeerSession({
   }
 });
 const connectionStats = new ConnectionStats(ui, peer, quality);
+mountDiagnostics(() => {
+  if (diagnostics.automatic.measuring) {
+    const receivingScreen = media.remoteScreenStream?.getVideoTracks().some(track => track.readyState === 'live' && !track.muted);
+    const phase = youtube.isOpen() ? 'youtube' : files.transfer ? 'file' : media.screenStream || receivingScreen ? 'screen' : 'voice';
+    if (phase !== diagnostics.phase) { diagnostics.flushFiles(); diagnostics.phase = phase; diagnostics.previous.clear(); diagnostics.record('phase'); }
+  }
+  const context = voice.context;
+  diagnostics.record('audio-context', { state: context?.state, baseLatencyMs: context?.baseLatency == null ? null : context.baseLatency * 1000,
+    outputLatencyMs: context?.outputLatency == null ? null : context.outputLatency * 1000, routed: voice.output.active, blocked: voice.output.blocked });
+  const settings = media.micStream?.getAudioTracks()[0]?.getSettings() || {};
+  diagnostics.record('capture', { streamPresent: Boolean(media.micStream), audioTrackCount: media.micStream?.getAudioTracks().length || 0,
+    latencyMs: settings.latency == null ? null : settings.latency * 1000,
+    sampleRate: settings.sampleRate, echoCancellation: settings.echoCancellation, noiseSuppression: settings.noiseSuppression, autoGainControl: settings.autoGainControl });
+  diagnostics.record('buffers', { chatBytes: chat.channel?.bufferedAmount, fileBytes: files.channel?.bufferedAmount,
+    controlBytes: youtube.channel?.bufferedAmount, fileActive: Boolean(files.transfer), fileProtocol: files.transfer?.version,
+    adaptiveLevel: quality.adaptiveLevel, screenActive: Boolean(media.screenStream), cameraActive: Boolean(media.cameraStream) });
+});
 
 // Abre o chat sozinho quando chega mensagem ou pedido de arquivo.
 function openChat() {
@@ -128,6 +148,7 @@ async function startCall() {
     chat.markRead();
     ui.setChatOpen(false);
   });
+  whiteboard.setPanelOpen(whiteboard.sharedPanelOpen === true);
   roomIn(ui.$('room'));
   ui.status('Entrando na chamada...');
   connectionStats.start();
@@ -138,6 +159,7 @@ async function endCall(showSummary = true) {
   clearGrace();
   stopAutoReconnect();
   peer.reset();
+  whiteboard.close();
   youtube.leave();
   remoteControl.leave();
   if (media.screenStream) await media.stopSource('screen');
@@ -156,6 +178,7 @@ async function endCall(showSummary = true) {
 }
 
 async function handleSignal(message) {
+  if (message.type.startsWith('board-')) { whiteboard.handle(message); return; }
   switch (message.type) {
     case 'joined':
       clearTimeout(fullTimer);
@@ -213,6 +236,7 @@ async function joinLobby() {
     () => {
       if (leaving) return;
       peer.reset();
+      whiteboard.disconnect();
       ui.status('Sinalização interrompida. Tentando reconectar…');
       if (!inCall) ui.setLobbyState('connecting', 0);
     },
@@ -234,9 +258,11 @@ async function leaveLobby() {
   const summary = inCall ? takeSummary('Você saiu da chamada.') : null;
   ui.closeShareSettings();
   connectionStats.stop();
+  whiteboard.disconnect();
   signaling?.close();
   signaling = null;
   peer.reset();
+  whiteboard.close();
   youtube.leave();
   remoteControl.leave();
   await media.stop();
@@ -316,12 +342,13 @@ async function reconnectCall({ auto = false } = {}) {
   }
 }
 
-// Tela de chamada encerrada: duração, mensagens e cópia da conversa.
+// Tela de chamada encerrada: duração, mensagens e download da conversa.
 function takeSummary(reason) {
   const started = connectedAt;
   connectedAt = 0;
   if (!started) return null;
-  return { reason, seconds: Math.max(1, Math.round((Date.now() - started) / 1000)), messages: ui.getTranscript() };
+  const endedAt = Date.now();
+  return { reason, endedAt, seconds: Math.max(1, Math.round((endedAt - started) / 1000)), messages: ui.getTranscript() };
 }
 
 function formatDuration(total) {
@@ -333,20 +360,26 @@ function formatDuration(total) {
 }
 
 let endTranscript = [];
+let endTranscriptFilename = '';
+let endDownloadTimer = null;
 function showEndScreen(summary) {
   endTranscript = summary.messages;
+  const ended = new Date(summary.endedAt);
+  const pad = value => String(value).padStart(2, '0');
+  endTranscriptFilename = `tupi-conversa-${ended.getFullYear()}-${pad(ended.getMonth() + 1)}-${pad(ended.getDate())}_${pad(ended.getHours())}-${pad(ended.getMinutes())}-${pad(ended.getSeconds())}.txt`;
   ui.$('endReason').textContent = summary.reason;
   ui.$('endDuration').textContent = formatDuration(summary.seconds);
   ui.$('endMessages').textContent = String(summary.messages.length);
-  ui.$('endCopyBtn').classList.toggle('hidden', !summary.messages.length);
-  resetCopyButton();
+  ui.$('endDownloadBtn').classList.toggle('hidden', !summary.messages.length);
+  clearTimeout(endDownloadTimer);
+  resetDownloadButton();
   ui.$('endScreen').classList.remove('hidden');
 }
 
-function resetCopyButton() {
-  const button = ui.$('endCopyBtn');
-  button.querySelector('i').className = 'ph ph-copy';
-  button.querySelector('span').textContent = 'Copiar conversa';
+function resetDownloadButton() {
+  const button = ui.$('endDownloadBtn');
+  button.querySelector('i').className = 'ph ph-download-simple';
+  button.querySelector('span').textContent = 'Baixar conversa (.txt)';
 }
 
 ui.$('endBackBtn').addEventListener('click', async () => {
@@ -356,19 +389,31 @@ ui.$('endBackBtn').addEventListener('click', async () => {
   });
   enterStagger(ui.$('landing'));
 });
-ui.$('endCopyBtn').addEventListener('click', async () => {
+ui.$('endDownloadBtn').addEventListener('click', () => {
+  if (!endTranscript.length) return;
   const pad = value => String(value).padStart(2, '0');
   const text = endTranscript.map(item => {
     const time = new Date(item.time);
     return `[${pad(time.getHours())}:${pad(time.getMinutes())}] ${item.who}: ${item.text}`;
   }).join('\n');
   try {
-    await navigator.clipboard.writeText(text);
-    const button = ui.$('endCopyBtn');
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = endTranscriptFilename;
+    try {
+      document.body.append(link);
+      link.click();
+    } finally {
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+    const button = ui.$('endDownloadBtn');
     button.querySelector('i').className = 'ph ph-check';
-    button.querySelector('span').textContent = 'Copiado!';
-    setTimeout(resetCopyButton, 2000);
-  } catch { ui.notify('Não foi possível copiar a conversa.'); }
+    button.querySelector('span').textContent = 'Download iniciado';
+    clearTimeout(endDownloadTimer);
+    endDownloadTimer = setTimeout(resetDownloadButton, 2000);
+  } catch { ui.notify('Não foi possível baixar a conversa. Tente novamente.'); }
 });
 
 // Indicador de qualidade da conexão (cabeçalho): clique abre os detalhes.
