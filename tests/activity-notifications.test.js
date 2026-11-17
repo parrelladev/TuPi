@@ -61,7 +61,7 @@ test('PeerSession: negocia canal confiável e ordenado, roteia no receptor e fec
   const feature = () => ({ attach() {}, detach() {} });
   const notifications = new ActivityNotifications({ playNotification() {} });
   const session = new Peer({
-    rtcConfig: {}, activityNotifications: notifications, chat: feature(), files: feature(), youtube: feature(), presence: feature(),
+    rtcConfig: {}, activityNotifications: notifications, chat: feature(), files: feature(), youtube: feature(), presence: feature(), remoteControl: feature(),
     media: { attachSenders: async () => {}, detachSenders() {}, setRemoteCameraStream() {}, setRemoteScreenStream() {} },
     ui: { $: () => ({ addEventListener() {} }), setScreenAudio() {}, clearRoomView() {} }
   });
