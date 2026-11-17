@@ -94,7 +94,11 @@ export class RemoteControl {
     const screenOk = this.isScreenMonitor();
     if (screenOk === this.local.screenOk) return;
     this.local.screenOk = screenOk;
-    if (!screenOk && this.grant?.role === 'owner') this.revoke();
+    if (!screenOk) {
+      if (this.grant?.role === 'owner') this.revoke();
+      this.local.allow = false;
+      this.disconnectHelper();
+    }
     this.renderAllowUI();
     this.sendToggle();
   }
@@ -110,19 +114,17 @@ export class RemoteControl {
     ui.$('rcAllowCheck').addEventListener('change', event => {
       if (!this.local.screenOk) { event.target.checked = false; return; }
       this.local.allow = event.target.checked;
-      if (!this.local.allow && this.grant?.role === 'owner') this.revoke();
+      if (this.local.allow) this.connectHelper();
+      else { this.disconnectHelper(); if (this.grant?.role === 'owner') this.revoke(); }
       this.sendToggle();
     });
     ui.$('rcAutoAcceptCheck').addEventListener('change', event => {
       this.local.autoAccept = event.target.checked;
       this.sendToggle();
     });
-    ui.$('rcConnectBtn').addEventListener('click', () => {
-      const token = ui.$('rcToken').value.trim();
-      if (!token) { ui.$('rcHelperStatus').textContent = 'Cole o token impresso pelo helper.'; return; }
-      this.connectHelper(token);
-    });
+    ui.$('rcConnectBtn').addEventListener('click', () => this.connectHelper());
     ui.$('rcRequestBtn').addEventListener('click', () => this.requestControl());
+    ui.$('rcRequestInlineBtn').addEventListener('click', () => this.requestControl());
     ui.$('rcAcceptBtn').addEventListener('click', () => this.respondToRequest(true));
     ui.$('rcDeclineBtn').addEventListener('click', () => this.respondToRequest(false));
     ui.$('remoteControlRequestDialog').addEventListener('click', event => { if (event.target === ui.$('remoteControlRequestDialog')) this.respondToRequest(false); });
@@ -150,8 +152,15 @@ export class RemoteControl {
   }
 
   updateRequestButton() {
-    const enabled = Boolean(this.remote.allow && this.remote.screenOk && !this.grant && !this.pendingRequestId);
+    const available = Boolean(this.remote.allow && this.remote.screenOk);
+    const enabled = available && !this.grant && !this.pendingRequestId;
+    const label = this.pendingRequestId ? 'Pedido enviado…' : 'Pedir controle';
     this.ui.$('rcRequestBtn').disabled = !enabled;
+    const inline = this.ui.$('rcRequestInlineBtn');
+    inline.classList.toggle('hidden', !available || Boolean(this.grant));
+    inline.disabled = !enabled;
+    const span = inline.querySelector('span');
+    if (span) span.textContent = label;
   }
 
   renderGrantUI() {
@@ -362,22 +371,23 @@ export class RemoteControl {
   }
 
   // ---- helper nativo local ----
-  connectHelper(token) {
-    this.disconnectHelper();
+  // O helper só escuta em 127.0.0.1: nenhum pareamento extra é necessário, qualquer
+  // processo desta própria máquina já passaria pela mesma barreira de rede.
+  connectHelper() {
+    if (this.helperSocket) return;
     this.ui.$('rcHelperStatus').textContent = 'Conectando ao helper…';
     let socket;
     try { socket = new WebSocket(HELPER_URL); }
     catch { this.ui.$('rcHelperStatus').textContent = 'Não foi possível abrir o WebSocket local.'; return; }
     this.helperSocket = socket;
-    socket.onopen = () => socket.send(JSON.stringify({ t: 'auth', token }));
     socket.onmessage = event => this.handleHelperMessage(event.data);
     socket.onclose = () => {
       if (this.helperSocket !== socket) return;
       this.helperSocket = null;
-      this.ui.$('rcHelperStatus').textContent = 'Helper desconectado.';
+      this.ui.$('rcHelperStatus').textContent = this.local.allow ? 'Helper não encontrado. Rode o helper no PC e tente de novo.' : 'Helper não conectado.';
       if (this.grant?.role === 'owner') this.revoke();
     };
-    socket.onerror = () => { this.ui.$('rcHelperStatus').textContent = 'Erro ao conectar ao helper. Verifique se ele está rodando.'; };
+    socket.onerror = () => {};
   }
 
   disconnectHelper() {
@@ -385,16 +395,14 @@ export class RemoteControl {
     if (!socket) return;
     socket.onopen = socket.onmessage = socket.onclose = socket.onerror = null;
     if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) socket.close();
+    this.ui.$('rcHelperStatus').textContent = 'Helper não conectado.';
   }
 
   handleHelperMessage(raw) {
     let message; try { message = JSON.parse(raw); } catch { return; }
     if (!message || typeof message !== 'object') return;
-    if (message.t === 'auth-ok' && message.screen) {
+    if (message.t === 'ready' && message.screen) {
       this.ui.$('rcHelperStatus').textContent = `Helper conectado (${message.screen.width}×${message.screen.height}).`;
-    } else if (message.t === 'auth-fail') {
-      this.ui.$('rcHelperStatus').textContent = 'Token inválido.';
-      this.disconnectHelper();
     }
   }
 }

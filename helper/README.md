@@ -18,8 +18,9 @@ isso por conta própria.
    npm start
    ```
    ou dê duplo clique em `start-windows.bat`.
-3. O console mostra a porta e um **token novo a cada execução**. Copie esse
-   token e cole no TuPi, em **Mais → Controle remoto → Conectar ao helper**.
+3. No TuPi, em **Mais → Controle remoto**, compartilhe a tela inteira e ligue
+   **"Permitir controle remoto"** — a aba conecta ao helper automaticamente,
+   sem precisar copiar nada.
 
 > Antes de instalar, confira no npm se `@nut-tree-fork/nut-js` ainda é o nome
 > e a versão atual do fork mantido do nut.js — o pacote `robotjs` original
@@ -28,9 +29,9 @@ isso por conta própria.
 ## Como funciona
 
 - O helper escuta **só em `127.0.0.1`** — nenhuma outra máquina da rede
-  consegue se conectar a ele.
-- O token é gerado aleatoriamente a cada vez que o helper inicia e nunca é
-  salvo em disco.
+  consegue se conectar a ele. Essa é a única barreira de pareamento: não há
+  token, porque qualquer processo que já consiga abrir esse socket já está
+  rodando nesta mesma máquina.
 - A aba do navegador só encaminha comandos de mouse/teclado depois que a
   pessoa que está sendo vista aceita um pedido de controle no TuPi — o
   helper em si não sabe nada sobre esse consentimento, só executa o que a

@@ -1,16 +1,12 @@
 'use strict';
-const crypto = require('node:crypto');
 const { WebSocketServer } = require('ws');
 const { mouse, keyboard, screen, Point, Button } = require('@nut-tree-fork/nut-js');
 const { resolveKey, allowedCode } = require('./key-map');
 
 const PORT = 17172;
-const token = crypto.randomBytes(16).toString('hex');
 const BUTTONS = { 0: Button.LEFT, 1: Button.MIDDLE, 2: Button.RIGHT };
-const MAX_AUTH_FAILURES = 5;
 
-let authedSocket = null;
-let failedAuthAttempts = 0;
+let activeSocket = null;
 let screenSize = { width: 1920, height: 1080 };
 
 async function readScreenSize() {
@@ -54,33 +50,27 @@ function send(ws, message) { try { ws.send(JSON.stringify(message)); } catch { /
 
 const wss = new WebSocketServer({ host: '127.0.0.1', port: PORT });
 
-wss.on('connection', ws => {
-  ws.authed = false;
+// Escuta só em 127.0.0.1: essa é a única barreira de pareamento. Quem já consegue
+// abrir um socket nesta porta já está rodando código nesta mesma máquina.
+wss.on('connection', async ws => {
+  if (activeSocket && activeSocket !== ws) activeSocket.close();
+  activeSocket = ws;
+  await readScreenSize();
+  send(ws, { t: 'ready', screen: screenSize });
+
   ws.on('message', async raw => {
+    if (activeSocket !== ws) return;
     const text = typeof raw === 'string' ? raw : Buffer.isBuffer(raw) ? raw.toString() : null;
     if (!text || text.length > 400) return;
     let message;
     try { message = JSON.parse(text); } catch { return; }
     if (!message || typeof message !== 'object' || typeof message.t !== 'string') return;
-
-    if (!ws.authed) {
-      if (message.t !== 'auth' || failedAuthAttempts >= MAX_AUTH_FAILURES) return;
-      if (message.token !== token) { failedAuthAttempts += 1; send(ws, { t: 'auth-fail' }); ws.close(); return; }
-      ws.authed = true;
-      if (authedSocket && authedSocket !== ws) authedSocket.close();
-      authedSocket = ws;
-      await readScreenSize();
-      send(ws, { t: 'auth-ok', screen: screenSize });
-      return;
-    }
-    if (ws !== authedSocket) return;
     try { await handleCommand(message); } catch { /* comando inválido ou falha pontual do SO: ignora e segue */ }
   });
-  ws.on('close', () => { if (authedSocket === ws) authedSocket = null; });
+  ws.on('close', () => { if (activeSocket === ws) activeSocket = null; });
 });
 
 console.log('TuPi Remote Helper');
 console.log(`Escutando em ws://127.0.0.1:${PORT} (só nesta máquina)`);
-console.log(`Token desta sessão: ${token}`);
-console.log('Cole esse token no TuPi (Mais > Controle remoto) para conectar.');
+console.log('No TuPi, ligue "Permitir controle remoto" (Mais > Controle remoto) para conectar automaticamente.');
 console.log('Mantenha esta janela aberta enquanto usar o controle remoto. Feche para revogar o acesso imediatamente.');
