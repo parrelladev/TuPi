@@ -11,7 +11,7 @@ const PRECACHE = [
   '/js/core/signaling.js', '/js/core/peer.js', '/js/core/quality.js', '/js/core/stats.js', '/js/core/diagnostics.js', '/js/core/diagnostics-runner.js',
   '/css/stage-layout.css', '/js/features/stage-layout.js', '/css/whiteboard.css', '/js/features/whiteboard/index.js', '/js/features/whiteboard/view.js', '/js/features/whiteboard/renderer.js', '/js/features/whiteboard/export.js', '/js/features/chat.js', '/js/features/files.js', '/js/features/stream-save.js', '/js/features/youtube.js', '/js/features/media.js',
   '/js/features/avatars.js', '/js/features/presence.js', '/js/features/voice.js', '/js/features/speaker.js',
-  '/js/features/notifier.js', '/js/features/screen.js',
+  '/js/features/notifier.js', '/js/features/screen.js', '/js/features/remote-control.js',
   '/vendor/open-props.css', '/vendor/motion.js', '/vendor/auto-animate.js',
   '/vendor/phosphor/phosphor.css', '/vendor/phosphor/Phosphor.woff2', '/vendor/phosphor/Phosphor-Fill.woff2'
 ];

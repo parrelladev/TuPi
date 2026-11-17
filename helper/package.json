@@ -1,0 +1,17 @@
+{
+  "name": "tupi-remote-helper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Helper nativo (Windows) que executa comandos de mouse e teclado vindos da aba do TuPi, via WebSocket local.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.0",
+    "ws": "^8.18.0"
+  }
+}
