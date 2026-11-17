@@ -1,3 +1,4 @@
+import { diagnostics } from '../core/diagnostics.js';
 import { canStreamSave, openStreamSave } from './stream-save.js';
 
 // Protocolo 2: um bloco por vez, confirmado individualmente (compatível com versões antigas).
@@ -46,7 +47,18 @@ export class FileTransfers {
     channel.onopen = () => this.setStatus('Pronto para transferir arquivos');
     channel.onclose = () => { this.cancel(false); this.setStatus('Canal de arquivos desconectado'); };
     channel.onerror = () => this.setStatus('Erro no canal de arquivos');
-    channel.onmessage = event => { this.messageQueue = this.messageQueue.then(() => this.onMessage(event.data)).catch(() => this.cancel()); };
+    channel.onmessage = event => {
+      if (!diagnostics.running) {
+        this.messageQueue = this.messageQueue.then(() => this.onMessage(event.data)).catch(() => this.cancel());
+        return;
+      }
+      const receivedAt = performance.now();
+      this.messageQueue = this.messageQueue.then(async () => {
+        const startedAt = performance.now();
+        try { await this.onMessage(event.data); }
+        finally { diagnostics.fileHandler(startedAt - receivedAt, performance.now() - startedAt); }
+      }).catch(() => this.cancel());
+    };
   }
 
   updateModeHint(size) {
